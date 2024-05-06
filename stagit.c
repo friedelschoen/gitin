@@ -7,6 +7,13 @@
 #include <limits.h>
 #include <stdint.h>
 #include <stdio.h>
+#include<unistd.h>
+#include<sys/wait.h>
+#include<sys/prctl.h>
+#include<signal.h>
+#include<stdlib.h>
+#include<string.h>
+#include<stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -71,6 +78,7 @@ static char *licensefiles[] = { "HEAD:LICENSE", "HEAD:LICENSE.md", "HEAD:COPYING
 static char *license;
 static char *readmefiles[] = { "HEAD:README", "HEAD:README.md" };
 static char *readme;
+static char* highlightcmd[] = { "stagit-highlight", NULL };
 static long long nlogcommits = -1; /* -1 indicates not used */
 
 /* cache */
@@ -557,34 +565,70 @@ writefooter(FILE *fp)
 }
 
 size_t
-writeblobhtml(FILE *fp, const git_blob *blob)
+writeblobhtml(FILE *fp, const git_blob *blob, const char* filename)
 {
 	size_t n = 0, i, len, prev;
 	const char *nfmt = "<a href=\"#l%zu\" class=\"line\" id=\"l%zu\">%7zu</a> ";
 	const char *s = git_blob_rawcontent(blob);
 
-	len = git_blob_rawsize(blob);
-	fputs("<pre id=\"blob\">\n", fp);
+	static unsigned char buffer[512];
+	int inpipefd[2];
+	int outpipefd[2];
+	pid_t process;
+	ssize_t readlen;
+	int status;
 
-	if (len > 0) {
-		for (i = 0, prev = 0; i < len; i++) {
-			if (s[i] != '\n')
-				continue;
-			n++;
-			fprintf(fp, nfmt, n, n, n);
-			xmlencodeline(fp, &s[prev], i - prev + 1);
-			putc('\n', fp);
-			prev = i + 1;
-		}
-		/* trailing data */
-		if ((len - prev) > 0) {
-			n++;
-			fprintf(fp, nfmt, n, n, n);
-			xmlencodeline(fp, &s[prev], len - prev);
-		}
+	pipe(inpipefd);
+	pipe(outpipefd);
+
+	len = git_blob_rawsize(blob);
+	if (len == 0) return 0;
+	
+	if ((process = fork()) == -1) {
+		perror("fork(highlight)");
+		exit(1);
+	} else if (process == 0) {
+		// Child
+    		dup2(outpipefd[0], STDIN_FILENO);
+    		dup2(inpipefd[1], STDOUT_FILENO);
+
+    		//ask kernel to deliver SIGTERM in case the parent dies
+    		prctl(PR_SET_PDEATHSIG, SIGTERM);
+
+    		//close unused pipe ends
+    		close(outpipefd[1]);
+    		close(inpipefd[0]);
+
+    		//replace tee with your process
+    		execvp(highlightcmd[0], highlightcmd);
+
+			perror("exec(highlight)");
+    		// Nothing below this line should be executed by child process. If so, 
+    		// it means that the execl function wasn't successfull, so lets exit:
+    		_exit(1);
 	}
 
-	fputs("</pre>\n", fp);
+ 	close(outpipefd[0]);
+  	close(inpipefd[1]);	
+
+	dprintf(outpipefd[1], "%s\n", filename);
+	
+	if (write(outpipefd[1], s, len) == -1){
+		perror("write(highlight)");
+		exit(1);
+	}
+
+	close(outpipefd[1]);
+
+	n = 0;
+	while ((readlen = read(inpipefd[0], buffer, sizeof buffer)) > 0) {
+		fwrite(buffer, readlen, 1, fp);
+		n += readlen;
+	}
+
+	close(inpipefd[0]);
+
+	waitpid(process, &status, 0);
 
 	return n;
 }
@@ -977,7 +1021,7 @@ writeblob(git_object *obj, const char *fpath, const char *filename, size_t files
 	if (git_blob_is_binary((git_blob *)obj))
 		fputs("<p>Binary file.</p>\n", fp);
 	else
-		lc = writeblobhtml(fp, (git_blob *)obj);
+		lc = writeblobhtml(fp, (git_blob *)obj, filename);
 
 	writefooter(fp);
 	checkfileerror(fp, fpath, 'w');
