@@ -1,3 +1,4 @@
+#include <git2/blob.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
@@ -991,7 +992,7 @@ writeatom(FILE *fp, int all)
 }
 
 size_t
-writeblob(git_object *obj, const char *fpath, const char *filename, size_t filesize)
+writeblob(git_object *obj, const char *fpath, const char *filename, const char* staticpath, size_t filesize)
 {
 	char tmp[PATH_MAX] = "", *d;
 	const char *p;
@@ -1015,7 +1016,7 @@ writeblob(git_object *obj, const char *fpath, const char *filename, size_t files
 	writeheader(fp, filename);
 	fputs("<p> ", fp);
 	xmlencode(fp, filename, strlen(filename));
-	fprintf(fp, " (%zuB)", filesize);
+	fprintf(fp, " (%zuB) <a href='%s%s'>download</a>", filesize, relpath, staticpath);
 	fputs("</p><hr/>", fp);
 
 	if (git_blob_is_binary((git_blob *)obj))
@@ -1074,13 +1075,40 @@ filemode(git_filemode_t m)
 	return mode;
 }
 
+void writefile(git_object *obj, const char *fpath, const char *filename, size_t filesize) {
+	char tmp[PATH_MAX] = "", *d;
+	const char *p;
+	size_t lc = 0;
+	FILE *fp;
+
+	if (strlcpy(tmp, fpath, sizeof(tmp)) >= sizeof(tmp))
+		errx(1, "path truncated: '%s'", fpath);
+	if (!(d = dirname(tmp)))
+		err(1, "dirname");
+	if (mkdirp(d))
+		return;
+
+	for (p = fpath, tmp[0] = '\0'; *p; p++) {
+		if (*p == '/' && strlcat(tmp, "../", sizeof(tmp)) >= sizeof(tmp))
+			errx(1, "path truncated: '../%s'", tmp);
+	}
+	relpath = tmp;
+
+	fp = efopen(fpath, "w");
+	fwrite(git_blob_rawcontent((const git_blob*) obj), filesize, 1, fp);
+	checkfileerror(fp, fpath, 'w');
+	fclose(fp);
+
+	relpath = "";
+}
+
 int
 writefilestree(FILE *fp, git_tree *tree, const char *path)
 {
 	const git_tree_entry *entry = NULL;
 	git_object *obj = NULL;
 	const char *entryname;
-	char filepath[PATH_MAX], entrypath[PATH_MAX], oid[8];
+	char filepath[PATH_MAX], entrypath[PATH_MAX], staticpath[PATH_MAX], oid[8];
 	size_t count, i, lc, filesize;
 	int r, ret;
 
@@ -1095,6 +1123,11 @@ writefilestree(FILE *fp, git_tree *tree, const char *path)
 		         entrypath);
 		if (r < 0 || (size_t)r >= sizeof(filepath))
 			errx(1, "path truncated: 'file/%s.html'", entrypath);
+
+		r = snprintf(staticpath, sizeof(staticpath), "static/%s",
+		         entrypath);
+		if (r < 0 || (size_t)r >= sizeof(staticpath))
+			errx(1, "path truncated: 'static/%s'", entrypath);
 
 		if (!git_tree_entry_to_object(&obj, repo, entry)) {
 			switch (git_object_type(obj)) {
@@ -1114,7 +1147,9 @@ writefilestree(FILE *fp, git_tree *tree, const char *path)
 			}
 
 			filesize = git_blob_rawsize((git_blob *)obj);
-			lc = writeblob(obj, filepath, entryname, filesize);
+			lc = writeblob(obj, filepath, entryname, staticpath, filesize);
+
+			writefile(obj, staticpath, entryname, filesize);
 
 			fputs("<tr><td>", fp);
 			fputs(filemode(git_tree_entry_filemode(entry)), fp);
