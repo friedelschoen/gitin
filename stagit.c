@@ -1415,7 +1415,8 @@ main(int argc, char *argv[])
 	snprintf(path, sizeof(path), "%s/log.html", destdir);
 	fp = efopen(path, "w");
 	relpath = "";
-	mkdir("commit", S_IRWXU | S_IRWXG | S_IRWXO);
+	snprintf(path, sizeof(path), "%s/commit", destdir);
+	mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
 	writeheader(fp, "Log");
 	fputs("<table id=\"log\"><thead>\n<tr><td><b>Date</b></td>"
 	      "<td><b>Commit message</b></td>"
@@ -1465,6 +1466,7 @@ main(int argc, char *argv[])
 
 	fputs("</tbody></table>", fp);
 	writefooter(fp);
+	snprintf(path, sizeof(path), "%s/log.html", destdir);
 	checkfileerror(fp, path, 'w');
 	fclose(fp);
 
