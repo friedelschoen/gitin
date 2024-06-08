@@ -81,6 +81,7 @@ static char *readmefiles[] = { "HEAD:README", "HEAD:README.md" };
 static char *readme;
 static char* highlightcmd[] = { "stagit-highlight", NULL };
 static long long nlogcommits = -1; /* -1 indicates not used */
+static const char *destdir = ".";
 
 /* cache */
 static git_oid lastoid;
@@ -832,7 +833,7 @@ writelog(FILE *fp, const git_oid *oid)
 			break;
 
 		git_oid_tostr(oidstr, sizeof(oidstr), &id);
-		r = snprintf(path, sizeof(path), "commit/%s.html", oidstr);
+		r = snprintf(path, sizeof(path), "%s/commit/%s.html", destdir, oidstr);
 		if (r < 0 || (size_t)r >= sizeof(path))
 			errx(1, "path truncated: 'commit/%s.html'", oidstr);
 		r = access(path, F_OK);
@@ -1119,13 +1120,13 @@ writefilestree(FILE *fp, git_tree *tree, const char *path)
 			return -1;
 		joinpath(entrypath, sizeof(entrypath), path, entryname);
 
-		r = snprintf(filepath, sizeof(filepath), "file/%s.html",
-		         entrypath);
+		r = snprintf(filepath, sizeof(filepath), "%s/file/%s.html",
+		         destdir, entrypath);
 		if (r < 0 || (size_t)r >= sizeof(filepath))
 			errx(1, "path truncated: 'file/%s.html'", entrypath);
 
-		r = snprintf(staticpath, sizeof(staticpath), "static/%s",
-		         entrypath);
+		r = snprintf(staticpath, sizeof(staticpath), "%s/static/%s",
+		         destdir, entrypath);
 		if (r < 0 || (size_t)r >= sizeof(staticpath))
 			errx(1, "path truncated: 'static/%s'", entrypath);
 
@@ -1263,7 +1264,7 @@ writerefs(FILE *fp)
 void
 usage(char *argv0)
 {
-	fprintf(stderr, "usage: %s [-c cachefile | -l commits] "
+	fprintf(stderr, "usage: %s [-d destdir] [-c cachefile | -l commits] "
 	        "[-u baseurl] repodir\n", argv0);
 	exit(1);
 }
@@ -1285,6 +1286,10 @@ main(int argc, char *argv[])
 			if (repodir)
 				usage(argv[0]);
 			repodir = argv[i];
+		} else if (argv[i][1] == 'd') {
+			if (i + 1 >= argc)
+				usage(argv[0]);
+			destdir = argv[++i];
 		} else if (argv[i][1] == 'c') {
 			if (nlogcommits > 0 || i + 1 >= argc)
 				usage(argv[0]);
@@ -1407,7 +1412,8 @@ main(int argc, char *argv[])
 	git_object_free(obj);
 
 	/* log for HEAD */
-	fp = efopen("log.html", "w");
+	snprintf(path, sizeof(path), "%s/log.html", destdir);
+	fp = efopen(path, "w");
 	relpath = "";
 	mkdir("commit", S_IRWXU | S_IRWXG | S_IRWXO);
 	writeheader(fp, "Log");
@@ -1459,36 +1465,40 @@ main(int argc, char *argv[])
 
 	fputs("</tbody></table>", fp);
 	writefooter(fp);
-	checkfileerror(fp, "log.html", 'w');
+	checkfileerror(fp, path, 'w');
 	fclose(fp);
 
 	/* files for HEAD */
-	fp = efopen("files.html", "w");
+	snprintf(path, sizeof(path), "%s/files.html", destdir);
+	fp = efopen(path, "w");
 	writeheader(fp, "Files");
 	if (head)
 		writefiles(fp, head);
 	writefooter(fp);
-	checkfileerror(fp, "files.html", 'w');
+	checkfileerror(fp, path, 'w');
 	fclose(fp);
 
 	/* summary page with branches and tags */
-	fp = efopen("refs.html", "w");
+	snprintf(path, sizeof(path), "%s/refs.html", destdir);
+	fp = efopen(path, "w");
 	writeheader(fp, "Refs");
 	writerefs(fp);
 	writefooter(fp);
-	checkfileerror(fp, "refs.html", 'w');
+	checkfileerror(fp, path, 'w');
 	fclose(fp);
 
 	/* Atom feed */
-	fp = efopen("atom.xml", "w");
+	snprintf(path, sizeof(path), "%s/atom.xml", destdir);
+	fp = efopen(path, "w");
 	writeatom(fp, 1);
-	checkfileerror(fp, "atom.xml", 'w');
+	checkfileerror(fp, path, 'w');
 	fclose(fp);
 
 	/* Atom feed for tags / releases */
-	fp = efopen("tags.xml", "w");
+	snprintf(path, sizeof(path), "%s/tags.xml", destdir);
+	fp = efopen(path, "w");
 	writeatom(fp, 0);
-	checkfileerror(fp, "tags.xml", 'w');
+	checkfileerror(fp, path, 'w');
 	fclose(fp);
 
 	/* rename new cache file on success */
