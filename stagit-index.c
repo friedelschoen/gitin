@@ -10,10 +10,12 @@
 
 static git_repository *repo;
 
+static const char logoicon[] = "logo.svg";
+static const char faviconicon[] = "favicon.svg";
 static const char *relpath = "";
 
 static char description[255] = "Repositories";
-static char *name = "";
+static const char *name = "";
 static char owner[255];
 
 /* Handle read or write errors for a FILE * stream */
@@ -101,11 +103,11 @@ writeheader(FILE *fp)
 		"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n"
 		"<title>", fp);
 	xmlencode(fp, description, strlen(description));
-	fprintf(fp, "</title>\n<link rel=\"icon\" type=\"image/png\" href=\"%sfavicon.png\" />\n", relpath);
+	fprintf(fp, "</title>\n<link rel=\"icon\" href=\"%s%s\" />\n", relpath, faviconicon);
 	fprintf(fp, "<link rel=\"stylesheet\" type=\"text/css\" href=\"%sstyle.css\" />\n", relpath);
 	fputs("</head>\n<body>\n", fp);
-	fprintf(fp, "<table>\n<tr><td><img src=\"%slogo.png\" alt=\"\" width=\"32\" height=\"32\" /></td>\n"
-	        "<td><span class=\"desc\">", relpath);
+	fprintf(fp, "<table>\n<tr><td><img src=\"%s%s\" alt=\"\" width=\"32\" height=\"32\" /></td>\n"
+	        "<td><span class=\"desc\">", relpath, logoicon);
 	xmlencode(fp, description, strlen(description));
 	fputs("</span></td></tr><tr><td></td><td>\n"
 		"</td></tr>\n</table>\n<hr/>\n<div id=\"content\">\n"
@@ -200,8 +202,8 @@ main(int argc, char *argv[])
 
 	for (i = 1; i < argc; i++) {
 		repodir = argv[i];
-		if (!realpath(repodir, repodirabs))
-			err(1, "realpath");
+
+		name = repodir;
 
 		if (git_repository_open_ext(&repo, repodir,
 		    GIT_REPOSITORY_OPEN_NO_SEARCH, NULL)) {
@@ -209,12 +211,6 @@ main(int argc, char *argv[])
 			ret = 1;
 			continue;
 		}
-
-		/* use directory name as name */
-		if ((name = strrchr(repodirabs, '/')))
-			name++;
-		else
-			name = "";
 
 		/* read description or .git/description */
 		joinpath(path, sizeof(path), repodir, "description");
