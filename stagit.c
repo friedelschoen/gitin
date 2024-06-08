@@ -70,6 +70,8 @@ static const char *baseurl = ""; /* base URL to make absolute RSS/Atom URI */
 static const char *relpath = "";
 static const char *repodir;
 
+static const char faviconicon[] = "favicon.svg";
+static const char logoicon[] = "logo.svg";
 static char *name = "";
 static char *strippedname = "";
 static char description[255];
@@ -521,7 +523,7 @@ writeheader(FILE *fp, const char *title)
 	if (description[0])
 		fputs(" - ", fp);
 	xmlencode(fp, description, strlen(description));
-	fprintf(fp, "</title>\n<link rel=\"icon\" type=\"image/png\" href=\"%sfavicon.png\" />\n", relpath);
+	fprintf(fp, "</title>\n<link rel=\"icon\" type=\"image/svg+xml\" href=\"%s%s\" />\n", relpath, faviconicon);
 	fputs("<link rel=\"alternate\" type=\"application/atom+xml\" title=\"", fp);
 	xmlencode(fp, name, strlen(name));
 	fprintf(fp, " Atom Feed\" href=\"%satom.xml\" />\n", relpath);
@@ -530,8 +532,8 @@ writeheader(FILE *fp, const char *title)
 	fprintf(fp, " Atom Feed (tags)\" href=\"%stags.xml\" />\n", relpath);
 	fprintf(fp, "<link rel=\"stylesheet\" type=\"text/css\" href=\"%sstyle.css\" />\n", relpath);
 	fputs("</head>\n<body>\n<table><tr><td>", fp);
-	fprintf(fp, "<a href=\"../%s\"><img src=\"%slogo.png\" alt=\"\" width=\"32\" height=\"32\" /></a>",
-	        relpath, relpath);
+	fprintf(fp, "<a href=\"../%s\"><img src=\"%s%s\" alt=\"\" width=\"32\" height=\"32\" /></a>",
+	        relpath, relpath, logoicon);
 	fputs("</td><td><h1>", fp);
 	xmlencode(fp, strippedname, strlen(strippedname));
 	fputs("</h1><span class=\"desc\">", fp);
