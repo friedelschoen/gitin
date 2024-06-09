@@ -1122,13 +1122,12 @@ writefilestree(FILE *fp, git_tree *tree, const char *path)
 			return -1;
 		joinpath(entrypath, sizeof(entrypath), path, entryname);
 
-		r = snprintf(filepath, sizeof(filepath), "%s/file/%s.html",
-		         destdir, entrypath);
+		r = snprintf(filepath, sizeof(filepath), "file/%s.html", entrypath);
 		if (r < 0 || (size_t)r >= sizeof(filepath))
 			errx(1, "path truncated: 'file/%s.html'", entrypath);
 
-		r = snprintf(staticpath, sizeof(staticpath), "%s/static/%s",
-		         destdir, entrypath);
+		r = snprintf(staticpath, sizeof(staticpath), "static/%s",
+		          entrypath);
 		if (r < 0 || (size_t)r >= sizeof(staticpath))
 			errx(1, "path truncated: 'static/%s'", entrypath);
 
