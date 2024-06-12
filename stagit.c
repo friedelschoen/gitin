@@ -1006,6 +1006,7 @@ writeblob(git_object *obj, const char *fpath, const char *filename, const char* 
 		errx(1, "path truncated: '%s'", fpath);
 	if (!(d = dirname(tmp)))
 		err(1, "dirname");
+	printf("dirname: %s\n", d);
 	if (mkdirp(d))
 		return -1;
 
@@ -1105,6 +1106,14 @@ void writefile(git_object *obj, const char *fpath, const char *filename, size_t 
 	relpath = "";
 }
 
+static void
+unhide_filename(char* path) {
+	for (char* chr = path; *chr; chr++) {
+		if (*chr == '.' && (chr == path || chr[-1] == '/'))
+			*chr = '-';
+	}
+}
+
 int
 writefilestree(FILE *fp, git_tree *tree, const char *path)
 {
@@ -1122,14 +1131,16 @@ writefilestree(FILE *fp, git_tree *tree, const char *path)
 			return -1;
 		joinpath(entrypath, sizeof(entrypath), path, entryname);
 
-		r = snprintf(filepath, sizeof(filepath), "file/%s.html", entrypath);
+		r = snprintf(filepath, sizeof(filepath), "%s/file/%s.html", destdir, entrypath);
 		if (r < 0 || (size_t)r >= sizeof(filepath))
-			errx(1, "path truncated: 'file/%s.html'", entrypath);
+			errx(1, "path truncated: '%s/file/%s.html'", destdir, entrypath);
 
-		r = snprintf(staticpath, sizeof(staticpath), "static/%s",
-		          entrypath);
+		r = snprintf(staticpath, sizeof(staticpath), "%s/static/%s", destdir, entrypath);
 		if (r < 0 || (size_t)r >= sizeof(staticpath))
-			errx(1, "path truncated: 'static/%s'", entrypath);
+			errx(1, "path truncated: '%s/static/%s'", destdir, entrypath);
+
+		unhide_filename(filepath);
+		unhide_filename(staticpath);
 
 		if (!git_tree_entry_to_object(&obj, repo, entry)) {
 			switch (git_object_type(obj)) {
@@ -1153,6 +1164,17 @@ writefilestree(FILE *fp, git_tree *tree, const char *path)
 
 			writefile(obj, staticpath, entryname, filesize);
 
+			r = snprintf(filepath, sizeof(filepath), "file/%s.html", entrypath);
+			if (r < 0 || (size_t)r >= sizeof(filepath))
+				errx(1, "path truncated: 'file/%s.html'", entrypath);
+
+			r = snprintf(staticpath, sizeof(staticpath), "static/%s", entrypath);
+			if (r < 0 || (size_t)r >= sizeof(staticpath))
+				errx(1, "path truncated: 'static/%s'", entrypath);
+
+			unhide_filename(filepath);
+			unhide_filename(staticpath);
+
 			fputs("<tr><td>", fp);
 			fputs(filemode(git_tree_entry_filemode(entry)), fp);
 			fprintf(fp, "</td><td><a href=\"%s", relpath);
@@ -1168,7 +1190,7 @@ writefilestree(FILE *fp, git_tree *tree, const char *path)
 			git_object_free(obj);
 		} else if (git_tree_entry_type(entry) == GIT_OBJ_COMMIT) {
 			/* commit object in tree is a submodule */
-			fprintf(fp, "<tr><td>m---------</td><td><a href=\"%sfile/.gitmodules.html\">",
+			fprintf(fp, "<tr><td>m---------</td><td><a href=\"%sfile/-gitmodules.html\">",
 				relpath);
 			xmlencode(fp, entrypath, strlen(entrypath));
 			fputs("</a> @ ", fp);
