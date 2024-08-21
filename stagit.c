@@ -8,13 +8,12 @@
 #include <limits.h>
 #include <stdint.h>
 #include <stdio.h>
-#include<unistd.h>
-#include<sys/wait.h>
-#include<sys/prctl.h>
-#include<signal.h>
-#include<stdlib.h>
-#include<string.h>
-#include<stdio.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <sys/prctl.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -22,9 +21,12 @@
 
 #include <git2.h>
 
+#include "arg.h"
 #include "compat.h"
 
 #define LEN(s)    (sizeof(s)/sizeof(*s))
+
+#define MURMUR_SEED 0xCAFE5EED // cafeseed
 
 struct deltainfo {
 	git_patch *patch;
@@ -64,6 +66,9 @@ struct referenceinfo {
 	struct commitinfo *ci;
 };
 
+/* helper struct for pipe(2) */
+typedef struct { int read; int write; } pipe_t;
+
 static git_repository *repo;
 
 static const char *baseurl = ""; /* base URL to make absolute RSS/Atom URI */
@@ -81,15 +86,67 @@ static char *licensefiles[] = { "HEAD:LICENSE", "HEAD:LICENSE.md", "HEAD:COPYING
 static char *license;
 static char *readmefiles[] = { "HEAD:README", "HEAD:README.md" };
 static char *readme;
-static char* highlightcmd[] = { "stagit-highlight", NULL };
+static char* highlightcmd = "chroma --html --html-only --html-inline-styles --style=xcode --lexer=$type";
+static char* hlcache = ".hlcache";
 static long long nlogcommits = -1; /* -1 indicates not used */
 static const char *destdir = ".";
+
+static uint32_t highlighthash;
 
 /* cache */
 static git_oid lastoid;
 static char lastoidstr[GIT_OID_HEXSZ + 2]; /* id + newline + NUL byte */
 static FILE *rcachefp, *wcachefp;
 static const char *cachefile;
+
+
+/* a simple and fast hashing function */
+uint32_t murmurhash3(const void *key, int len, uint32_t seed) {
+    const uint8_t *data = (const uint8_t *)key;
+    const int nblocks = len / 4;
+    uint32_t h1 = seed;
+
+    const uint32_t c1 = 0xcc9e2d51;
+    const uint32_t c2 = 0x1b873593;
+
+    // Body
+    const uint32_t *blocks = (const uint32_t *)(data + nblocks * 4);
+    for (int i = -nblocks; i; i++) {
+        uint32_t k1 = blocks[i];
+
+        k1 *= c1;
+        k1 = (k1 << 15) | (k1 >> (32 - 15));
+        k1 *= c2;
+
+        h1 ^= k1;
+        h1 = (h1 << 13) | (h1 >> (32 - 13));
+        h1 = h1 * 5 + 0xe6546b64;
+    }
+
+    // Tail
+    const uint8_t *tail = (const uint8_t *)(data + nblocks * 4);
+    uint32_t k1 = 0;
+
+    switch (len & 3) {
+        case 3: k1 ^= tail[2] << 16;
+        case 2: k1 ^= tail[1] << 8;
+        case 1: k1 ^= tail[0];
+                k1 *= c1;
+                k1 = (k1 << 15) | (k1 >> (32 - 15));
+                k1 *= c2;
+                h1 ^= k1;
+    }
+
+    // Finalization
+    h1 ^= len;
+    h1 ^= h1 >> 16;
+    h1 *= 0x85ebca6b;
+    h1 ^= h1 >> 13;
+    h1 *= 0xc2b2ae35;
+    h1 ^= h1 >> 16;
+
+    return h1;
+}
 
 /* Handle read or write errors for a FILE * stream */
 void
@@ -99,18 +156,6 @@ checkfileerror(FILE *fp, const char *name, int mode)
 		errx(1, "read error: %s", name);
 	else if (mode == 'w' && (fflush(fp) || ferror(fp)))
 		errx(1, "write error: %s", name);
-}
-
-void
-joinpath(char *buf, size_t bufsiz, const char *path, const char *path2)
-{
-	int r;
-
-	r = snprintf(buf, bufsiz, "%s%s%s",
-		path, path[0] && path[strlen(path) - 1] != '/' ? "/" : "", path2);
-	if (r < 0 || (size_t)r >= bufsiz)
-		errx(1, "path truncated: '%s%s%s'",
-			path, path[0] && path[strlen(path) - 1] != '/' ? "/" : "", path2);
 }
 
 void
@@ -576,63 +621,90 @@ writeblobhtml(FILE *fp, const git_blob *blob, const char* filename)
 	const char *s = git_blob_rawcontent(blob);
 
 	static unsigned char buffer[512];
-	int inpipefd[2];
-	int outpipefd[2];
+	static char cachepath[PATH_MAX];
+	FILE* cache;
+	pipe_t inpipefd;
+	pipe_t outpipefd;
 	pid_t process;
 	ssize_t readlen;
 	int status;
-
-	pipe(inpipefd);
-	pipe(outpipefd);
+	uint32_t contenthash;
+	char* type;
 
 	len = git_blob_rawsize(blob);
-	if (len == 0) return 0;
+	if (len == 0) 
+		return 0;
+
+	printf("highlighting %s: ", filename);
+	fflush(stdout);
+
+	contenthash = murmurhash3(s, len, MURMUR_SEED);
+	snprintf(cachepath, sizeof(cachepath), "%s/%x-%x.html", hlcache, highlighthash, contenthash);
+	
+	if ((cache = fopen(cachepath, "r"))) {
+		n = 0;
+		while ((readlen = fread(buffer,1, sizeof(buffer), cache)) > 0) {
+			fwrite(buffer, 1, readlen, fp);
+			n += readlen;
+		}
+		fclose(cache);
+
+		printf("cached\n");
+
+		return n;
+	}
+
+	if ((type = strrchr(filename, '.')) != NULL)
+		type++;
+
+	pipe((int*) &inpipefd);
+	pipe((int*) &outpipefd);
 	
 	if ((process = fork()) == -1) {
 		perror("fork(highlight)");
 		exit(1);
 	} else if (process == 0) {
 		// Child
-    		dup2(outpipefd[0], STDIN_FILENO);
-    		dup2(inpipefd[1], STDOUT_FILENO);
+		dup2(outpipefd.read, STDIN_FILENO);
+		dup2(inpipefd.write, STDOUT_FILENO);
 
-    		//ask kernel to deliver SIGTERM in case the parent dies
-    		prctl(PR_SET_PDEATHSIG, SIGTERM);
+		//close unused pipe ends
+		close(outpipefd.write);
+		close(inpipefd.read);
 
-    		//close unused pipe ends
-    		close(outpipefd[1]);
-    		close(inpipefd[0]);
+		setenv("filename", filename, 1);
+		setenv("type", type, 1);
+		execlp("sh", "sh", "-c", highlightcmd, NULL);
 
-    		//replace tee with your process
-    		execvp(highlightcmd[0], highlightcmd);
-
-			perror("exec(highlight)");
-    		// Nothing below this line should be executed by child process. If so, 
-    		// it means that the execl function wasn't successfull, so lets exit:
-    		_exit(1);
+		perror("exec(highlight)");
+		_exit(1);
 	}
 
- 	close(outpipefd[0]);
-  	close(inpipefd[1]);	
+ 	close(outpipefd.read);
+  	close(inpipefd.write);	
 
-	dprintf(outpipefd[1], "%s\n", filename);
-	
-	if (write(outpipefd[1], s, len) == -1){
+	if (write(outpipefd.write, s, len) == -1){
 		perror("write(highlight)");
 		exit(1);
 	}
 
-	close(outpipefd[1]);
+	close(outpipefd.write);
+
+	cache = fopen(cachepath, "w+");
 
 	n = 0;
-	while ((readlen = read(inpipefd[0], buffer, sizeof buffer)) > 0) {
+	while ((readlen = read(inpipefd.read, buffer, sizeof buffer)) > 0) {
 		fwrite(buffer, readlen, 1, fp);
+		if (cache) fwrite(buffer, readlen, 1, cache);
 		n += readlen;
 	}
 
-	close(inpipefd[0]);
+	close(inpipefd.read);
+	if (cache) fclose(cache);
 
 	waitpid(process, &status, 0);
+
+	printf("done\n");
 
 	return n;
 }
@@ -1006,7 +1078,7 @@ writeblob(git_object *obj, const char *fpath, const char *filename, const char* 
 		errx(1, "path truncated: '%s'", fpath);
 	if (!(d = dirname(tmp)))
 		err(1, "dirname");
-	printf("dirname: %s\n", d);
+
 	if (mkdirp(d))
 		return -1;
 
@@ -1129,7 +1201,7 @@ writefilestree(FILE *fp, git_tree *tree, const char *path)
 		if (!(entry = git_tree_entry_byindex(tree, i)) ||
 		    !(entryname = git_tree_entry_name(entry)))
 			return -1;
-		joinpath(entrypath, sizeof(entrypath), path, entryname);
+		snprintf(entrypath, sizeof(entrypath), "%s/%s", path,entryname);
 
 		r = snprintf(filepath, sizeof(filepath), "%s/file/%s.html", destdir, entrypath);
 		if (r < 0 || (size_t)r >= sizeof(filepath))
@@ -1300,39 +1372,38 @@ main(int argc, char *argv[])
 	mode_t mask;
 	FILE *fp, *fpread;
 	char path[PATH_MAX], repodirabs[PATH_MAX + 1], *p;
-	char tmppath[64] = "cache.XXXXXXXXXXXX", buf[BUFSIZ];
+	char tmppath[64] = "stagit-cache.XXXXXXXXXXXX", buf[BUFSIZ];
 	size_t n;
 	int i, fd;
+	char* self = argv[0]; 
 
-	for (i = 1; i < argc; i++) {
-		if (argv[i][0] != '-') {
-			if (repodir)
-				usage(argv[0]);
-			repodir = argv[i];
-		} else if (argv[i][1] == 'd') {
-			if (i + 1 >= argc)
-				usage(argv[0]);
-			destdir = argv[++i];
-		} else if (argv[i][1] == 'c') {
-			if (nlogcommits > 0 || i + 1 >= argc)
-				usage(argv[0]);
-			cachefile = argv[++i];
-		} else if (argv[i][1] == 'l') {
-			if (cachefile || i + 1 >= argc)
-				usage(argv[0]);
-			errno = 0;
-			nlogcommits = strtoll(argv[++i], &p, 10);
-			if (argv[i][0] == '\0' || *p != '\0' ||
-			    nlogcommits <= 0 || errno)
-				usage(argv[0]);
-		} else if (argv[i][1] == 'u') {
-			if (i + 1 >= argc)
-				usage(argv[0]);
-			baseurl = argv[++i];
-		}
+	ARGBEGIN
+	switch (OPT) {
+		case 'd':
+			destdir = EARGF(usage(self));
+			break;
+		case 'h':
+			highlightcmd = EARGF(usage(self));
+			break;
+		case 'c':
+			cachefile = EARGF(usage(self));
+			break;
+		case 'l':
+			nlogcommits = atoi(EARGF(usage(self)));
+			break;
+		case 'u':
+			baseurl = EARGF(usage(self));
+			break;
 	}
-	if (!repodir)
-		usage(argv[0]);
+	ARGEND
+
+	if (argc == 0)
+		usage(self);
+
+	highlighthash = murmurhash3(highlightcmd, strlen(highlightcmd), MURMUR_SEED);
+	mkdirp(hlcache);
+
+	repodir = argv[0];
 
 	if (!realpath(repodir, repodirabs))
 		err(1, "realpath");
@@ -1344,23 +1415,6 @@ main(int argc, char *argv[])
 		git_libgit2_opts(GIT_OPT_SET_SEARCH_PATH, i, "");
 	/* do not require the git repository to be owned by the current user */
 	git_libgit2_opts(GIT_OPT_SET_OWNER_VALIDATION, 0);
-
-#ifdef __OpenBSD__
-	if (unveil(repodir, "r") == -1)
-		err(1, "unveil: %s", repodir);
-	if (unveil(".", "rwc") == -1)
-		err(1, "unveil: .");
-	if (cachefile && unveil(cachefile, "rwc") == -1)
-		err(1, "unveil: %s", cachefile);
-
-	if (cachefile) {
-		if (pledge("stdio rpath wpath cpath fattr", NULL) == -1)
-			err(1, "pledge");
-	} else {
-		if (pledge("stdio rpath wpath cpath", NULL) == -1)
-			err(1, "pledge");
-	}
-#endif
 
 	if (git_repository_open_ext(&repo, repodir,
 		GIT_REPOSITORY_OPEN_NO_SEARCH, NULL) < 0) {
@@ -1386,26 +1440,16 @@ main(int argc, char *argv[])
 		if (!strcmp(p, ".git"))
 			*p = '\0';
 
-	/* read description or .git/description */
-	joinpath(path, sizeof(path), repodir, "description");
-	if (!(fpread = fopen(path, "r"))) {
-		joinpath(path, sizeof(path), repodir, ".git/description");
-		fpread = fopen(path, "r");
-	}
-	if (fpread) {
+	snprintf(path, sizeof(path), "%s/description", repodir);
+	if ((fpread = fopen(path, "r"))) {
 		if (!fgets(description, sizeof(description), fpread))
 			description[0] = '\0';
 		checkfileerror(fpread, path, 'r');
 		fclose(fpread);
 	}
 
-	/* read url or .git/url */
-	joinpath(path, sizeof(path), repodir, "url");
-	if (!(fpread = fopen(path, "r"))) {
-		joinpath(path, sizeof(path), repodir, ".git/url");
-		fpread = fopen(path, "r");
-	}
-	if (fpread) {
+	snprintf(path, sizeof(path), "%s/url", repodir);
+	if ((fpread = fopen(path, "r"))) {
 		if (!fgets(cloneurl, sizeof(cloneurl), fpread))
 			cloneurl[0] = '\0';
 		checkfileerror(fpread, path, 'r');
