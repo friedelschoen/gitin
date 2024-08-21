@@ -142,12 +142,6 @@ writeheader(FILE *fp, const struct repoinfo *info, const char* relpath, const ch
 		fputs(" - ", fp);
 	xmlencode(fp, info->description);
 	fprintf(fp, "</title>\n<link rel=\"icon\" type=\"image/svg+xml\" href=\"%s%s\" />\n", relpath, faviconicon);
-	fputs("<link rel=\"alternate\" type=\"application/atom+xml\" title=\"", fp);
-	xmlencode(fp, info->name);
-	fprintf(fp, " Atom Feed\" href=\"%satom.xml\" />\n", relpath);
-	fputs("<link rel=\"alternate\" type=\"application/atom+xml\" title=\"", fp);
-	xmlencode(fp, info->name);
-	fprintf(fp, " Atom Feed (tags)\" href=\"%stags.xml\" />\n", relpath);
 	fprintf(fp, "<link rel=\"stylesheet\" type=\"text/css\" href=\"%s%s\" />\n", relpath, stylesheet);
 	fputs("</head>\n<body>\n<table><tr><td>", fp);
 	fprintf(fp, "<a href=\"../%s\"><img src=\"%s%s\" alt=\"\" width=\"32\" height=\"32\" /></a>",
@@ -610,107 +604,6 @@ err:
 	git_revwalk_free(w);
 
 	return ret;
-}
-
-void
-writecommitatom(FILE *fp, struct commitinfo *ci, const char *tag)
-{
-	fputs("<entry>\n", fp);
-
-	fprintf(fp, "<id>%s</id>\n", ci->oid);
-	if (ci->author) {
-		fputs("<published>", fp);
-		printtimez(fp, &(ci->author->when));
-		fputs("</published>\n", fp);
-	}
-	if (ci->committer) {
-		fputs("<updated>", fp);
-		printtimez(fp, &(ci->committer->when));
-		fputs("</updated>\n", fp);
-	}
-	if (ci->summary) {
-		fputs("<title>", fp);
-		if (tag && tag[0]) {
-			fputs("[", fp);
-			xmlencode(fp, tag);
-			fputs("] ", fp);
-		}
-		xmlencode(fp, ci->summary);
-		fputs("</title>\n", fp);
-	}
-	fprintf(fp, "<link rel=\"alternate\" type=\"text/html\" href=\"commit/%s.html\" />\n", ci->oid);
-
-	if (ci->author) {
-		fputs("<author>\n<name>", fp);
-		xmlencode(fp, ci->author->name);
-		fputs("</name>\n<email>", fp);
-		xmlencode(fp, ci->author->email);
-		fputs("</email>\n</author>\n", fp);
-	}
-
-	fputs("<content>", fp);
-	fprintf(fp, "commit %s\n", ci->oid);
-	if (ci->parentoid[0])
-		fprintf(fp, "parent %s\n", ci->parentoid);
-	if (ci->author) {
-		fputs("Author: ", fp);
-		xmlencode(fp, ci->author->name);
-		fputs(" &lt;", fp);
-		xmlencode(fp, ci->author->email);
-		fputs("&gt;\nDate:   ", fp);
-		printtime(fp, &(ci->author->when));
-		putc('\n', fp);
-	}
-	if (ci->msg) {
-		putc('\n', fp);
-		xmlencode(fp, ci->msg);
-	}
-	fputs("\n</content>\n</entry>\n", fp);
-}
-
-int
-writeatom(FILE *fp, const struct repoinfo *info, int all)
-{
-	struct referenceinfo *ris = NULL;
-	size_t refcount = 0;
-	struct commitinfo *ci;
-	git_revwalk *w = NULL;
-	git_oid id;
-	size_t i, m = 100; /* last 'm' commits */
-
-	fputs("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-	      "<feed xmlns=\"http://www.w3.org/2005/Atom\">\n<title>", fp);
-	xmlencode(fp, info->name);
-	fputs(", branch HEAD</title>\n<subtitle>", fp);
-	xmlencode(fp, info->description);
-	fputs("</subtitle>\n", fp);
-
-	/* all commits or only tags? */
-	if (all) {
-		git_revwalk_new(&w, info->repo);
-		git_revwalk_push_head(w);
-		for (i = 0; i < m && !git_revwalk_next(&id, w); i++) {
-			if (!(ci = commitinfo_getbyoid(&id, info->repo)))
-				break;
-			writecommitatom(fp, ci, "");
-			commitinfo_free(ci);
-		}
-		git_revwalk_free(w);
-	} else if (getrefs(&ris, &refcount, info->repo) != -1) {
-		/* references: tags */
-		for (i = 0; i < refcount; i++) {
-			if (git_reference_is_tag(ris[i].ref))
-				writecommitatom(fp, ris[i].ci, git_reference_shorthand(ris[i].ref));
-
-			commitinfo_free(ris[i].ci);
-			git_reference_free(ris[i].ref);
-		}
-		free(ris);
-	}
-
-	fputs("</feed>\n", fp);
-
-	return 0;
 }
 
 size_t
@@ -1214,22 +1107,6 @@ main(int argc, char *argv[])
 		writeheader(fp, &info, "", "Refs");
 		writerefs(fp, &info);
 		writefooter(fp);
-		checkfileerror(fp, path, 'w');
-		fclose(fp);
-
-		/* Atom feed */
-		snprintf(path, sizeof(path), "%s/atom.xml", info.destdir);
-		if (!(fp = fopen(path, "w")))
-			err(1, "fopen: '%s'", path);
-		writeatom(fp, &info, 1);
-		checkfileerror(fp, path, 'w');
-		fclose(fp);
-
-		/* Atom feed for tags / releases */
-		snprintf(path, sizeof(path), "%s/tags.xml", info.destdir);
-		if (!(fp = fopen(path, "w")))
-			err(1, "fopen: '%s'", path);
-		writeatom(fp, &info, 0);
 		checkfileerror(fp, path, 'w');
 		fclose(fp);
 
