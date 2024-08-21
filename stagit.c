@@ -911,7 +911,7 @@ main(int argc, char *argv[])
 	mode_t mask;
 	FILE *fp, *fpread;
 	char path[PATH_MAX], repodirabs[PATH_MAX + 1];
-	char tmppath[64] = "stagit-cache.info->info->info->info->info->info->", buf[BUFSIZ];
+	char tmppath[64] = "stagit-cache.xxxxxx", buf[BUFSIZ];
 	size_t n;
 	int i, fd;
 	char* self = argv[0]; 
@@ -969,7 +969,7 @@ main(int argc, char *argv[])
 
 		if (git_repository_open_ext(&info.repo, info.repodir,
 			GIT_REPOSITORY_OPEN_NO_SEARCH, NULL) < 0) {
-			fprintf(stderr, "%s: cannot open repository\n", argv[0]);
+			fprintf(stderr, "%s: cannot open repository\n", self);
 			return 1;
 		}
 
