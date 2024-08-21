@@ -75,24 +75,17 @@ static const char *baseurl = ""; /* base URL to make absolute RSS/Atom URI */
 static const char *relpath = "";
 static const char *repodir;
 
-static const char faviconicon[] = "favicon.svg";
-static const char logoicon[] = "logo.svg";
+#include "config.h"
+
 static char *name = "";
 static char *strippedname = "";
 static char description[255];
 static char owner[255];
 static char cloneurl[1024];
 static char *submodules;
-static char *licensefiles[] = { "HEAD:LICENSE", "HEAD:LICENSE.md", "HEAD:COPYING" };
-static char *license;
-static char *readmefiles[] = { "HEAD:README", "HEAD:README.md" };
-static char *readme;
-static char indexfile[] = "index.html";
-static char* highlightcmd = "chroma --html --html-only --html-inline-styles --style=xcode --lexer=$type";
-static char* hlcache = ".hlcache";
-static long long nlogcommits = -1; /* -1 indicates not used */
+static const char *license;
+static const char *readme;
 static const char *destdir = ".";
-
 static uint32_t highlighthash;
 
 /* cache */

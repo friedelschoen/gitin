@@ -1,0 +1,21 @@
+/* favicon to use */
+static const char *faviconicon = "favicon.svg";
+
+/* logo to use in header*/
+static const char *logoicon = "logo.svg";
+
+/* files to use as lisense or readme, these will be taged in the header */
+static const char *licensefiles[] = { "HEAD:LICENSE", "HEAD:LICENSE.md", "HEAD:COPYING" };
+static const char *readmefiles[] = { "HEAD:README", "HEAD:README.md" };
+
+/* how to index file is called */
+static const char *indexfile = "index.html";
+
+/* command to execute to highlight a file, use `cat` to disable */
+static const char *highlightcmd = "chroma --html --html-only --html-inline-styles --style=xcode --lexer=$type";
+
+/* name of cache directory for highlighting */
+static const char *hlcache = ".hlcache";
+
+/* maximum of commits to log, -1 indicates not used */
+static long long nlogcommits = -1;
