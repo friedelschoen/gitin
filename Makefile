@@ -3,70 +3,50 @@
 NAME = stagit
 VERSION = 1.2
 
-CFLAGS += -Wall -Wextra -Wpedantic
-
 # paths
 PREFIX = /usr/local
 MANPREFIX = ${PREFIX}/man
 DOCPREFIX = ${PREFIX}/share/doc/${NAME}
 
-LIBGIT_INC = -I/usr/local/include
-LIBGIT_LIB = -L/usr/local/lib -lgit2
-
 # use system flags.
-STAGIT_CFLAGS = ${LIBGIT_INC} ${CFLAGS}
-STAGIT_LDFLAGS = ${LIBGIT_LIB} ${LDFLAGS}
-STAGIT_CPPFLAGS = -D_XOPEN_SOURCE=700 -D_DEFAULT_SOURCE -D_BSD_SOURCE
+CC = gcc
+CFLAGS = -Wall -Wextra -Wpedantic -O2 $(shell pkg-config --cflags libgit2)
+LDFLAGS = $(shell pkg-config --libs libgit2)
+CPPFLAGS = -D_XOPEN_SOURCE=700 
 
-# Uncomment to enable workaround for older libgit2 which don't support this
-# option. This workaround will be removed in the future *pinky promise*.
-#STAGIT_CFLAGS += -DGIT_OPT_SET_OWNER_VALIDATION=-1
+BIN = stagit
 
-SRC = \
-	stagit.c
-COMPATSRC = \
-	compat.c
-BIN = \
-	stagit
-MAN1 = \
-	stagit.1
-DOC = \
-	LICENSE\
-	README
-HDR = compat.h
+MAN1 = stagit.1
 
-COMPATOBJ = \
-	compat.o
+HEADER = \
+	arg.h \
+	commitinfo.h \
+	compat.h \
+	config.h \
+	deltainfo.h \
+	murmur3.h \
+	refinfo.h \
+	xml.h
 
-OBJ = ${SRC:.c=.o} ${COMPATOBJ}
+OBJECTS = \
+	commitinfo.o \
+	compat.o \
+	deltainfo.o \
+	murmur3.o \
+	refinfo.o \
+	stagit.o \
+	xml.o
 
 all: ${BIN}
 
-.o:
-	${CC} -o $@ ${LDFLAGS}
+%.o: %.c ${HEADER}
+	${CC} -c -o $@ $< ${CFLAGS} ${CPPFLAGS}
 
-.c.o:
-	${CC} -o $@ -c $< ${STAGIT_CFLAGS} ${STAGIT_CPPFLAGS}
-
-dist:
-	rm -rf ${NAME}-${VERSION}
-	mkdir -p ${NAME}-${VERSION}
-	cp -f ${MAN1} ${HDR} ${SRC} ${COMPATSRC} ${DOC} \
-		Makefile favicon.png logo.png style.css \
-		example_create.sh example_post-receive.sh \
-		${NAME}-${VERSION}
-	# make tarball
-	tar -cf - ${NAME}-${VERSION} | \
-		gzip -c > ${NAME}-${VERSION}.tar.gz
-	rm -rf ${NAME}-${VERSION}
-
-${OBJ}: ${HDR}
-
-stagit: stagit.o ${COMPATOBJ}
-	${CC} -o $@ stagit.o ${COMPATOBJ} ${STAGIT_LDFLAGS}
+stagit: ${OBJECTS}
+	${CC} -o $@ $^ ${LDFLAGS}
 
 clean:
-	rm -f ${BIN} ${OBJ} ${NAME}-${VERSION}.tar.gz
+	rm -f ${BIN} ${OBJECTS}
 
 install: all
 	# installing executable files.
@@ -103,4 +83,4 @@ uninstall:
 	# removing manual pages.
 	for m in ${MAN1}; do rm -f ${DESTDIR}${MANPREFIX}/man1/$$m; done
 
-.PHONY: all clean dist install uninstall
+.PHONY: all clean install uninstall

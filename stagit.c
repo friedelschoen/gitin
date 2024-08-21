@@ -1,77 +1,39 @@
-#include <git2/blob.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-
 #include <err.h>
 #include <errno.h>
+#include <git2.h>
+#include <git2/blob.h>
+#include <git2/types.h>
 #include <libgen.h>
 #include <limits.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <unistd.h>
-#include <sys/wait.h>
-#include <sys/prctl.h>
-#include <stdlib.h>
-#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdlib.h>
 #include <string.h>
+#include <string.h>
+#include <sys/prctl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
-
-#include <git2.h>
+#include <unistd.h>
 
 #include "arg.h"
+#include "commitinfo.h"
 #include "compat.h"
+#include "deltainfo.h"
+#include "murmur3.h"
+#include "refinfo.h"
+#include "xml.h"
 
 #define LEN(s)      (sizeof(s)/sizeof(*s))
-#define fallthrough __attribute__ ((fallthrough));
 
 #define MURMUR_SEED 0xCAFE5EED // cafeseed
 
-
-struct deltainfo {
-	git_patch *patch;
-
-	size_t addcount;
-	size_t delcount;
-};
-
-struct commitinfo {
-	const git_oid *id;
-
-	char oid[GIT_OID_HEXSZ + 1];
-	char parentoid[GIT_OID_HEXSZ + 1];
-
-	const git_signature *author;
-	const git_signature *committer;
-	const char          *summary;
-	const char          *msg;
-
-	git_diff   *diff;
-	git_commit *commit;
-	git_commit *parent;
-	git_tree   *commit_tree;
-	git_tree   *parent_tree;
-
-	size_t addcount;
-	size_t delcount;
-	size_t filecount;
-
-	struct deltainfo **deltas;
-	size_t ndeltas;
-};
-
-/* reference and associated data for sorting */
-struct referenceinfo {
-	struct git_reference *ref;
-	struct commitinfo *ci;
-};
-
 /* helper struct for pipe(2) */
 typedef struct { int read; int write; } pipe_t;
-
-static git_repository *repo;
 
 static const char *baseurl = ""; /* base URL to make absolute RSS/Atom URI */
 static const char *relpath = "";
@@ -96,56 +58,8 @@ static char lastoidstr[GIT_OID_HEXSZ + 2]; /* id + newline + NUL byte */
 static FILE *rcachefp, *wcachefp;
 static const char *cachefile;
 
+static git_repository *repo;
 
-/* a simple and fast hashing function */
-uint32_t murmurhash3(const void *key, int len, uint32_t seed) {
-    const uint8_t *data = (const uint8_t *)key;
-    const int nblocks = len / 4;
-    uint32_t h1 = seed;
-
-    const uint32_t c1 = 0xcc9e2d51;
-    const uint32_t c2 = 0x1b873593;
-
-    // Body
-    const uint32_t *blocks = (const uint32_t *)(data + nblocks * 4);
-    for (int i = -nblocks; i; i++) {
-        uint32_t k1 = blocks[i];
-
-        k1 *= c1;
-        k1 = (k1 << 15) | (k1 >> (32 - 15));
-        k1 *= c2;
-
-        h1 ^= k1;
-        h1 = (h1 << 13) | (h1 >> (32 - 13));
-        h1 = h1 * 5 + 0xe6546b64;
-    }
-
-    // Tail
-    const uint8_t *tail = (const uint8_t *)(data + nblocks * 4);
-    uint32_t k1 = 0;
-
-    switch (len & 3) {
-        case 3: k1 ^= tail[2] << 16;
-				fallthrough;
-        case 2: k1 ^= tail[1] << 8;
-				fallthrough;
-        case 1: k1 ^= tail[0];
-                k1 *= c1;
-                k1 = (k1 << 15) | (k1 >> (32 - 15));
-                k1 *= c2;
-                h1 ^= k1;
-    }
-
-    // Finalization
-    h1 ^= len;
-    h1 ^= h1 >> 16;
-    h1 *= 0x85ebca6b;
-    h1 ^= h1 >> 13;
-    h1 *= 0xc2b2ae35;
-    h1 ^= h1 >> 16;
-
-    return h1;
-}
 
 /* Handle read or write errors for a FILE * stream */
 void
@@ -157,333 +71,6 @@ checkfileerror(FILE *fp, const char *name, int mode)
 		errx(1, "write error: %s", name);
 }
 
-void
-deltainfo_free(struct deltainfo *di)
-{
-	if (!di)
-		return;
-	git_patch_free(di->patch);
-	memset(di, 0, sizeof(*di));
-	free(di);
-}
-
-int
-commitinfo_getstats(struct commitinfo *ci)
-{
-	struct deltainfo *di;
-	git_diff_options opts;
-	git_diff_find_options fopts;
-	const git_diff_delta *delta;
-	const git_diff_hunk *hunk;
-	const git_diff_line *line;
-	git_patch *patch = NULL;
-	size_t ndeltas, nhunks, nhunklines;
-	size_t i, j, k;
-
-	if (git_tree_lookup(&(ci->commit_tree), repo, git_commit_tree_id(ci->commit)))
-		goto err;
-	if (!git_commit_parent(&(ci->parent), ci->commit, 0)) {
-		if (git_tree_lookup(&(ci->parent_tree), repo, git_commit_tree_id(ci->parent))) {
-			ci->parent = NULL;
-			ci->parent_tree = NULL;
-		}
-	}
-
-	git_diff_init_options(&opts, GIT_DIFF_OPTIONS_VERSION);
-	opts.flags |= GIT_DIFF_DISABLE_PATHSPEC_MATCH |
-	              GIT_DIFF_IGNORE_SUBMODULES |
-		      GIT_DIFF_INCLUDE_TYPECHANGE;
-	if (git_diff_tree_to_tree(&(ci->diff), repo, ci->parent_tree, ci->commit_tree, &opts))
-		goto err;
-
-	if (git_diff_find_init_options(&fopts, GIT_DIFF_FIND_OPTIONS_VERSION))
-		goto err;
-	/* find renames and copies, exact matches (no heuristic) for renames. */
-	fopts.flags |= GIT_DIFF_FIND_RENAMES | GIT_DIFF_FIND_COPIES |
-	               GIT_DIFF_FIND_EXACT_MATCH_ONLY;
-	if (git_diff_find_similar(ci->diff, &fopts))
-		goto err;
-
-	ndeltas = git_diff_num_deltas(ci->diff);
-	if (ndeltas && !(ci->deltas = calloc(ndeltas, sizeof(struct deltainfo *))))
-		err(1, "calloc");
-
-	for (i = 0; i < ndeltas; i++) {
-		if (git_patch_from_diff(&patch, ci->diff, i))
-			goto err;
-
-		if (!(di = calloc(1, sizeof(struct deltainfo))))
-			err(1, "calloc");
-		di->patch = patch;
-		ci->deltas[i] = di;
-
-		delta = git_patch_get_delta(patch);
-
-		/* skip stats for binary data */
-		if (delta->flags & GIT_DIFF_FLAG_BINARY)
-			continue;
-
-		nhunks = git_patch_num_hunks(patch);
-		for (j = 0; j < nhunks; j++) {
-			if (git_patch_get_hunk(&hunk, &nhunklines, patch, j))
-				break;
-			for (k = 0; ; k++) {
-				if (git_patch_get_line_in_hunk(&line, patch, j, k))
-					break;
-				if (line->old_lineno == -1) {
-					di->addcount++;
-					ci->addcount++;
-				} else if (line->new_lineno == -1) {
-					di->delcount++;
-					ci->delcount++;
-				}
-			}
-		}
-	}
-	ci->ndeltas = i;
-	ci->filecount = i;
-
-	return 0;
-
-err:
-	git_diff_free(ci->diff);
-	ci->diff = NULL;
-	git_tree_free(ci->commit_tree);
-	ci->commit_tree = NULL;
-	git_tree_free(ci->parent_tree);
-	ci->parent_tree = NULL;
-	git_commit_free(ci->parent);
-	ci->parent = NULL;
-
-	if (ci->deltas)
-		for (i = 0; i < ci->ndeltas; i++)
-			deltainfo_free(ci->deltas[i]);
-	free(ci->deltas);
-	ci->deltas = NULL;
-	ci->ndeltas = 0;
-	ci->addcount = 0;
-	ci->delcount = 0;
-	ci->filecount = 0;
-
-	return -1;
-}
-
-void
-commitinfo_free(struct commitinfo *ci)
-{
-	size_t i;
-
-	if (!ci)
-		return;
-	if (ci->deltas)
-		for (i = 0; i < ci->ndeltas; i++)
-			deltainfo_free(ci->deltas[i]);
-
-	free(ci->deltas);
-	git_diff_free(ci->diff);
-	git_tree_free(ci->commit_tree);
-	git_tree_free(ci->parent_tree);
-	git_commit_free(ci->commit);
-	git_commit_free(ci->parent);
-	memset(ci, 0, sizeof(*ci));
-	free(ci);
-}
-
-struct commitinfo *
-commitinfo_getbyoid(const git_oid *id)
-{
-	struct commitinfo *ci;
-
-	if (!(ci = calloc(1, sizeof(struct commitinfo))))
-		err(1, "calloc");
-
-	if (git_commit_lookup(&(ci->commit), repo, id))
-		goto err;
-	ci->id = id;
-
-	git_oid_tostr(ci->oid, sizeof(ci->oid), git_commit_id(ci->commit));
-	git_oid_tostr(ci->parentoid, sizeof(ci->parentoid), git_commit_parent_id(ci->commit, 0));
-
-	ci->author = git_commit_author(ci->commit);
-	ci->committer = git_commit_committer(ci->commit);
-	ci->summary = git_commit_summary(ci->commit);
-	ci->msg = git_commit_message(ci->commit);
-
-	return ci;
-
-err:
-	commitinfo_free(ci);
-
-	return NULL;
-}
-
-int
-refs_cmp(const void *v1, const void *v2)
-{
-	const struct referenceinfo *r1 = v1, *r2 = v2;
-	time_t t1, t2;
-	int r;
-
-	if ((r = git_reference_is_tag(r1->ref) - git_reference_is_tag(r2->ref)))
-		return r;
-
-	t1 = r1->ci->author ? r1->ci->author->when.time : 0;
-	t2 = r2->ci->author ? r2->ci->author->when.time : 0;
-	if ((r = t1 > t2 ? -1 : (t1 == t2 ? 0 : 1)))
-		return r;
-
-	return strcmp(git_reference_shorthand(r1->ref),
-	              git_reference_shorthand(r2->ref));
-}
-
-int
-getrefs(struct referenceinfo **pris, size_t *prefcount)
-{
-	struct referenceinfo *ris = NULL;
-	struct commitinfo *ci = NULL;
-	git_reference_iterator *it = NULL;
-	const git_oid *id = NULL;
-	git_object *obj = NULL;
-	git_reference *dref = NULL, *r, *ref = NULL;
-	size_t i, refcount;
-
-	*pris = NULL;
-	*prefcount = 0;
-
-	if (git_reference_iterator_new(&it, repo))
-		return -1;
-
-	for (refcount = 0; !git_reference_next(&ref, it); ) {
-		if (!git_reference_is_branch(ref) && !git_reference_is_tag(ref)) {
-			git_reference_free(ref);
-			ref = NULL;
-			continue;
-		}
-
-		switch (git_reference_type(ref)) {
-		case GIT_REF_SYMBOLIC:
-			if (git_reference_resolve(&dref, ref))
-				goto err;
-			r = dref;
-			break;
-		case GIT_REF_OID:
-			r = ref;
-			break;
-		default:
-			continue;
-		}
-		if (!git_reference_target(r) ||
-		    git_reference_peel(&obj, r, GIT_OBJ_ANY))
-			goto err;
-		if (!(id = git_object_id(obj)))
-			goto err;
-		if (!(ci = commitinfo_getbyoid(id)))
-			break;
-
-		if (!(ris = realloc(ris, (refcount + 1) * sizeof(*ris))))
-			err(1, "realloc");
-		ris[refcount].ci = ci;
-		ris[refcount].ref = r;
-		refcount++;
-
-		git_object_free(obj);
-		obj = NULL;
-		git_reference_free(dref);
-		dref = NULL;
-	}
-	git_reference_iterator_free(it);
-
-	/* sort by type, date then shorthand name */
-	qsort(ris, refcount, sizeof(*ris), refs_cmp);
-
-	*pris = ris;
-	*prefcount = refcount;
-
-	return 0;
-
-err:
-	git_object_free(obj);
-	git_reference_free(dref);
-	commitinfo_free(ci);
-	for (i = 0; i < refcount; i++) {
-		commitinfo_free(ris[i].ci);
-		git_reference_free(ris[i].ref);
-	}
-	free(ris);
-
-	return -1;
-}
-
-FILE *
-efopen(const char *filename, const char *flags)
-{
-	FILE *fp;
-
-	if (!(fp = fopen(filename, flags)))
-		err(1, "fopen: '%s'", filename);
-
-	return fp;
-}
-
-/* Percent-encode, see RFC3986 section 2.1. */
-void
-percentencode(FILE *fp, const char *s, size_t len)
-{
-	static char tab[] = "0123456789ABCDEF";
-	unsigned char uc;
-	size_t i;
-
-	for (i = 0; *s && i < len; s++, i++) {
-		uc = *s;
-		/* NOTE: do not encode '/' for paths or ",-." */
-		if (uc < ',' || uc >= 127 || (uc >= ':' && uc <= '@') ||
-		    uc == '[' || uc == ']') {
-			putc('%', fp);
-			putc(tab[(uc >> 4) & 0x0f], fp);
-			putc(tab[uc & 0x0f], fp);
-		} else {
-			putc(uc, fp);
-		}
-	}
-}
-
-/* Escape characters below as HTML 2.0 / XML 1.0. */
-void
-xmlencode(FILE *fp, const char *s, size_t len)
-{
-	size_t i;
-
-	for (i = 0; *s && i < len; s++, i++) {
-		switch(*s) {
-		case '<':  fputs("&lt;",   fp); break;
-		case '>':  fputs("&gt;",   fp); break;
-		case '\'': fputs("&#39;",  fp); break;
-		case '&':  fputs("&amp;",  fp); break;
-		case '"':  fputs("&quot;", fp); break;
-		default:   putc(*s, fp);
-		}
-	}
-}
-
-/* Escape characters below as HTML 2.0 / XML 1.0, ignore printing '\r', '\n' */
-void
-xmlencodeline(FILE *fp, const char *s, size_t len)
-{
-	size_t i;
-
-	for (i = 0; *s && i < len; s++, i++) {
-		switch(*s) {
-		case '<':  fputs("&lt;",   fp); break;
-		case '>':  fputs("&gt;",   fp); break;
-		case '\'': fputs("&#39;",  fp); break;
-		case '&':  fputs("&amp;",  fp); break;
-		case '"':  fputs("&quot;", fp); break;
-		case '\r': break; /* ignore CR */
-		case '\n': break; /* ignore LF */
-		default:   putc(*s, fp);
-		}
-	}
-}
 
 int
 mkdirp(const char *path)
@@ -947,10 +534,10 @@ writelog(FILE *fp, const git_oid *oid)
 				continue;
 		}
 
-		if (!(ci = commitinfo_getbyoid(&id)))
+		if (!(ci = commitinfo_getbyoid(&id, repo)))
 			break;
 		/* diffstat: for stagit HTML required for the log.html line */
-		if (commitinfo_getstats(ci) == -1)
+		if (commitinfo_getstats(ci, repo) == -1)
 			goto err;
 
 		if (nlogcommits != 0) {
@@ -965,7 +552,8 @@ writelog(FILE *fp, const git_oid *oid)
 		/* check if file exists if so skip it */
 		if (r) {
 			relpath = "../";
-			fpfile = efopen(path, "w");
+			if (!(fpfile = fopen(path, "w")))
+				err(1, "fopen: '%s'", path);
 			writeheader(fpfile, ci->summary);
 			fputs("<pre>", fpfile);
 			printshowfile(fpfile, ci);
@@ -1118,13 +706,13 @@ writeatom(FILE *fp, int all)
 		git_revwalk_new(&w, repo);
 		git_revwalk_push_head(w);
 		for (i = 0; i < m && !git_revwalk_next(&id, w); i++) {
-			if (!(ci = commitinfo_getbyoid(&id)))
+			if (!(ci = commitinfo_getbyoid(&id, repo)))
 				break;
 			printcommitatom(fp, ci, "");
 			commitinfo_free(ci);
 		}
 		git_revwalk_free(w);
-	} else if (getrefs(&ris, &refcount) != -1) {
+	} else if (getrefs(&ris, &refcount, repo) != -1) {
 		/* references: tags */
 		for (i = 0; i < refcount; i++) {
 			if (git_reference_is_tag(ris[i].ref))
@@ -1164,7 +752,9 @@ writeblob(git_object *obj, const char *fpath, const char *filename, const char* 
 	}
 	relpath = tmp;
 
-	fp = efopen(fpath, "w");
+	if (!(fp = fopen(fpath, "w")))
+		err(1, "fopen: '%s'", fpath);
+
 	writeheader(fp, filename);
 	fputs("<p> ", fp);
 	xmlencode(fp, filename, strlen(filename));
@@ -1227,7 +817,8 @@ filemode(git_filemode_t m)
 	return mode;
 }
 
-void writefile(git_object *obj, const char *fpath, size_t filesize) {
+void 
+writefile(git_object *obj, const char *fpath, size_t filesize) {
 	char tmp[PATH_MAX] = "", *d;
 	const char *p;
 	FILE *fp;
@@ -1245,7 +836,9 @@ void writefile(git_object *obj, const char *fpath, size_t filesize) {
 	}
 	relpath = tmp;
 
-	fp = efopen(fpath, "w");
+	if (!(fp = fopen(fpath, "w")))
+		err(1, "fopen: '%s'", fpath);
+
 	fwrite(git_blob_rawcontent((const git_blob*) obj), filesize, 1, fp);
 	checkfileerror(fp, fpath, 'w');
 	fclose(fp);
@@ -1384,7 +977,7 @@ writerefs(FILE *fp)
 	const char *ids[] = { "branches", "tags" };
 	const char *s;
 
-	if (getrefs(&ris, &refcount) == -1)
+	if (getrefs(&ris, &refcount, repo) == -1)
 		return -1;
 
 	for (i = 0, j = 0, count = 0; i < refcount; i++) {
@@ -1497,7 +1090,7 @@ main(int argc, char *argv[])
 	for (int repoi = 0; repoi < argc; repoi++) {
 		repodir = argv[repoi];
 		
-		snprintf(destdir, sizeof(destdir), "%s/%s", repodir, destination);
+		snprintf(destdir, sizeof(destdir), "%s/%s/", repodir, destination);
 
 		printf("-> %s\n", repodir);
 
@@ -1569,9 +1162,6 @@ main(int argc, char *argv[])
 			git_object_free(obj);
 		}
 
-		writelog_index(index);
-		checkfileerror(index, indexfile, 'w');
-
 		if (!git_revparse_single(&obj, repo, "HEAD:.gitmodules") &&
 			git_object_type(obj) == GIT_OBJ_BLOB)
 			submodules = ".gitmodules";
@@ -1579,7 +1169,8 @@ main(int argc, char *argv[])
 
 		/* log for HEAD */
 		snprintf(path, sizeof(path), "%s/log.html", destdir);
-		fp = efopen(path, "w");
+		if (!(fp = fopen(path, "w")))
+			err(1, "fopen: '%s'", path);
 		relpath = "";
 		snprintf(path, sizeof(path), "%s/commit", destdir);
 		mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
@@ -1638,7 +1229,8 @@ main(int argc, char *argv[])
 
 		/* files for HEAD */
 		snprintf(path, sizeof(path), "%s/files.html", destdir);
-		fp = efopen(path, "w");
+		if (!(fp = fopen(path, "w")))
+			err(1, "fopen: '%s'", path);
 		writeheader(fp, "Files");
 		if (head)
 			writefiles(fp, head);
@@ -1648,7 +1240,8 @@ main(int argc, char *argv[])
 
 		/* summary page with branches and tags */
 		snprintf(path, sizeof(path), "%s/refs.html", destdir);
-		fp = efopen(path, "w");
+		if (!(fp = fopen(path, "w")))
+			err(1, "fopen: '%s'", path);
 		writeheader(fp, "Refs");
 		writerefs(fp);
 		writefooter(fp);
@@ -1657,14 +1250,16 @@ main(int argc, char *argv[])
 
 		/* Atom feed */
 		snprintf(path, sizeof(path), "%s/atom.xml", destdir);
-		fp = efopen(path, "w");
+		if (!(fp = fopen(path, "w")))
+			err(1, "fopen: '%s'", path);
 		writeatom(fp, 1);
 		checkfileerror(fp, path, 'w');
 		fclose(fp);
 
 		/* Atom feed for tags / releases */
 		snprintf(path, sizeof(path), "%s/tags.xml", destdir);
-		fp = efopen(path, "w");
+		if (!(fp = fopen(path, "w")))
+			err(1, "fopen: '%s'", path);
 		writeatom(fp, 0);
 		checkfileerror(fp, path, 'w');
 		fclose(fp);
@@ -1679,9 +1274,11 @@ main(int argc, char *argv[])
 				err(1, "chmod: '%s'", cachefile);
 		}
 
+		writelog_index(index);
+		checkfileerror(index, indexfile, 'w');
+
 		/* cleanup */
 		git_repository_free(repo);
-
 	}
 	writefooter_index(index);
 	checkfileerror(index, indexfile, 'w');
