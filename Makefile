@@ -24,9 +24,7 @@ SRC = \
 	stagit.c\
 	stagit-index.c
 COMPATSRC = \
-	reallocarray.c\
-	strlcat.c\
-	strlcpy.c
+	compat.c
 BIN = \
 	stagit\
 	stagit-index
@@ -39,9 +37,7 @@ DOC = \
 HDR = compat.h
 
 COMPATOBJ = \
-	reallocarray.o\
-	strlcat.o\
-	strlcpy.o
+	compat.o
 
 OBJ = ${SRC:.c=.o} ${COMPATOBJ}
 
