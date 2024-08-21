@@ -1,23 +1,11 @@
 #include <err.h>
 #include <errno.h>
-#include <git2.h>
-#include <git2/blob.h>
-#include <git2/types.h>
 #include <libgen.h>
 #include <limits.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdlib.h>
 #include <string.h>
-#include <string.h>
-#include <sys/prctl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <time.h>
-#include <unistd.h>
 #include <unistd.h>
 
 #include "arg.h"
@@ -42,7 +30,6 @@ static const char *repodir;
 #include "config.h"
 
 static char *name = "";
-static char *strippedname = "";
 static char description[255];
 static char owner[255];
 static char cloneurl[1024];
@@ -147,34 +134,34 @@ writeheader(FILE *fp, const char *title)
 		"<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n"
 		"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n"
 		"<title>", fp);
-	xmlencode(fp, title, strlen(title));
-	if (title[0] && strippedname[0])
+	xmlencode(fp, title);
+	if (title[0] && name[0])
 		fputs(" - ", fp);
-	xmlencode(fp, strippedname, strlen(strippedname));
+	xmlencode(fp, name);
 	if (description[0])
 		fputs(" - ", fp);
-	xmlencode(fp, description, strlen(description));
+	xmlencode(fp, description);
 	fprintf(fp, "</title>\n<link rel=\"icon\" type=\"image/svg+xml\" href=\"%s%s\" />\n", relpath, faviconicon);
 	fputs("<link rel=\"alternate\" type=\"application/atom+xml\" title=\"", fp);
-	xmlencode(fp, name, strlen(name));
+	xmlencode(fp, name);
 	fprintf(fp, " Atom Feed\" href=\"%satom.xml\" />\n", relpath);
 	fputs("<link rel=\"alternate\" type=\"application/atom+xml\" title=\"", fp);
-	xmlencode(fp, name, strlen(name));
+	xmlencode(fp, name);
 	fprintf(fp, " Atom Feed (tags)\" href=\"%stags.xml\" />\n", relpath);
 	fprintf(fp, "<link rel=\"stylesheet\" type=\"text/css\" href=\"%s%s\" />\n", relpath, stylesheet);
 	fputs("</head>\n<body>\n<table><tr><td>", fp);
 	fprintf(fp, "<a href=\"../%s\"><img src=\"%s%s\" alt=\"\" width=\"32\" height=\"32\" /></a>",
 	        relpath, relpath, logoicon);
 	fputs("</td><td><h1>", fp);
-	xmlencode(fp, strippedname, strlen(strippedname));
+	xmlencode(fp, name);
 	fputs("</h1><span class=\"desc\">", fp);
-	xmlencode(fp, description, strlen(description));
+	xmlencode(fp, description);
 	fputs("</span></td></tr>", fp);
 	if (cloneurl[0]) {
 		fputs("<tr class=\"url\"><td></td><td>git clone <a href=\"", fp);
-		xmlencode(fp, cloneurl, strlen(cloneurl)); /* not percent-encoded */
+		xmlencode(fp, cloneurl); /* not percent-encoded */
 		fputs("\">", fp);
-		xmlencode(fp, cloneurl, strlen(cloneurl));
+		xmlencode(fp, cloneurl);
 		fputs("</a></td></tr>", fp);
 	}
 	fputs("<tr><td></td><td>\n", fp);
@@ -201,13 +188,13 @@ writeheader_index(FILE *fp)
 		"<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n"
 		"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n"
 		"<title>", fp);
-	xmlencode(fp, description, strlen(description));
+	xmlencode(fp, description);
 	fprintf(fp, "</title>\n<link rel=\"icon\" href=\"%s%s\" />\n", relpath, faviconicon);
 	fprintf(fp, "<link rel=\"stylesheet\" type=\"text/css\" href=\"%sstyle.css\" />\n", relpath);
 	fputs("</head>\n<body>\n", fp);
 	fprintf(fp, "<table>\n<tr><td><img src=\"%s%s\" alt=\"\" width=\"32\" height=\"32\" /></td>\n"
 	        "<td><span class=\"desc\">", relpath, logoicon);
-	xmlencode(fp, description, strlen(description));
+	xmlencode(fp, description);
 	fputs("</span></td></tr><tr><td></td><td>\n"
 		"</td></tr>\n</table>\n<hr/>\n<div id=\"content\">\n"
 		"<table id=\"index\"><thead>\n"
@@ -335,18 +322,18 @@ printcommit(FILE *fp, struct commitinfo *ci)
 
 	if (ci->author) {
 		fputs("<b>Author:</b> ", fp);
-		xmlencode(fp, ci->author->name, strlen(ci->author->name));
+		xmlencode(fp, ci->author->name);
 		fputs(" &lt;<a href=\"mailto:", fp);
-		xmlencode(fp, ci->author->email, strlen(ci->author->email)); /* not percent-encoded */
+		xmlencode(fp, ci->author->email); /* not percent-encoded */
 		fputs("\">", fp);
-		xmlencode(fp, ci->author->email, strlen(ci->author->email));
+		xmlencode(fp, ci->author->email);
 		fputs("</a>&gt;\n<b>Date:</b>   ", fp);
 		printtime(fp, &(ci->author->when));
 		putc('\n', fp);
 	}
 	if (ci->msg) {
 		putc('\n', fp);
-		xmlencode(fp, ci->msg, strlen(ci->msg));
+		xmlencode(fp, ci->msg);
 		putc('\n', fp);
 	}
 }
@@ -395,10 +382,10 @@ printshowfile(FILE *fp, struct commitinfo *ci)
 			fprintf(fp, "<tr><td class=\"%c\">%c", c, c);
 
 		fprintf(fp, "</td><td><a href=\"#h%zu\">", i);
-		xmlencode(fp, delta->old_file.path, strlen(delta->old_file.path));
+		xmlencode(fp, delta->old_file.path);
 		if (strcmp(delta->old_file.path, delta->new_file.path)) {
 			fputs(" -&gt; ", fp);
-			xmlencode(fp, delta->new_file.path, strlen(delta->new_file.path));
+			xmlencode(fp, delta->new_file.path);
 		}
 
 		add = ci->deltas[i]->addcount;
@@ -432,13 +419,13 @@ printshowfile(FILE *fp, struct commitinfo *ci)
 		patch = ci->deltas[i]->patch;
 		delta = git_patch_get_delta(patch);
 		fprintf(fp, "<b>diff --git a/<a id=\"h%zu\" href=\"%sfile/", i, relpath);
-		percentencode(fp, delta->old_file.path, strlen(delta->old_file.path));
+		percentencode(fp, delta->old_file.path);
 		fputs(".html\">", fp);
-		xmlencode(fp, delta->old_file.path, strlen(delta->old_file.path));
+		xmlencode(fp, delta->old_file.path);
 		fprintf(fp, "</a> b/<a href=\"%sfile/", relpath);
-		percentencode(fp, delta->new_file.path, strlen(delta->new_file.path));
+		percentencode(fp, delta->new_file.path);
 		fprintf(fp, ".html\">");
-		xmlencode(fp, delta->new_file.path, strlen(delta->new_file.path));
+		xmlencode(fp, delta->new_file.path);
 		fprintf(fp, "</a></b>\n");
 
 		/* check binary data */
@@ -453,7 +440,7 @@ printshowfile(FILE *fp, struct commitinfo *ci)
 				break;
 
 			fprintf(fp, "<a href=\"#h%zu-%zu\" id=\"h%zu-%zu\" class=\"h\">", i, j, i, j);
-			xmlencode(fp, hunk->header, hunk->header_len);
+			xmlencode(fp, hunk->header);
 			fputs("</a>", fp);
 
 			for (k = 0; ; k++) {
@@ -485,12 +472,12 @@ writelogline(FILE *fp, struct commitinfo *ci)
 	fputs("</td><td>", fp);
 	if (ci->summary) {
 		fprintf(fp, "<a href=\"%scommit/%s.html\">", relpath, ci->oid);
-		xmlencode(fp, ci->summary, strlen(ci->summary));
+		xmlencode(fp, ci->summary);
 		fputs("</a>", fp);
 	}
 	fputs("</td><td>", fp);
 	if (ci->author)
-		xmlencode(fp, ci->author->name, strlen(ci->author->name));
+		xmlencode(fp, ci->author->name);
 	fputs("</td><td class=\"num\" align=\"right\">", fp);
 	fprintf(fp, "%zu", ci->filecount);
 	fputs("</td><td class=\"num\" align=\"right\">", fp);
@@ -585,7 +572,6 @@ writelog_index(FILE *fp)
 	const git_signature *author;
 	git_revwalk *w = NULL;
 	git_oid id;
-	char *stripped_name = NULL, *p;
 	int ret = 0;
 
 	git_revwalk_new(&w, repo);
@@ -599,21 +585,12 @@ writelog_index(FILE *fp)
 
 	author = git_commit_author(commit);
 
-	/* strip .git suffix */
-	if (!(stripped_name = strdup(name)))
-		err(1, "strdup");
-	if ((p = strrchr(stripped_name, '.')))
-		if (!strcmp(p, ".git"))
-			*p = '\0';
-
-	fputs("<tr><td><a href=\"", fp);
-	percentencode(fp, stripped_name, strlen(stripped_name));
-	fputs("/log.html\">", fp);
-	xmlencode(fp, stripped_name, strlen(stripped_name));
+	fprintf(fp,"<tr><td><a href=\"%s/log.html\">", destdir);
+	xmlencode(fp, name);
 	fputs("</a></td><td>", fp);
-	xmlencode(fp, description, strlen(description));
+	xmlencode(fp, description);
 	fputs("</td><td>", fp);
-	xmlencode(fp, owner, strlen(owner));
+	xmlencode(fp, owner);
 	fputs("</td><td>", fp);
 	if (author)
 		printtimeshort(fp, &(author->when));
@@ -622,7 +599,6 @@ writelog_index(FILE *fp)
 	git_commit_free(commit);
 err:
 	git_revwalk_free(w);
-	free(stripped_name);
 
 	return ret;
 }
@@ -647,10 +623,10 @@ printcommitatom(FILE *fp, struct commitinfo *ci, const char *tag)
 		fputs("<title>", fp);
 		if (tag && tag[0]) {
 			fputs("[", fp);
-			xmlencode(fp, tag, strlen(tag));
+			xmlencode(fp, tag);
 			fputs("] ", fp);
 		}
-		xmlencode(fp, ci->summary, strlen(ci->summary));
+		xmlencode(fp, ci->summary);
 		fputs("</title>\n", fp);
 	}
 	fprintf(fp, "<link rel=\"alternate\" type=\"text/html\" href=\"%scommit/%s.html\" />\n",
@@ -658,9 +634,9 @@ printcommitatom(FILE *fp, struct commitinfo *ci, const char *tag)
 
 	if (ci->author) {
 		fputs("<author>\n<name>", fp);
-		xmlencode(fp, ci->author->name, strlen(ci->author->name));
+		xmlencode(fp, ci->author->name);
 		fputs("</name>\n<email>", fp);
-		xmlencode(fp, ci->author->email, strlen(ci->author->email));
+		xmlencode(fp, ci->author->email);
 		fputs("</email>\n</author>\n", fp);
 	}
 
@@ -670,16 +646,16 @@ printcommitatom(FILE *fp, struct commitinfo *ci, const char *tag)
 		fprintf(fp, "parent %s\n", ci->parentoid);
 	if (ci->author) {
 		fputs("Author: ", fp);
-		xmlencode(fp, ci->author->name, strlen(ci->author->name));
+		xmlencode(fp, ci->author->name);
 		fputs(" &lt;", fp);
-		xmlencode(fp, ci->author->email, strlen(ci->author->email));
+		xmlencode(fp, ci->author->email);
 		fputs("&gt;\nDate:   ", fp);
 		printtime(fp, &(ci->author->when));
 		putc('\n', fp);
 	}
 	if (ci->msg) {
 		putc('\n', fp);
-		xmlencode(fp, ci->msg, strlen(ci->msg));
+		xmlencode(fp, ci->msg);
 	}
 	fputs("\n</content>\n</entry>\n", fp);
 }
@@ -696,9 +672,9 @@ writeatom(FILE *fp, int all)
 
 	fputs("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
 	      "<feed xmlns=\"http://www.w3.org/2005/Atom\">\n<title>", fp);
-	xmlencode(fp, strippedname, strlen(strippedname));
+	xmlencode(fp, name);
 	fputs(", branch HEAD</title>\n<subtitle>", fp);
-	xmlencode(fp, description, strlen(description));
+	xmlencode(fp, description);
 	fputs("</subtitle>\n", fp);
 
 	/* all commits or only tags? */
@@ -757,7 +733,7 @@ writeblob(git_object *obj, const char *fpath, const char *filename, const char* 
 
 	writeheader(fp, filename);
 	fputs("<p> ", fp);
-	xmlencode(fp, filename, strlen(filename));
+	xmlencode(fp, filename);
 	fprintf(fp, " (%zuB) <a href='%s%s'>download</a>", filesize, relpath, staticpath);
 	fputs("</p><hr/>", fp);
 
@@ -918,9 +894,9 @@ writefilestree(FILE *fp, git_tree *tree, const char *path)
 			fputs("<tr><td>", fp);
 			fputs(filemode(git_tree_entry_filemode(entry)), fp);
 			fprintf(fp, "</td><td><a href=\"%s", relpath);
-			percentencode(fp, filepath, strlen(filepath));
+			percentencode(fp, filepath);
 			fputs("\">", fp);
-			xmlencode(fp, entrypath, strlen(entrypath));
+			xmlencode(fp, entrypath);
 			fputs("</a></td><td class=\"num\" align=\"right\">", fp);
 			if (lc > 0)
 				fprintf(fp, "%zuL", lc);
@@ -932,10 +908,10 @@ writefilestree(FILE *fp, git_tree *tree, const char *path)
 			/* commit object in tree is a submodule */
 			fprintf(fp, "<tr><td>m---------</td><td><a href=\"%sfile/-gitmodules.html\">",
 				relpath);
-			xmlencode(fp, entrypath, strlen(entrypath));
+			xmlencode(fp, entrypath);
 			fputs("</a> @ ", fp);
 			git_oid_tostr(oid, sizeof(oid), git_tree_entry_id(entry));
-			xmlencode(fp, oid, strlen(oid));
+			xmlencode(fp, oid);
 			fputs("</td><td class=\"num\" align=\"right\"></td></tr>\n", fp);
 		}
 	}
@@ -1002,13 +978,13 @@ writerefs(FILE *fp)
 		s = git_reference_shorthand(ris[i].ref);
 
 		fputs("<tr><td>", fp);
-		xmlencode(fp, s, strlen(s));
+		xmlencode(fp, s);
 		fputs("</td><td>", fp);
 		if (ci->author)
 			printtimeshort(fp, &(ci->author->when));
 		fputs("</td><td>", fp);
 		if (ci->author)
-			xmlencode(fp, ci->author->name, strlen(ci->author->name));
+			xmlencode(fp, ci->author->name);
 		fputs("</td></tr>\n", fp);
 	}
 	/* table footer */
@@ -1113,13 +1089,6 @@ main(int argc, char *argv[])
 			name++;
 		else
 			name = "";
-
-		/* strip .git suffix */
-		if (!(strippedname = strdup(name)))
-			err(1, "strdup");
-		if ((p = strrchr(strippedname, '.')))
-			if (!strcmp(p, ".git"))
-				*p = '\0';
 
 		snprintf(path, sizeof(path), "%s/description", repodir);
 		if ((fpread = fopen(path, "r"))) {
