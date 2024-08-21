@@ -3,6 +3,8 @@
 NAME = stagit
 VERSION = 1.2
 
+CFLAGS += -Wall -Wextra -Wpedantic
+
 # paths
 PREFIX = /usr/local
 MANPREFIX = ${PREFIX}/man
