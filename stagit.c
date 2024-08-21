@@ -80,12 +80,14 @@ static const char logoicon[] = "logo.svg";
 static char *name = "";
 static char *strippedname = "";
 static char description[255];
+static char owner[255];
 static char cloneurl[1024];
 static char *submodules;
 static char *licensefiles[] = { "HEAD:LICENSE", "HEAD:LICENSE.md", "HEAD:COPYING" };
 static char *license;
 static char *readmefiles[] = { "HEAD:README", "HEAD:README.md" };
 static char *readme;
+static char indexfile[] = "index.html";
 static char* highlightcmd = "chroma --html --html-only --html-inline-styles --style=xcode --lexer=$type";
 static char* hlcache = ".hlcache";
 static long long nlogcommits = -1; /* -1 indicates not used */
@@ -608,9 +610,38 @@ writeheader(FILE *fp, const char *title)
 }
 
 void
+writeheader_index(FILE *fp)
+{
+	fputs("<!DOCTYPE html>\n"
+		"<html>\n<head>\n"
+		"<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n"
+		"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n"
+		"<title>", fp);
+	xmlencode(fp, description, strlen(description));
+	fprintf(fp, "</title>\n<link rel=\"icon\" href=\"%s%s\" />\n", relpath, faviconicon);
+	fprintf(fp, "<link rel=\"stylesheet\" type=\"text/css\" href=\"%sstyle.css\" />\n", relpath);
+	fputs("</head>\n<body>\n", fp);
+	fprintf(fp, "<table>\n<tr><td><img src=\"%s%s\" alt=\"\" width=\"32\" height=\"32\" /></td>\n"
+	        "<td><span class=\"desc\">", relpath, logoicon);
+	xmlencode(fp, description, strlen(description));
+	fputs("</span></td></tr><tr><td></td><td>\n"
+		"</td></tr>\n</table>\n<hr/>\n<div id=\"content\">\n"
+		"<table id=\"index\"><thead>\n"
+		"<tr><td><b>Name</b></td><td><b>Description</b></td><td><b>Owner</b></td>"
+		"<td><b>Last commit</b></td></tr>"
+		"</thead><tbody>\n", fp);
+}
+
+void
 writefooter(FILE *fp)
 {
 	fputs("</div>\n</body>\n</html>\n", fp);
+}
+
+void
+writefooter_index(FILE *fp)
+{
+	fputs("</tbody>\n</table>\n</div>\n</body>\n</html>\n", fp);
 }
 
 size_t
@@ -961,6 +992,55 @@ err:
 	relpath = "";
 
 	return 0;
+}
+
+int
+writelog_index(FILE *fp)
+{
+	git_commit *commit = NULL;
+	const git_signature *author;
+	git_revwalk *w = NULL;
+	git_oid id;
+	char *stripped_name = NULL, *p;
+	int ret = 0;
+
+	git_revwalk_new(&w, repo);
+	git_revwalk_push_head(w);
+
+	if (git_revwalk_next(&id, w) ||
+	    git_commit_lookup(&commit, repo, &id)) {
+		ret = -1;
+		goto err;
+	}
+
+	author = git_commit_author(commit);
+
+	/* strip .git suffix */
+	if (!(stripped_name = strdup(name)))
+		err(1, "strdup");
+	if ((p = strrchr(stripped_name, '.')))
+		if (!strcmp(p, ".git"))
+			*p = '\0';
+
+	fputs("<tr><td><a href=\"", fp);
+	percentencode(fp, stripped_name, strlen(stripped_name));
+	fputs("/log.html\">", fp);
+	xmlencode(fp, stripped_name, strlen(stripped_name));
+	fputs("</a></td><td>", fp);
+	xmlencode(fp, description, strlen(description));
+	fputs("</td><td>", fp);
+	xmlencode(fp, owner, strlen(owner));
+	fputs("</td><td>", fp);
+	if (author)
+		printtimeshort(fp, &(author->when));
+	fputs("</td></tr>", fp);
+
+	git_commit_free(commit);
+err:
+	git_revwalk_free(w);
+	free(stripped_name);
+
+	return ret;
 }
 
 void
@@ -1376,6 +1456,7 @@ main(int argc, char *argv[])
 	size_t n;
 	int i, fd;
 	char* self = argv[0]; 
+	FILE* index;
 
 	ARGBEGIN
 	switch (OPT) {
@@ -1403,11 +1484,6 @@ main(int argc, char *argv[])
 	highlighthash = murmurhash3(highlightcmd, strlen(highlightcmd), MURMUR_SEED);
 	mkdirp(hlcache);
 
-	repodir = argv[0];
-
-	if (!realpath(repodir, repodirabs))
-		err(1, "realpath");
-
 	/* do not search outside the git repository:
 	   GIT_CONFIG_LEVEL_APP is the highest level currently */
 	git_libgit2_init();
@@ -1416,172 +1492,205 @@ main(int argc, char *argv[])
 	/* do not require the git repository to be owned by the current user */
 	git_libgit2_opts(GIT_OPT_SET_OWNER_VALIDATION, 0);
 
-	if (git_repository_open_ext(&repo, repodir,
-		GIT_REPOSITORY_OPEN_NO_SEARCH, NULL) < 0) {
-		fprintf(stderr, "%s: cannot open repository\n", argv[0]);
-		return 1;
+	if (!(index = fopen(indexfile, "w+"))) {
+		errx(1, "open index.html");
 	}
 
-	/* find HEAD */
-	if (!git_revparse_single(&obj, repo, "HEAD"))
-		head = git_object_id(obj);
-	git_object_free(obj);
+	writeheader_index(index);
+	checkfileerror(index, indexfile, 'w');
 
-	/* use directory name as name */
-	if ((name = strrchr(repodirabs, '/')))
-		name++;
-	else
-		name = "";
+	for (int repoi = 0; repoi < argc; repoi++) {
+		repodir = argv[repoi];
+		destdir = repodir;
 
-	/* strip .git suffix */
-	if (!(strippedname = strdup(name)))
-		err(1, "strdup");
-	if ((p = strrchr(strippedname, '.')))
-		if (!strcmp(p, ".git"))
-			*p = '\0';
+		printf("-> %s\n", repodir);
 
-	snprintf(path, sizeof(path), "%s/description", repodir);
-	if ((fpread = fopen(path, "r"))) {
-		if (!fgets(description, sizeof(description), fpread))
-			description[0] = '\0';
-		checkfileerror(fpread, path, 'r');
-		fclose(fpread);
-	}
+		if (!realpath(repodir, repodirabs))
+			err(1, "realpath");
 
-	snprintf(path, sizeof(path), "%s/url", repodir);
-	if ((fpread = fopen(path, "r"))) {
-		if (!fgets(cloneurl, sizeof(cloneurl), fpread))
-			cloneurl[0] = '\0';
-		checkfileerror(fpread, path, 'r');
-		fclose(fpread);
-		cloneurl[strcspn(cloneurl, "\n")] = '\0';
-	}
-
-	/* check LICENSE */
-	for (i = 0; i < LEN(licensefiles) && !license; i++) {
-		if (!git_revparse_single(&obj, repo, licensefiles[i]) &&
-		    git_object_type(obj) == GIT_OBJ_BLOB)
-			license = licensefiles[i] + strlen("HEAD:");
-		git_object_free(obj);
-	}
-
-	/* check README */
-	for (i = 0; i < LEN(readmefiles) && !readme; i++) {
-		if (!git_revparse_single(&obj, repo, readmefiles[i]) &&
-		    git_object_type(obj) == GIT_OBJ_BLOB)
-			readme = readmefiles[i] + strlen("HEAD:");
-		git_object_free(obj);
-	}
-
-	if (!git_revparse_single(&obj, repo, "HEAD:.gitmodules") &&
-	    git_object_type(obj) == GIT_OBJ_BLOB)
-		submodules = ".gitmodules";
-	git_object_free(obj);
-
-	/* log for HEAD */
-	snprintf(path, sizeof(path), "%s/log.html", destdir);
-	fp = efopen(path, "w");
-	relpath = "";
-	snprintf(path, sizeof(path), "%s/commit", destdir);
-	mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
-	writeheader(fp, "Log");
-	fputs("<table id=\"log\"><thead>\n<tr><td><b>Date</b></td>"
-	      "<td><b>Commit message</b></td>"
-	      "<td><b>Author</b></td><td class=\"num\" align=\"right\"><b>Files</b></td>"
-	      "<td class=\"num\" align=\"right\"><b>+</b></td>"
-	      "<td class=\"num\" align=\"right\"><b>-</b></td></tr>\n</thead><tbody>\n", fp);
-
-	if (cachefile && head) {
-		/* read from cache file (does not need to exist) */
-		if ((rcachefp = fopen(cachefile, "r"))) {
-			if (!fgets(lastoidstr, sizeof(lastoidstr), rcachefp))
-				errx(1, "%s: no object id", cachefile);
-			if (git_oid_fromstr(&lastoid, lastoidstr))
-				errx(1, "%s: invalid object id", cachefile);
+		if (git_repository_open_ext(&repo, repodir,
+			GIT_REPOSITORY_OPEN_NO_SEARCH, NULL) < 0) {
+			fprintf(stderr, "%s: cannot open repository\n", argv[0]);
+			return 1;
 		}
 
-		/* write log to (temporary) cache */
-		if ((fd = mkstemp(tmppath)) == -1)
-			err(1, "mkstemp");
-		if (!(wcachefp = fdopen(fd, "w")))
-			err(1, "fdopen: '%s'", tmppath);
-		/* write last commit id (HEAD) */
-		git_oid_tostr(buf, sizeof(buf), head);
-		fprintf(wcachefp, "%s\n", buf);
+		/* find HEAD */
+		if (!git_revparse_single(&obj, repo, "HEAD"))
+			head = git_object_id(obj);
+		git_object_free(obj);
 
-		writelog(fp, head);
+		/* use directory name as name */
+		if ((name = strrchr(repodirabs, '/')))
+			name++;
+		else
+			name = "";
 
-		if (rcachefp) {
-			/* append previous log to log.html and the new cache */
-			while (!feof(rcachefp)) {
-				n = fread(buf, 1, sizeof(buf), rcachefp);
-				if (ferror(rcachefp))
-					break;
-				if (fwrite(buf, 1, n, fp) != n ||
-				    fwrite(buf, 1, n, wcachefp) != n)
-					    break;
+		/* strip .git suffix */
+		if (!(strippedname = strdup(name)))
+			err(1, "strdup");
+		if ((p = strrchr(strippedname, '.')))
+			if (!strcmp(p, ".git"))
+				*p = '\0';
+
+		snprintf(path, sizeof(path), "%s/description", repodir);
+		if ((fpread = fopen(path, "r"))) {
+			if (!fgets(description, sizeof(description), fpread))
+				description[0] = '\0';
+			checkfileerror(fpread, path, 'r');
+			fclose(fpread);
+		}
+
+		snprintf(path, sizeof(path), "%s/owner", repodir);
+		if ((fpread = fopen(path, "r"))) {
+			if (!fgets(owner, sizeof(owner), fpread))
+				owner[0] = '\0';
+			checkfileerror(fpread, path, 'r');
+			fclose(fpread);
+		}
+
+		snprintf(path, sizeof(path), "%s/url", repodir);
+		if ((fpread = fopen(path, "r"))) {
+			if (!fgets(cloneurl, sizeof(cloneurl), fpread))
+				cloneurl[0] = '\0';
+			checkfileerror(fpread, path, 'r');
+			fclose(fpread);
+			cloneurl[strcspn(cloneurl, "\n")] = '\0';
+		}
+
+		/* check LICENSE */
+		for (i = 0; i < LEN(licensefiles) && !license; i++) {
+			if (!git_revparse_single(&obj, repo, licensefiles[i]) &&
+				git_object_type(obj) == GIT_OBJ_BLOB)
+				license = licensefiles[i] + strlen("HEAD:");
+			git_object_free(obj);
+		}
+
+		/* check README */
+		for (i = 0; i < LEN(readmefiles) && !readme; i++) {
+			if (!git_revparse_single(&obj, repo, readmefiles[i]) &&
+				git_object_type(obj) == GIT_OBJ_BLOB)
+				readme = readmefiles[i] + strlen("HEAD:");
+			git_object_free(obj);
+		}
+
+		writelog_index(index);
+		checkfileerror(index, indexfile, 'w');
+
+		if (!git_revparse_single(&obj, repo, "HEAD:.gitmodules") &&
+			git_object_type(obj) == GIT_OBJ_BLOB)
+			submodules = ".gitmodules";
+		git_object_free(obj);
+
+		/* log for HEAD */
+		snprintf(path, sizeof(path), "%s/log.html", destdir);
+		fp = efopen(path, "w");
+		relpath = "";
+		snprintf(path, sizeof(path), "%s/commit", destdir);
+		mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
+		writeheader(fp, "Log");
+		fputs("<table id=\"log\"><thead>\n<tr><td><b>Date</b></td>"
+			"<td><b>Commit message</b></td>"
+			"<td><b>Author</b></td><td class=\"num\" align=\"right\"><b>Files</b></td>"
+			"<td class=\"num\" align=\"right\"><b>+</b></td>"
+			"<td class=\"num\" align=\"right\"><b>-</b></td></tr>\n</thead><tbody>\n", fp);
+
+		if (cachefile && head) {
+			/* read from cache file (does not need to exist) */
+			if ((rcachefp = fopen(cachefile, "r"))) {
+				if (!fgets(lastoidstr, sizeof(lastoidstr), rcachefp))
+					errx(1, "%s: no object id", cachefile);
+				if (git_oid_fromstr(&lastoid, lastoidstr))
+					errx(1, "%s: invalid object id", cachefile);
 			}
-			checkfileerror(rcachefp, cachefile, 'r');
-			fclose(rcachefp);
-		}
-		checkfileerror(wcachefp, tmppath, 'w');
-		fclose(wcachefp);
-	} else {
-		if (head)
+
+			/* write log to (temporary) cache */
+			if ((fd = mkstemp(tmppath)) == -1)
+				err(1, "mkstemp");
+			if (!(wcachefp = fdopen(fd, "w")))
+				err(1, "fdopen: '%s'", tmppath);
+			/* write last commit id (HEAD) */
+			git_oid_tostr(buf, sizeof(buf), head);
+			fprintf(wcachefp, "%s\n", buf);
+
 			writelog(fp, head);
+
+			if (rcachefp) {
+				/* append previous log to log.html and the new cache */
+				while (!feof(rcachefp)) {
+					n = fread(buf, 1, sizeof(buf), rcachefp);
+					if (ferror(rcachefp))
+						break;
+					if (fwrite(buf, 1, n, fp) != n ||
+						fwrite(buf, 1, n, wcachefp) != n)
+							break;
+				}
+				checkfileerror(rcachefp, cachefile, 'r');
+				fclose(rcachefp);
+			}
+			checkfileerror(wcachefp, tmppath, 'w');
+			fclose(wcachefp);
+		} else {
+			if (head)
+				writelog(fp, head);
+		}
+
+		fputs("</tbody></table>", fp);
+		writefooter(fp);
+		snprintf(path, sizeof(path), "%s/log.html", destdir);
+		checkfileerror(fp, path, 'w');
+		fclose(fp);
+
+		/* files for HEAD */
+		snprintf(path, sizeof(path), "%s/files.html", destdir);
+		fp = efopen(path, "w");
+		writeheader(fp, "Files");
+		if (head)
+			writefiles(fp, head);
+		writefooter(fp);
+		checkfileerror(fp, path, 'w');
+		fclose(fp);
+
+		/* summary page with branches and tags */
+		snprintf(path, sizeof(path), "%s/refs.html", destdir);
+		fp = efopen(path, "w");
+		writeheader(fp, "Refs");
+		writerefs(fp);
+		writefooter(fp);
+		checkfileerror(fp, path, 'w');
+		fclose(fp);
+
+		/* Atom feed */
+		snprintf(path, sizeof(path), "%s/atom.xml", destdir);
+		fp = efopen(path, "w");
+		writeatom(fp, 1);
+		checkfileerror(fp, path, 'w');
+		fclose(fp);
+
+		/* Atom feed for tags / releases */
+		snprintf(path, sizeof(path), "%s/tags.xml", destdir);
+		fp = efopen(path, "w");
+		writeatom(fp, 0);
+		checkfileerror(fp, path, 'w');
+		fclose(fp);
+
+		/* rename new cache file on success */
+		if (cachefile && head) {
+			if (rename(tmppath, cachefile))
+				err(1, "rename: '%s' to '%s'", tmppath, cachefile);
+			umask((mask = umask(0)));
+			if (chmod(cachefile,
+				(S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH) & ~mask))
+				err(1, "chmod: '%s'", cachefile);
+		}
+
+		/* cleanup */
+		git_repository_free(repo);
+
 	}
+	writefooter_index(index);
+	checkfileerror(index, indexfile, 'w');
+	fclose(index);
 
-	fputs("</tbody></table>", fp);
-	writefooter(fp);
-	snprintf(path, sizeof(path), "%s/log.html", destdir);
-	checkfileerror(fp, path, 'w');
-	fclose(fp);
-
-	/* files for HEAD */
-	snprintf(path, sizeof(path), "%s/files.html", destdir);
-	fp = efopen(path, "w");
-	writeheader(fp, "Files");
-	if (head)
-		writefiles(fp, head);
-	writefooter(fp);
-	checkfileerror(fp, path, 'w');
-	fclose(fp);
-
-	/* summary page with branches and tags */
-	snprintf(path, sizeof(path), "%s/refs.html", destdir);
-	fp = efopen(path, "w");
-	writeheader(fp, "Refs");
-	writerefs(fp);
-	writefooter(fp);
-	checkfileerror(fp, path, 'w');
-	fclose(fp);
-
-	/* Atom feed */
-	snprintf(path, sizeof(path), "%s/atom.xml", destdir);
-	fp = efopen(path, "w");
-	writeatom(fp, 1);
-	checkfileerror(fp, path, 'w');
-	fclose(fp);
-
-	/* Atom feed for tags / releases */
-	snprintf(path, sizeof(path), "%s/tags.xml", destdir);
-	fp = efopen(path, "w");
-	writeatom(fp, 0);
-	checkfileerror(fp, path, 'w');
-	fclose(fp);
-
-	/* rename new cache file on success */
-	if (cachefile && head) {
-		if (rename(tmppath, cachefile))
-			err(1, "rename: '%s' to '%s'", tmppath, cachefile);
-		umask((mask = umask(0)));
-		if (chmod(cachefile,
-		    (S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH) & ~mask))
-			err(1, "chmod: '%s'", cachefile);
-	}
-
-	/* cleanup */
-	git_repository_free(repo);
 	git_libgit2_shutdown();
 
 	return 0;

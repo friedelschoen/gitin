@@ -21,16 +21,13 @@ STAGIT_CPPFLAGS = -D_XOPEN_SOURCE=700 -D_DEFAULT_SOURCE -D_BSD_SOURCE
 #STAGIT_CFLAGS += -DGIT_OPT_SET_OWNER_VALIDATION=-1
 
 SRC = \
-	stagit.c\
-	stagit-index.c
+	stagit.c
 COMPATSRC = \
 	compat.c
 BIN = \
-	stagit\
-	stagit-index
+	stagit
 MAN1 = \
-	stagit.1\
-	stagit-index.1
+	stagit.1
 DOC = \
 	LICENSE\
 	README
@@ -65,9 +62,6 @@ ${OBJ}: ${HDR}
 
 stagit: stagit.o ${COMPATOBJ}
 	${CC} -o $@ stagit.o ${COMPATOBJ} ${STAGIT_LDFLAGS}
-
-stagit-index: stagit-index.o ${COMPATOBJ}
-	${CC} -o $@ stagit-index.o ${COMPATOBJ} ${STAGIT_LDFLAGS}
 
 clean:
 	rm -f ${BIN} ${OBJ} ${NAME}-${VERSION}.tar.gz
