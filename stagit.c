@@ -87,7 +87,7 @@ static char cloneurl[1024];
 static char *submodules;
 static const char *license;
 static const char *readme;
-static const char *destdir = ".";
+static char destdir[1024];
 static uint32_t highlighthash;
 
 /* cache */
@@ -574,7 +574,7 @@ writeheader(FILE *fp, const char *title)
 	fputs("<link rel=\"alternate\" type=\"application/atom+xml\" title=\"", fp);
 	xmlencode(fp, name, strlen(name));
 	fprintf(fp, " Atom Feed (tags)\" href=\"%stags.xml\" />\n", relpath);
-	fprintf(fp, "<link rel=\"stylesheet\" type=\"text/css\" href=\"%sstyle.css\" />\n", relpath);
+	fprintf(fp, "<link rel=\"stylesheet\" type=\"text/css\" href=\"%s%s\" />\n", relpath, stylesheet);
 	fputs("</head>\n<body>\n<table><tr><td>", fp);
 	fprintf(fp, "<a href=\"../%s\"><img src=\"%s%s\" alt=\"\" width=\"32\" height=\"32\" /></a>",
 	        relpath, relpath, logoicon);
@@ -1456,7 +1456,7 @@ main(int argc, char *argv[])
 	ARGBEGIN
 	switch (OPT) {
 		case 'd':
-			destdir = EARGF(usage(self));
+			destination = EARGF(usage(self));
 			break;
 		case 'h':
 			highlightcmd = EARGF(usage(self));
@@ -1496,7 +1496,8 @@ main(int argc, char *argv[])
 
 	for (int repoi = 0; repoi < argc; repoi++) {
 		repodir = argv[repoi];
-		destdir = repodir;
+		
+		snprintf(destdir, sizeof(destdir), "%s/%s", repodir, destination);
 
 		printf("-> %s\n", repodir);
 
