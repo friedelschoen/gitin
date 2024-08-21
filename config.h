@@ -4,9 +4,15 @@ static const char *faviconicon = "favicon.svg";
 /* logo to use in header*/
 static const char *logoicon = "logo.svg";
 
+/* stylesheet to use */
+static const char *stylesheet = "style.css";
+
 /* files to use as lisense or readme, these will be taged in the header */
 static const char *licensefiles[] = { "HEAD:LICENSE", "HEAD:LICENSE.md", "HEAD:COPYING" };
 static const char *readmefiles[] = { "HEAD:README", "HEAD:README.md" };
+
+/* where to put the html files relative to repodir */
+static const char* destination = ".";
 
 /* how to index file is called */
 static const char *indexfile = "index.html";
