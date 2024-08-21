@@ -24,9 +24,11 @@
 #include "arg.h"
 #include "compat.h"
 
-#define LEN(s)    (sizeof(s)/sizeof(*s))
+#define LEN(s)      (sizeof(s)/sizeof(*s))
+#define fallthrough __attribute__ ((fallthrough));
 
 #define MURMUR_SEED 0xCAFE5EED // cafeseed
+
 
 struct deltainfo {
 	git_patch *patch;
@@ -124,7 +126,9 @@ uint32_t murmurhash3(const void *key, int len, uint32_t seed) {
 
     switch (len & 3) {
         case 3: k1 ^= tail[2] << 16;
+				fallthrough;
         case 2: k1 ^= tail[1] << 8;
+				fallthrough;
         case 1: k1 ^= tail[0];
                 k1 *= c1;
                 k1 = (k1 << 15) | (k1 >> (32 - 15));
@@ -640,8 +644,7 @@ writefooter_index(FILE *fp)
 size_t
 writeblobhtml(FILE *fp, const git_blob *blob, const char* filename)
 {
-	size_t n = 0, i, len, prev;
-	const char *nfmt = "<a href=\"#l%zu\" class=\"line\" id=\"l%zu\">%7zu</a> ";
+	size_t n = 0, len;
 	const char *s = git_blob_rawcontent(blob);
 
 	static unsigned char buffer[512];
@@ -1224,10 +1227,9 @@ filemode(git_filemode_t m)
 	return mode;
 }
 
-void writefile(git_object *obj, const char *fpath, const char *filename, size_t filesize) {
+void writefile(git_object *obj, const char *fpath, size_t filesize) {
 	char tmp[PATH_MAX] = "", *d;
 	const char *p;
-	size_t lc = 0;
 	FILE *fp;
 
 	if (strlcpy(tmp, fpath, sizeof(tmp)) >= sizeof(tmp))
@@ -1307,7 +1309,7 @@ writefilestree(FILE *fp, git_tree *tree, const char *path)
 			filesize = git_blob_rawsize((git_blob *)obj);
 			lc = writeblob(obj, filepath, entryname, staticpath, filesize);
 
-			writefile(obj, staticpath, entryname, filesize);
+			writefile(obj, staticpath, filesize);
 
 			r = snprintf(filepath, sizeof(filepath), "file/%s.html", entrypath);
 			if (r < 0 || (size_t)r >= sizeof(filepath))
@@ -1551,7 +1553,7 @@ main(int argc, char *argv[])
 		}
 
 		/* check LICENSE */
-		for (i = 0; i < LEN(licensefiles) && !license; i++) {
+		for (i = 0; i < (int) LEN(licensefiles) && !license; i++) {
 			if (!git_revparse_single(&obj, repo, licensefiles[i]) &&
 				git_object_type(obj) == GIT_OBJ_BLOB)
 				license = licensefiles[i] + strlen("HEAD:");
@@ -1559,7 +1561,7 @@ main(int argc, char *argv[])
 		}
 
 		/* check README */
-		for (i = 0; i < LEN(readmefiles) && !readme; i++) {
+		for (i = 0; i < (int) LEN(readmefiles) && !readme; i++) {
 			if (!git_revparse_single(&obj, repo, readmefiles[i]) &&
 				git_object_type(obj) == GIT_OBJ_BLOB)
 				readme = readmefiles[i] + strlen("HEAD:");
