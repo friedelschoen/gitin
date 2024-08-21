@@ -311,7 +311,7 @@ writeblobhtml(FILE *fp, const git_blob *blob, const char* filename)
 }
 
 void
-printcommit(FILE *fp, struct commitinfo *ci)
+writecommit(FILE *fp, struct commitinfo *ci)
 {
 	fprintf(fp, "<b>commit</b> <a href=\"%scommit/%s.html\">%s</a>\n",
 		relpath, ci->oid, ci->oid);
@@ -339,7 +339,7 @@ printcommit(FILE *fp, struct commitinfo *ci)
 }
 
 void
-printshowfile(FILE *fp, struct commitinfo *ci)
+writediff(FILE *fp, struct commitinfo *ci)
 {
 	const git_diff_delta *delta;
 	const git_diff_hunk *hunk;
@@ -349,7 +349,7 @@ printshowfile(FILE *fp, struct commitinfo *ci)
 	char linestr[80];
 	int c;
 
-	printcommit(fp, ci);
+	writecommit(fp, ci);
 
 	if (!ci->deltas)
 		return;
@@ -543,7 +543,7 @@ writelog(FILE *fp, const git_oid *oid)
 				err(1, "fopen: '%s'", path);
 			writeheader(fpfile, ci->summary);
 			fputs("<pre>", fpfile);
-			printshowfile(fpfile, ci);
+			writediff(fpfile, ci);
 			fputs("</pre>\n", fpfile);
 			writefooter(fpfile);
 			checkfileerror(fpfile, path, 'w');
@@ -604,7 +604,7 @@ err:
 }
 
 void
-printcommitatom(FILE *fp, struct commitinfo *ci, const char *tag)
+writecommitatom(FILE *fp, struct commitinfo *ci, const char *tag)
 {
 	fputs("<entry>\n", fp);
 
@@ -684,7 +684,7 @@ writeatom(FILE *fp, int all)
 		for (i = 0; i < m && !git_revwalk_next(&id, w); i++) {
 			if (!(ci = commitinfo_getbyoid(&id, repo)))
 				break;
-			printcommitatom(fp, ci, "");
+			writecommitatom(fp, ci, "");
 			commitinfo_free(ci);
 		}
 		git_revwalk_free(w);
@@ -692,7 +692,7 @@ writeatom(FILE *fp, int all)
 		/* references: tags */
 		for (i = 0; i < refcount; i++) {
 			if (git_reference_is_tag(ris[i].ref))
-				printcommitatom(fp, ris[i].ci,
+				writecommitatom(fp, ris[i].ci,
 				                git_reference_shorthand(ris[i].ref));
 
 			commitinfo_free(ris[i].ci);
@@ -1003,8 +1003,7 @@ writerefs(FILE *fp)
 void
 usage(char *argv0)
 {
-	fprintf(stderr, "usage: %s [-d destdir] [-c cachefile | -l commits] "
-	        "[-u baseurl] repodir\n", argv0);
+	fprintf(stderr, "usage: %s [-d destdir] [-c cachefile | -l commits] [-u baseurl] repodir\n", argv0);
 	exit(1);
 }
 
@@ -1015,7 +1014,7 @@ main(int argc, char *argv[])
 	const git_oid *head = NULL;
 	mode_t mask;
 	FILE *fp, *fpread;
-	char path[PATH_MAX], repodirabs[PATH_MAX + 1], *p;
+	char path[PATH_MAX], repodirabs[PATH_MAX + 1];
 	char tmppath[64] = "stagit-cache.XXXXXXXXXXXX", buf[BUFSIZ];
 	size_t n;
 	int i, fd;
