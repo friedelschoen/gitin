@@ -2,13 +2,12 @@
 
 /* Percent-encode, see RFC3986 section 2.1. */
 void
-percentencode(FILE *fp, const char *s, size_t len)
+percentencode(FILE *fp, const char *s)
 {
 	static char tab[] = "0123456789ABCDEF";
 	unsigned char uc;
-	size_t i;
 
-	for (i = 0; *s && i < len; s++, i++) {
+	while (*s) {
 		uc = *s;
 		/* NOTE: do not encode '/' for paths or ",-." */
 		if (uc < ',' || uc >= 127 || (uc >= ':' && uc <= '@') ||
@@ -19,16 +18,15 @@ percentencode(FILE *fp, const char *s, size_t len)
 		} else {
 			putc(uc, fp);
 		}
+		s++;
 	}
 }
 
 /* Escape characters below as HTML 2.0 / XML 1.0. */
 void
-xmlencode(FILE *fp, const char *s, size_t len)
+xmlencode(FILE *fp, const char *s)
 {
-	size_t i;
-
-	for (i = 0; *s && i < len; s++, i++) {
+	while (*s) {
 		switch(*s) {
 		case '<':  fputs("&lt;",   fp); break;
 		case '>':  fputs("&gt;",   fp); break;
@@ -37,6 +35,7 @@ xmlencode(FILE *fp, const char *s, size_t len)
 		case '"':  fputs("&quot;", fp); break;
 		default:   putc(*s, fp);
 		}
+		s++;
 	}
 }
 
