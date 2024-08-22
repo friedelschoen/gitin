@@ -5,7 +5,7 @@
 
 #include "commitinfo.h"
 
-int
+static int
 refs_cmp(const void *v1, const void *v2)
 {
 	const struct referenceinfo *r1 = v1, *r2 = v2;

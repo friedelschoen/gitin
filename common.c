@@ -7,6 +7,9 @@
 #include <sys/stat.h>
 #include <time.h>
 
+#include "compat.h"
+
+
 /* Handle read or write errors for a FILE * stream */
 void
 checkfileerror(FILE *fp, const char *name, int mode)
@@ -36,20 +39,6 @@ mkdirp(const char *path)
 	if (mkdir(tmp, S_IRWXU | S_IRWXG | S_IRWXO) < 0 && errno != EEXIST)
 		return -1;
 	return 0;
-}
-
-void
-printtimez(FILE *fp, const git_time *intime)
-{
-	struct tm *intm;
-	time_t t;
-	char out[32];
-
-	t = (time_t)intime->time;
-	if (!(intm = gmtime(&t)))
-		return;
-	strftime(out, sizeof(out), "%Y-%m-%dT%H:%M:%SZ", intm);
-	fputs(out, fp);
 }
 
 void

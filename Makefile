@@ -21,6 +21,7 @@ MAN1 = stagit.1
 HEADER = \
 	arg.h \
 	commitinfo.h \
+	common.h \
 	compat.h \
 	config.h \
 	deltainfo.h \
@@ -30,6 +31,7 @@ HEADER = \
 
 OBJECTS = \
 	commitinfo.o \
+	common.o \
 	compat.o \
 	deltainfo.o \
 	murmur3.o \
