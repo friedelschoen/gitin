@@ -44,7 +44,7 @@ struct repoinfo {
 
 #include "config.h"
 
-void
+static void
 writeheader(FILE *fp, const struct repoinfo *info, const char* relpath, const char *title)
 {
 	fputs("<!DOCTYPE html>\n"
@@ -92,7 +92,7 @@ writeheader(FILE *fp, const struct repoinfo *info, const char* relpath, const ch
 	fputs("</td></tr></table>\n<hr/>\n<div id=\"content\">\n", fp);
 }
 
-void
+static void
 writeheader_index(FILE *fp, const char* description)
 {
 	fputs("<!DOCTYPE html>\n"
@@ -115,19 +115,19 @@ writeheader_index(FILE *fp, const char* description)
 		"</thead><tbody>\n", fp);
 }
 
-void
+static void
 writefooter(FILE *fp)
 {
 	fputs("</div>\n</body>\n</html>\n", fp);
 }
 
-void
+static void
 writefooter_index(FILE *fp)
 {
 	fputs("</tbody>\n</table>\n</div>\n</body>\n</html>\n", fp);
 }
 
-size_t
+static size_t
 writeblobhtml(FILE *fp, const git_blob *blob, const char* filename)
 {
 	static uint32_t highlighthash = 0;
@@ -230,7 +230,7 @@ writeblobhtml(FILE *fp, const git_blob *blob, const char* filename)
 	return n;
 }
 
-void
+static void
 writecommit(FILE *fp, const char* relpath, struct commitinfo *ci)
 {
 	fprintf(fp, "<b>commit</b> <a href=\"%scommit/%s.html\">%s</a>\n",
@@ -258,7 +258,7 @@ writecommit(FILE *fp, const char* relpath, struct commitinfo *ci)
 	}
 }
 
-void
+static void
 writediff(FILE *fp, const char* relpath, struct commitinfo *ci)
 {
 	const git_diff_delta *delta;
@@ -383,7 +383,7 @@ writediff(FILE *fp, const char* relpath, struct commitinfo *ci)
 	}
 }
 
-void
+static void
 writelogline(FILE *fp, const char* relpath, struct commitinfo *ci)
 {
 	fputs("<tr><td>", fp);
@@ -407,7 +407,7 @@ writelogline(FILE *fp, const char* relpath, struct commitinfo *ci)
 	fputs("</td></tr>\n", fp);
 }
 
-int
+static int
 writelog(FILE *fp, const struct repoinfo *info, const git_oid *oid)
 {
 	struct commitinfo *ci;
@@ -486,7 +486,7 @@ err:
 	return 0;
 }
 
-int
+static int
 writelog_index(FILE *fp, const struct repoinfo *info)
 {
 	git_commit *commit = NULL;
@@ -524,7 +524,7 @@ err:
 	return ret;
 }
 
-size_t
+static size_t
 writeblob(const struct repoinfo *info, const char* relpath, git_object *obj, const char *fpath, const char *filename, const char* staticpath, size_t filesize)
 {
 	char tmp[PATH_MAX] = "", *d;
@@ -569,7 +569,7 @@ writeblob(const struct repoinfo *info, const char* relpath, git_object *obj, con
 	return lc;
 }
 
-const char *
+static const char *
 filemode(git_filemode_t m)
 {
 	static char mode[11];
@@ -611,7 +611,7 @@ filemode(git_filemode_t m)
 	return mode;
 }
 
-void 
+static void 
 writefile(git_object *obj, const char *fpath, size_t filesize) {
 	char tmp[PATH_MAX] = "", *d;
 	const char *p;
@@ -645,7 +645,7 @@ unhide_filename(char* path) {
 	}
 }
 
-int
+static int
 writefilestree(FILE *fp, const struct repoinfo *info, const char* relpath, git_tree *tree, const char *path)
 {
 	const git_tree_entry *entry = NULL;
@@ -733,7 +733,7 @@ writefilestree(FILE *fp, const struct repoinfo *info, const char* relpath, git_t
 	return 0;
 }
 
-int
+static int
 writefiles(FILE *fp, const struct repoinfo *info, const char* relpath, const git_oid *id)
 {
 	git_tree *tree = NULL;
@@ -757,7 +757,7 @@ writefiles(FILE *fp, const struct repoinfo *info, const char* relpath, const git
 	return ret;
 }
 
-int
+static int
 writerefs(FILE *fp, const struct repoinfo *info)
 {
 	struct referenceinfo *ris = NULL;
@@ -814,7 +814,7 @@ writerefs(FILE *fp, const struct repoinfo *info)
 	return 0;
 }
 
-void
+static void
 usage(char *argv0)
 {
 	fprintf(stderr, "usage: %s [-d destdir] [-c cachefile | -l commits] [-u baseurl] repodir\n", argv0);

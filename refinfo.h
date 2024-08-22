@@ -8,5 +8,4 @@ struct referenceinfo {
 	struct commitinfo *ci;
 };
 
-int refs_cmp(const void *v1, const void *v2);
 int getrefs(struct referenceinfo **pris, size_t *prefcount, git_repository *repo);
