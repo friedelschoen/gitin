@@ -27,6 +27,8 @@ HEADER = \
 	deltainfo.h \
 	murmur3.h \
 	refinfo.h \
+	writeindex.h \
+	writerepo.h \
 	xml.h
 
 OBJECTS = \
@@ -37,6 +39,8 @@ OBJECTS = \
 	murmur3.o \
 	refinfo.o \
 	stagit.o \
+	writeindex.o \
+	writerepo.o \
 	xml.o
 
 all: ${BIN}

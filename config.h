@@ -21,7 +21,10 @@ static const char *indexfile = "index.html";
 static const char *highlightcmd = "chroma --html --html-only --html-inline-styles --style=xcode --lexer=$type";
 
 /* name of cache directory for highlighting */
-static const char *hlcache = ".hlcache";
+static const char *highlightcache = ".hlcache";
+
+/* name of cache directory for commit */
+static const char *commitcache = ".hlcache";
 
 /* maximum of commits to log, -1 indicates not used */
 static long long nlogcommits = -1;
