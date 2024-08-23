@@ -1,6 +1,6 @@
 .POSIX:
 
-NAME = stagit
+NAME = gitin
 VERSION = 1.2
 
 # paths
@@ -14,9 +14,9 @@ CFLAGS = -Wall -Wextra -Wpedantic -O2 $(shell pkg-config --cflags libgit2)
 LDFLAGS = $(shell pkg-config --libs libgit2)
 CPPFLAGS = -D_XOPEN_SOURCE=700 
 
-BIN = stagit
+BIN = gitin
 
-MAN1 = stagit.1
+MAN1 = gitin.1
 
 HEADER = \
 	arg.h \
@@ -38,7 +38,7 @@ OBJECTS = \
 	deltainfo.o \
 	murmur3.o \
 	refinfo.o \
-	stagit.o \
+	gitin.o \
 	writeindex.o \
 	writerepo.o \
 	xml.o
@@ -48,7 +48,7 @@ all: ${BIN}
 %.o: %.c ${HEADER}
 	${CC} -c -o $@ $< ${CFLAGS} ${CPPFLAGS}
 
-stagit: ${OBJECTS}
+gitin: ${OBJECTS}
 	${CC} -o $@ $^ ${LDFLAGS}
 
 clean:
@@ -59,7 +59,7 @@ install: all
 	mkdir -p ${DESTDIR}${PREFIX}/bin
 	cp -f ${BIN} ${DESTDIR}${PREFIX}/bin
 	for f in ${BIN}; do chmod 755 ${DESTDIR}${PREFIX}/bin/$$f; done
-	cp -f stagit-highlight ${DESTDIR}${PREFIX}/bin/
+	cp -f gitin-highlight ${DESTDIR}${PREFIX}/bin/
 	# installing example files.
 	mkdir -p ${DESTDIR}${DOCPREFIX}
 	cp -f style.css\

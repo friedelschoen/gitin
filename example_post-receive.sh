@@ -22,8 +22,8 @@ fi
 reposdir="/home/src/src"
 dir="${reposdir}/${name}"
 htmldir="/home/www/domains/git.codemadness.org/htdocs"
-stagitdir="/"
-destdir="${htmldir}${stagitdir}"
+gitindir="/"
+destdir="${htmldir}${gitindir}"
 cachefile=".htmlcache"
 # /config
 
@@ -49,7 +49,7 @@ done
 # strip .git suffix.
 r=$(basename "${name}")
 d=$(basename "${name}" ".git")
-printf "[%s] stagit HTML pages... " "${d}"
+printf "[%s] gitin HTML pages... " "${d}"
 
 mkdir -p "${destdir}/${d}"
 cd "${destdir}/${d}" || exit 1
@@ -61,10 +61,10 @@ if test "${force}" = "1"; then
 fi
 
 # make index.
-stagit-index "${reposdir}/"*/ > "${destdir}/index.html"
+gitin-index "${reposdir}/"*/ > "${destdir}/index.html"
 
 # make pages.
-stagit -c "${cachefile}" -u "https://git.codemadness.nl/$d/" "${reposdir}/${r}"
+gitin -c "${cachefile}" -u "https://git.codemadness.nl/$d/" "${reposdir}/${r}"
 
 ln -sf log.html index.html
 ln -sf ../style.css style.css
