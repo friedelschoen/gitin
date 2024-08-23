@@ -736,7 +736,7 @@ writerepo(FILE *index, const char* repodir) {
 	mode_t mask;
 	FILE *fp, *fpread;
 	char path[PATH_MAX], repodirabs[PATH_MAX + 1];
-	char tmppath[64] = "stagit-cache.xxxxxx", buf[BUFSIZ];
+	char tmppath[64] = "stagit-cache.XXXXXX", buf[BUFSIZ];
 	size_t n;
 	int i, fd;
 
