@@ -1,4 +1,5 @@
 #include <err.h>
+#include <signal.h>
 #include <stdlib.h>
 
 #include "arg.h"
@@ -42,6 +43,8 @@ main(int argc, char *argv[])
 
 	if (argc == 0)
 		usage(self);
+
+	signal(SIGPIPE, SIG_IGN);
 
 	mkdirp(highlightcache);
 

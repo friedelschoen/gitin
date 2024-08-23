@@ -5,7 +5,9 @@
 #include "common.h"
 #include "xml.h"
 
-#include "config.h"
+extern const char *logoicon;
+extern const char *faviconicon;
+extern const char *stylesheet;
 
 void
 writeheader_index(FILE *fp, const char* description)

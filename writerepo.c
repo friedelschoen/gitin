@@ -20,7 +20,20 @@
 
 #define MURMUR_SEED 0xCAFE5EED // cafeseed
 
-#include "config.h"
+
+extern const char *highlightcmd;
+extern const char *logoicon;
+extern const char *faviconicon;
+extern const char *highlightcache;
+extern const char *commitcache;
+extern const char *destination;
+extern const char *licensefiles[];
+extern int licensefileslen;
+extern const char *readmefiles[];
+extern int readmefileslen;
+extern const char *indexfile;
+extern const char *stylesheet;
+extern long long nlogcommits;
 
 static void
 writeheader(FILE *fp, const struct repoinfo *info, const char* relpath, const char *title)
@@ -785,7 +798,7 @@ writerepo(FILE *index, const char* repodir) {
 	}
 
 	/* check LICENSE */
-	for (i = 0; i < (int) LEN(licensefiles) && !info.license; i++) {
+	for (i = 0; i < licensefileslen && !info.license; i++) {
 		if (!git_revparse_single(&obj, info.repo, licensefiles[i]) &&
 			git_object_type(obj) == GIT_OBJ_BLOB)
 			info.license = licensefiles[i] + strlen("HEAD:");
@@ -793,7 +806,7 @@ writerepo(FILE *index, const char* repodir) {
 	}
 
 	/* check README */
-	for (i = 0; i < (int) LEN(readmefiles) && !info.readme; i++) {
+	for (i = 0; i < readmefileslen && !info.readme; i++) {
 		if (!git_revparse_single(&obj, info.repo, readmefiles[i]) &&
 			git_object_type(obj) == GIT_OBJ_BLOB)
 			info.readme = readmefiles[i] + strlen("HEAD:");
