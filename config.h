@@ -7,15 +7,8 @@ const char *logoicon = "logo.svg";
 /* stylesheet to use */
 const char *stylesheet = "style.css";
 
-/* files to use as lisense or readme, these will be tagged in the header */
-const char *licensefiles[] = { "HEAD:LICENSE", "HEAD:LICENSE.md", "HEAD:COPYING" };
-int licensefileslen = 3;
-
-const char *readmefiles[] = { "HEAD:README", "HEAD:README.md" };
-int readmefileslen = 2;
-
 /* where to put the html files relative to repodir */
-const char* destination = ".";
+const char* destination = "";
 
 /* how to index file is called */
 const char *indexfile = "index.html";
@@ -31,3 +24,11 @@ const char *commitcache = ".gitincommits";
 
 /* maximum of commits to log, -1 indicates not used */
 long long nlogcommits = -1;
+
+/* files to use as lisense or readme, these will be pinned in the header */
+const char *pinfiles[] = { 
+    "LICENSE", "LICENSE.md", "COPYING",
+    "README", "README.md",
+};
+
+int pinfileslen = sizeof(pinfiles) / sizeof(*pinfiles);

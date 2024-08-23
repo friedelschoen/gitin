@@ -3,6 +3,9 @@
 #include <git2.h>
 #include <stdio.h>
 
+
+#define MAXPINS 8
+
 struct repoinfo {
 	git_repository *repo;
 
@@ -12,8 +15,9 @@ struct repoinfo {
 	const char *name;
 
 	const char *submodules;
-	const char *license;
-	const char *readme;
+
+	const char *pinfiles[MAXPINS];
+	int pinfileslen;
 
 	char description[255];
 	char cloneurl[255];

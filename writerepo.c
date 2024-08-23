@@ -27,10 +27,8 @@ extern const char *faviconicon;
 extern const char *highlightcache;
 extern const char *commitcache;
 extern const char *destination;
-extern const char *licensefiles[];
-extern int licensefileslen;
-extern const char *readmefiles[];
-extern int readmefileslen;
+extern const char *pinfiles[];
+extern int pinfileslen;
 extern const char *indexfile;
 extern const char *stylesheet;
 extern long long nlogcommits;
@@ -74,12 +72,9 @@ writeheader(FILE *fp, const struct repoinfo *info, const char* relpath, const ch
 	if (info->submodules)
 		fprintf(fp, " | <a href=\"%sfile/%s.html\">Submodules</a>",
 		        relpath, info->submodules);
-	if (info->readme)
-		fprintf(fp, " | <a href=\"%sfile/%s.html\">README</a>",
-		        relpath, info->readme);
-	if (info->license)
-		fprintf(fp, " | <a href=\"%sfile/%s.html\">LICENSE</a>",
-		        relpath, info->license);
+	for (int i = 0; i < info->pinfileslen; i++)
+		fprintf(fp, " | <a href=\"%sfile/%s.html\">%s</a>",
+		        relpath, info->pinfiles[i], info->pinfiles[i]);
 	fputs("</td></tr></table>\n<hr/>\n<div id=\"content\">\n", fp);
 }
 
@@ -797,19 +792,11 @@ writerepo(FILE *index, const char* repodir) {
 		info.cloneurl[strcspn(info.cloneurl, "\n")] = '\0';
 	}
 
-	/* check LICENSE */
-	for (i = 0; i < licensefileslen && !info.license; i++) {
-		if (!git_revparse_single(&obj, info.repo, licensefiles[i]) &&
-			git_object_type(obj) == GIT_OBJ_BLOB)
-			info.license = licensefiles[i] + strlen("HEAD:");
-		git_object_free(obj);
-	}
-
-	/* check README */
-	for (i = 0; i < readmefileslen && !info.readme; i++) {
-		if (!git_revparse_single(&obj, info.repo, readmefiles[i]) &&
-			git_object_type(obj) == GIT_OBJ_BLOB)
-			info.readme = readmefiles[i] + strlen("HEAD:");
+	/* check pinfiles */
+	for (i = 0; i < pinfileslen && info.pinfileslen < MAXPINS; i++) {
+		snprintf(path, sizeof(path), "HEAD:%s", pinfiles[i]);
+		if (!git_revparse_single(&obj, info.repo, path) && git_object_type(obj) == GIT_OBJ_BLOB)
+			info.pinfiles[info.pinfileslen++] = pinfiles[i];
 		git_object_free(obj);
 	}
 
