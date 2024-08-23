@@ -1,4 +1,4 @@
-stagit
+gitin
 ------
 
 static git page generator.
@@ -12,14 +12,14 @@ Usage
 Make files per repository:
 
 	$ mkdir -p htmlroot/htmlrepo1 && cd htmlroot/htmlrepo1
-	$ stagit path/to/gitrepo1
+	$ gitin path/to/gitrepo1
 	repeat for other repositories
 	$ ...
 
 Make index file for repositories:
 
 	$ cd htmlroot
-	$ stagit-index path/to/gitrepo1 \
+	$ gitin-index path/to/gitrepo1 \
 	               path/to/gitrepo2 \
 	               path/to/gitrepo3 > index.html
 
@@ -43,7 +43,7 @@ Dependencies
 Documentation
 -------------
 
-See man pages: stagit(1) and stagit-index(1).
+See man pages: gitin(1) and gitin-index(1).
 
 
 Building a static binary
@@ -99,9 +99,9 @@ Update files on git push
 
 Using a post-receive hook the static files can be automatically updated.
 Keep in mind git push -f can change the history and the commits may need
-to be recreated. This is because stagit checks if a commit file already
+to be recreated. This is because gitin checks if a commit file already
 exists. It also has a cache (-c) option which can conflict with the new
-history. See stagit(1).
+history. See gitin(1).
 
 git post-receive hook (repo/.git/hooks/post-receive):
 
@@ -127,7 +127,7 @@ git post-receive hook (repo/.git/hooks/post-receive):
 Create .tar.gz archives by tag
 ------------------------------
 	#!/bin/sh
-	name="stagit"
+	name="gitin"
 	mkdir -p archives
 	git tag -l | while read -r t; do
 		f="archives/${name}-$(echo "${t}" | tr '/' '_').tar.gz"
@@ -152,7 +152,7 @@ Features
 - Detect submodules (.gitmodules file) from HEAD and link it as a webpage.
 - Atom feed of the commit log (atom.xml).
 - Atom feed of the tags/refs (tags.xml).
-- Make index page for multiple repositories with stagit-index.
+- Make index page for multiple repositories with gitin-index.
 - After generating the pages (relatively slow) serving the files is very fast,
   simple and requires little resources (because the content is static), only
   a HTTP file server is required.
@@ -166,13 +166,13 @@ Cons
   an expensive operation, the cache (-c flag) is a workaround for this in
   some cases.
 - Not suitable for large repositories with many files, because all files are
-  written for each execution of stagit. This is because stagit shows the lines
+  written for each execution of gitin. This is because gitin shows the lines
   of textfiles and there is no "cache" for file metadata (this would add more
   complexity to the code).
 - Not suitable for repositories with many branches, a quite linear history is
   assumed (from HEAD).
 
-  In these cases it is better to just use cgit or possibly change stagit to
+  In these cases it is better to just use cgit or possibly change gitin to
   run as a CGI program.
 
 - Relatively slow to run the first time (about 3 seconds for sbase,

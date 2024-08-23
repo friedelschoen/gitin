@@ -20,7 +20,7 @@ reposdir="/var/www/domains/git.codemadness.nl/home/src"
 curdir="$(pwd)"
 
 # make index.
-stagit-index "${reposdir}/"*/ > "${curdir}/index.html"
+gitin-index "${reposdir}/"*/ > "${curdir}/index.html"
 
 # make files per repo.
 for dir in "${reposdir}/"*/; do
@@ -31,7 +31,7 @@ for dir in "${reposdir}/"*/; do
 
 	mkdir -p "${curdir}/${d}"
 	cd "${curdir}/${d}" || continue
-	stagit -c ".cache" -u "https://git.codemadness.nl/$d/" "${reposdir}/${r}"
+	gitin -c ".cache" -u "https://git.codemadness.nl/$d/" "${reposdir}/${r}"
 
 	# symlinks
 	ln -sf log.html index.html

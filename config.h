@@ -24,10 +24,10 @@ const char *indexfile = "index.html";
 const char *highlightcmd = "chroma --html --html-only --html-inline-styles --style=xcode --lexer=$type";
 
 /* name of cache directory for highlighting */
-const char *highlightcache = ".stagit/files";
+const char *highlightcache = ".gitin/files";
 
 /* name of cache directory for commit */
-const char *commitcache = ".stagitcommits";
+const char *commitcache = ".gitincommits";
 
 /* maximum of commits to log, -1 indicates not used */
 long long nlogcommits = -1;
