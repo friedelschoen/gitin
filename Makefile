@@ -26,8 +26,7 @@ HEADER = \
 	config.h \
 	murmur3.h \
 	writeindex.h \
-	writerepo.h \
-	xml.h
+	writerepo.h
 
 OBJECTS = \
 	commit.o \
@@ -36,8 +35,7 @@ OBJECTS = \
 	murmur3.o \
 	gitin.o \
 	writeindex.o \
-	writerepo.o \
-	xml.o
+	writerepo.o
 
 all: ${BIN}
 
