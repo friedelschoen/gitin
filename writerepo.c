@@ -9,12 +9,10 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include "commitinfo.h"
+#include "commit.h"
 #include "compat.h"
 #include "common.h"
-#include "deltainfo.h"
 #include "murmur3.h"
-#include "refinfo.h"
 #include "writeindex.h"
 #include "xml.h"
 
