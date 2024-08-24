@@ -2,6 +2,18 @@
 
 #include <git2.h>
 
+struct referenceinfo {
+	struct git_reference *ref;
+	struct commitinfo *ci;
+};
+
+struct deltainfo {
+	git_patch *patch;
+
+	size_t addcount;
+	size_t delcount;
+};
+
 struct commitinfo {
 	const git_oid *id;
 
@@ -26,6 +38,10 @@ struct commitinfo {
 	struct deltainfo **deltas;
 	size_t ndeltas;
 };
+
+int getrefs(struct referenceinfo **pris, size_t *prefcount, git_repository *repo);
+
+void deltainfo_free(struct deltainfo *di);
 
 int commitinfo_getstats(struct commitinfo *ci, git_repository *repo);
 void commitinfo_free(struct commitinfo *ci);

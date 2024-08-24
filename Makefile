@@ -20,24 +20,20 @@ MAN1 = gitin.1
 
 HEADER = \
 	arg.h \
-	commitinfo.h \
+	commit.h \
 	common.h \
 	compat.h \
 	config.h \
-	deltainfo.h \
 	murmur3.h \
-	refinfo.h \
 	writeindex.h \
 	writerepo.h \
 	xml.h
 
 OBJECTS = \
-	commitinfo.o \
+	commit.o \
 	common.o \
 	compat.o \
-	deltainfo.o \
 	murmur3.o \
-	refinfo.o \
 	gitin.o \
 	writeindex.o \
 	writerepo.o \
