@@ -3,7 +3,6 @@
 #include <stdio.h>
 
 #include "common.h"
-#include "xml.h"
 
 extern const char *logoicon;
 extern const char *faviconicon;

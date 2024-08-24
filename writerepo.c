@@ -14,7 +14,6 @@
 #include "common.h"
 #include "murmur3.h"
 #include "writeindex.h"
-#include "xml.h"
 
 #define MURMUR_SEED 0xCAFE5EED // cafeseed
 
