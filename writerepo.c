@@ -1,18 +1,12 @@
 #include "commit.h"
 #include "common.h"
-#include "compat.h"
 #include "config.h"
-#include "murmur3.h"
 #include "writer.h"
 
 #include <err.h>
-#include <libgen.h>
 #include <limits.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <unistd.h>
 
 
 static int writerefs(FILE* fp, const struct repoinfo* info) {
