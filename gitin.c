@@ -1,8 +1,7 @@
 #include "arg.h"
 #include "common.h"
 #include "config.h"
-#include "writehtml.h"
-#include "writeindex.h"
+#include "writer.h"
 
 #include <err.h>
 #include <signal.h>

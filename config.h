@@ -1,3 +1,5 @@
+#pragma once
+
 extern const char* highlightcmd;
 extern const char* logoicon;
 extern const char* favicon;
