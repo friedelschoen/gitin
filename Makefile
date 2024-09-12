@@ -25,9 +25,7 @@ HEADER = \
 	compat.h \
 	config.h \
 	murmur3.h \
-	writehtml.h \
-	writeindex.h \
-	writerepo.h
+	writer.h
 
 OBJECTS = \
 	commit.o \
@@ -36,9 +34,11 @@ OBJECTS = \
 	config.o \
 	gitin.o \
 	murmur3.o \
+	writefiles.o \
 	writehtml.o \
 	writeindex.o \
-	writerepo.o
+	writelog.o \
+	writerepo.o 
 
 all: ${BIN}
 

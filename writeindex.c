@@ -1,11 +1,10 @@
-#include "writeindex.h"
-
 #include "common.h"
 #include "config.h"
+#include "writer.h"
 
 #include <stdio.h>
 
-int writelog_index(FILE* fp, const struct repoinfo* info) {
+int writeindex(FILE* fp, const struct repoinfo* info) {
 	git_commit*          commit = NULL;
 	const git_signature* author;
 	git_revwalk*         w = NULL;

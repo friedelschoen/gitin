@@ -1,7 +1,6 @@
-#include "writehtml.h"
-
 #include "common.h"
 #include "config.h"
+#include "writer.h"
 
 void writeheader(FILE* fp, const struct repoinfo* info, const char* relpath, const char* name,
                  const char* description) {
