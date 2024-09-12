@@ -16,10 +16,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/types.h>
-#include <string.h>
-
 #include "compat.h"
+
+#include <string.h>
+#include <sys/types.h>
 
 /*
  * Appends src to string dst of size dsize (unlike strncat, dsize is the
@@ -28,22 +28,20 @@
  * Returns strlen(src) + MIN(dsize, strlen(initial dst)).
  * If retval >= dsize, truncation occurred.
  */
-size_t
-strlcat(char *dst, const char *src, size_t dsize)
-{
-	const char *odst = dst;
-	const char *osrc = src;
-	size_t n = dsize;
-	size_t dlen;
+size_t strlcat(char* dst, const char* src, size_t dsize) {
+	const char* odst = dst;
+	const char* osrc = src;
+	size_t      n    = dsize;
+	size_t      dlen;
 
 	/* Find the end of dst and adjust bytes left but don't go past end. */
 	while (n-- != 0 && *dst != '\0')
 		dst++;
 	dlen = dst - odst;
-	n = dsize - dlen;
+	n    = dsize - dlen;
 
 	if (n-- == 0)
-		return(dlen + strlen(src));
+		return (dlen + strlen(src));
 	while (*src != '\0') {
 		if (n != 0) {
 			*dst++ = *src;
@@ -53,7 +51,7 @@ strlcat(char *dst, const char *src, size_t dsize)
 	}
 	*dst = '\0';
 
-	return(dlen + (src - osrc));	/* count does not include NUL */
+	return (dlen + (src - osrc)); /* count does not include NUL */
 }
 
 /*
@@ -61,11 +59,9 @@ strlcat(char *dst, const char *src, size_t dsize)
  * chars will be copied.  Always NUL terminates (unless dsize == 0).
  * Returns strlen(src); if retval >= dsize, truncation occurred.
  */
-size_t
-strlcpy(char *dst, const char *src, size_t dsize)
-{
-	const char *osrc = src;
-	size_t nleft = dsize;
+size_t strlcpy(char* dst, const char* src, size_t dsize) {
+	const char* osrc  = src;
+	size_t      nleft = dsize;
 
 	/* Copy as many bytes as will fit. */
 	if (nleft != 0) {
@@ -78,10 +74,10 @@ strlcpy(char *dst, const char *src, size_t dsize)
 	/* Not enough room in dst, add NUL and traverse rest of src. */
 	if (nleft == 0) {
 		if (dsize != 0)
-			*dst = '\0';		/* NUL-terminate dst */
+			*dst = '\0'; /* NUL-terminate dst */
 		while (*src++)
 			;
 	}
 
-	return(src - osrc - 1);	/* count does not include NUL */
+	return (src - osrc - 1); /* count does not include NUL */
 }

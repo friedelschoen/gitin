@@ -1,5 +1,11 @@
 #include "writerepo.h"
 
+#include "commit.h"
+#include "common.h"
+#include "compat.h"
+#include "murmur3.h"
+#include "writeindex.h"
+
 #include <err.h>
 #include <libgen.h>
 #include <limits.h>
@@ -9,35 +15,28 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include "commit.h"
-#include "compat.h"
-#include "common.h"
-#include "murmur3.h"
-#include "writeindex.h"
-
-#define MURMUR_SEED 0xCAFE5EED // cafeseed
+#define MURMUR_SEED 0xCAFE5EED    // cafeseed
 
 
-extern const char *highlightcmd;
-extern const char *logoicon;
-extern const char *faviconicon;
-extern const char *highlightcache;
-extern const char *commitcache;
-extern const char *destination;
-extern const char *pinfiles[];
-extern int pinfileslen;
-extern const char *indexfile;
-extern const char *stylesheet;
-extern long long nlogcommits;
+extern const char* highlightcmd;
+extern const char* logoicon;
+extern const char* faviconicon;
+extern const char* highlightcache;
+extern const char* commitcache;
+extern const char* destination;
+extern const char* pinfiles[];
+extern int         pinfileslen;
+extern const char* indexfile;
+extern const char* stylesheet;
+extern long long   nlogcommits;
 
-static void
-writeheader(FILE *fp, const struct repoinfo *info, const char* relpath, const char *title)
-{
+static void writeheader(FILE* fp, const struct repoinfo* info, const char* relpath, const char* title) {
 	fputs("<!DOCTYPE html>\n"
-		"<html>\n<head>\n"
-		"<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n"
-		"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n"
-		"<title>", fp);
+	      "<html>\n<head>\n"
+	      "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n"
+	      "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n"
+	      "<title>",
+	      fp);
 	xmlencode(fp, title);
 	if (title[0] && info->name[0])
 		fputs(" - ", fp);
@@ -48,8 +47,8 @@ writeheader(FILE *fp, const struct repoinfo *info, const char* relpath, const ch
 	fprintf(fp, "</title>\n<link rel=\"icon\" type=\"image/svg+xml\" href=\"%s%s\" />\n", relpath, faviconicon);
 	fprintf(fp, "<link rel=\"stylesheet\" type=\"text/css\" href=\"%s%s\" />\n", relpath, stylesheet);
 	fputs("</head>\n<body>\n<table><tr><td>", fp);
-	fprintf(fp, "<a href=\"../%s\"><img src=\"%s%s\" alt=\"\" width=\"32\" height=\"32\" /></a>",
-	        relpath, relpath, logoicon);
+	fprintf(fp, "<a href=\"../%s\"><img src=\"%s%s\" alt=\"\" width=\"32\" height=\"32\" /></a>", relpath, relpath,
+	        logoicon);
 	fputs("</td><td><h1>", fp);
 	xmlencode(fp, info->name);
 	fputs("</h1><span class=\"desc\">", fp);
@@ -67,44 +66,38 @@ writeheader(FILE *fp, const struct repoinfo *info, const char* relpath, const ch
 	fprintf(fp, "<a href=\"%sfiles.html\">Files</a> | ", relpath);
 	fprintf(fp, "<a href=\"%srefs.html\">Refs</a>", relpath);
 	if (info->submodules)
-		fprintf(fp, " | <a href=\"%sfile/%s.html\">Submodules</a>",
-		        relpath, info->submodules);
+		fprintf(fp, " | <a href=\"%sfile/%s.html\">Submodules</a>", relpath, info->submodules);
 	for (int i = 0; i < info->pinfileslen; i++)
-		fprintf(fp, " | <a href=\"%sfile/%s.html\">%s</a>",
-		        relpath, info->pinfiles[i], info->pinfiles[i]);
+		fprintf(fp, " | <a href=\"%sfile/%s.html\">%s</a>", relpath, info->pinfiles[i], info->pinfiles[i]);
 	fputs("</td></tr></table>\n<hr/>\n<div id=\"content\">\n", fp);
 }
 
 
-static void
-writefooter(FILE *fp)
-{
+static void writefooter(FILE* fp) {
 	fputs("</div>\n</body>\n</html>\n", fp);
 }
 
 
-static size_t
-writeblobhtml(FILE *fp, const git_blob *blob, const char* filename)
-{
+static size_t writeblobhtml(FILE* fp, const git_blob* blob, const char* filename) {
 	static uint32_t highlighthash = 0;
 
-	size_t n = 0, len;
-	const char *s = git_blob_rawcontent(blob);
+	size_t      n = 0, len;
+	const char* s = git_blob_rawcontent(blob);
 
 	static unsigned char buffer[512];
-	static char cachepath[PATH_MAX];
+	static char          cachepath[PATH_MAX];
 
-	FILE* cache;
-	pipe_t inpipefd;
-	pipe_t outpipefd;
-	pid_t process;
-	ssize_t readlen;
-	int status;
+	FILE*    cache;
+	pipe_t   inpipefd;
+	pipe_t   outpipefd;
+	pid_t    process;
+	ssize_t  readlen;
+	int      status;
 	uint32_t contenthash;
-	char* type;
+	char*    type;
 
 	len = git_blob_rawsize(blob);
-	if (len == 0) 
+	if (len == 0)
 		return 0;
 
 	if (!highlighthash) {
@@ -117,10 +110,10 @@ writeblobhtml(FILE *fp, const git_blob *blob, const char* filename)
 
 	contenthash = murmurhash3(s, len, MURMUR_SEED);
 	snprintf(cachepath, sizeof(cachepath), "%s/%x-%x.html", highlightcache, highlighthash, contenthash);
-	
+
 	if ((cache = fopen(cachepath, "r"))) {
 		n = 0;
-		while ((readlen = fread(buffer,1, sizeof(buffer), cache)) > 0) {
+		while ((readlen = fread(buffer, 1, sizeof(buffer), cache)) > 0) {
 			fwrite(buffer, 1, readlen, fp);
 			n += readlen;
 		}
@@ -136,7 +129,7 @@ writeblobhtml(FILE *fp, const git_blob *blob, const char* filename)
 
 	pipe((int*) &inpipefd);
 	pipe((int*) &outpipefd);
-	
+
 	if ((process = fork()) == -1) {
 		perror("fork(highlight)");
 		exit(1);
@@ -145,7 +138,7 @@ writeblobhtml(FILE *fp, const git_blob *blob, const char* filename)
 		dup2(outpipefd.read, STDIN_FILENO);
 		dup2(inpipefd.write, STDOUT_FILENO);
 
-		//close unused pipe ends
+		// close unused pipe ends
 		close(outpipefd.write);
 		close(inpipefd.read);
 
@@ -157,10 +150,10 @@ writeblobhtml(FILE *fp, const git_blob *blob, const char* filename)
 		_exit(1);
 	}
 
- 	close(outpipefd.read);
-  	close(inpipefd.write);	
+	close(outpipefd.read);
+	close(inpipefd.write);
 
-	if (write(outpipefd.write, s, len) == -1){
+	if (write(outpipefd.write, s, len) == -1) {
 		perror("write(highlight)");
 		exit(1);
 	}
@@ -172,12 +165,14 @@ writeblobhtml(FILE *fp, const git_blob *blob, const char* filename)
 	n = 0;
 	while ((readlen = read(inpipefd.read, buffer, sizeof buffer)) > 0) {
 		fwrite(buffer, readlen, 1, fp);
-		if (cache) fwrite(buffer, readlen, 1, cache);
+		if (cache)
+			fwrite(buffer, readlen, 1, cache);
 		n += readlen;
 	}
 
 	close(inpipefd.read);
-	if (cache) fclose(cache);
+	if (cache)
+		fclose(cache);
 
 	waitpid(process, &status, 0);
 
@@ -186,15 +181,11 @@ writeblobhtml(FILE *fp, const git_blob *blob, const char* filename)
 	return n;
 }
 
-static void
-writecommit(FILE *fp, const char* relpath, struct commitinfo *ci)
-{
-	fprintf(fp, "<b>commit</b> <a href=\"%scommit/%s.html\">%s</a>\n",
-		relpath, ci->oid, ci->oid);
+static void writecommit(FILE* fp, const char* relpath, struct commitinfo* ci) {
+	fprintf(fp, "<b>commit</b> <a href=\"%scommit/%s.html\">%s</a>\n", relpath, ci->oid, ci->oid);
 
 	if (ci->parentoid[0])
-		fprintf(fp, "<b>parent</b> <a href=\"%scommit/%s.html\">%s</a>\n",
-			relpath, ci->parentoid, ci->parentoid);
+		fprintf(fp, "<b>parent</b> <a href=\"%scommit/%s.html\">%s</a>\n", relpath, ci->parentoid, ci->parentoid);
 
 	if (ci->author) {
 		fputs("<b>Author:</b> ", fp);
@@ -214,26 +205,21 @@ writecommit(FILE *fp, const char* relpath, struct commitinfo *ci)
 	}
 }
 
-static void
-writediff(FILE *fp, const char* relpath, struct commitinfo *ci)
-{
-	const git_diff_delta *delta;
-	const git_diff_hunk *hunk;
-	const git_diff_line *line;
-	git_patch *patch;
-	size_t nhunks, nhunklines, changed, add, del, total, i, j, k;
-	char linestr[80];
-	int c;
+static void writediff(FILE* fp, const char* relpath, struct commitinfo* ci) {
+	const git_diff_delta* delta;
+	const git_diff_hunk*  hunk;
+	const git_diff_line*  line;
+	git_patch*            patch;
+	size_t                nhunks, nhunklines, changed, add, del, total, i, j, k;
+	char                  linestr[80];
+	int                   c;
 
 	writecommit(fp, relpath, ci);
 
 	if (!ci->deltas)
 		return;
 
-	if (ci->filecount > 1000   ||
-	    ci->ndeltas   > 1000   ||
-	    ci->addcount  > 100000 ||
-	    ci->delcount  > 100000) {
+	if (ci->filecount > 1000 || ci->ndeltas > 1000 || ci->addcount > 100000 || ci->delcount > 100000) {
 		fputs("Diff is too large, output suppressed.\n", fp);
 		return;
 	}
@@ -244,13 +230,27 @@ writediff(FILE *fp, const char* relpath, struct commitinfo *ci)
 		delta = git_patch_get_delta(ci->deltas[i]->patch);
 
 		switch (delta->status) {
-		case GIT_DELTA_ADDED:      c = 'A'; break;
-		case GIT_DELTA_COPIED:     c = 'C'; break;
-		case GIT_DELTA_DELETED:    c = 'D'; break;
-		case GIT_DELTA_MODIFIED:   c = 'M'; break;
-		case GIT_DELTA_RENAMED:    c = 'R'; break;
-		case GIT_DELTA_TYPECHANGE: c = 'T'; break;
-		default:                   c = ' '; break;
+			case GIT_DELTA_ADDED:
+				c = 'A';
+				break;
+			case GIT_DELTA_COPIED:
+				c = 'C';
+				break;
+			case GIT_DELTA_DELETED:
+				c = 'D';
+				break;
+			case GIT_DELTA_MODIFIED:
+				c = 'M';
+				break;
+			case GIT_DELTA_RENAMED:
+				c = 'R';
+				break;
+			case GIT_DELTA_TYPECHANGE:
+				c = 'T';
+				break;
+			default:
+				c = ' ';
+				break;
 		}
 		if (c == ' ')
 			fprintf(fp, "<tr><td>%c", c);
@@ -264,15 +264,15 @@ writediff(FILE *fp, const char* relpath, struct commitinfo *ci)
 			xmlencode(fp, delta->new_file.path);
 		}
 
-		add = ci->deltas[i]->addcount;
-		del = ci->deltas[i]->delcount;
+		add     = ci->deltas[i]->addcount;
+		del     = ci->deltas[i]->delcount;
 		changed = add + del;
-		total = sizeof(linestr) - 2;
+		total   = sizeof(linestr) - 2;
 		if (changed > total) {
 			if (add)
-				add = ((float)total / changed * add) + 1;
+				add = ((float) total / changed * add) + 1;
 			if (del)
-				del = ((float)total / changed * del) + 1;
+				del = ((float) total / changed * del) + 1;
 		}
 		memset(&linestr, '+', add);
 		memset(&linestr[add], '-', del);
@@ -284,10 +284,9 @@ writediff(FILE *fp, const char* relpath, struct commitinfo *ci)
 		fwrite(&linestr[add], 1, del, fp);
 		fputs("</span></td></tr>\n", fp);
 	}
-	fprintf(fp, "</table></pre><pre>%zu file%s changed, %zu insertion%s(+), %zu deletion%s(-)\n",
-		ci->filecount, ci->filecount == 1 ? "" : "s",
-	        ci->addcount,  ci->addcount  == 1 ? "" : "s",
-	        ci->delcount,  ci->delcount  == 1 ? "" : "s");
+	fprintf(fp, "</table></pre><pre>%zu file%s changed, %zu insertion%s(+), %zu deletion%s(-)\n", ci->filecount,
+	        ci->filecount == 1 ? "" : "s", ci->addcount, ci->addcount == 1 ? "" : "s", ci->delcount,
+	        ci->delcount == 1 ? "" : "s");
 
 	fputs("<hr/>", fp);
 
@@ -319,15 +318,13 @@ writediff(FILE *fp, const char* relpath, struct commitinfo *ci)
 			xmlencode(fp, hunk->header);
 			fputs("</a>", fp);
 
-			for (k = 0; ; k++) {
+			for (k = 0;; k++) {
 				if (git_patch_get_line_in_hunk(&line, patch, j, k))
 					break;
 				if (line->old_lineno == -1)
-					fprintf(fp, "<a href=\"#h%zu-%zu-%zu\" id=\"h%zu-%zu-%zu\" class=\"i\">+",
-						i, j, k, i, j, k);
+					fprintf(fp, "<a href=\"#h%zu-%zu-%zu\" id=\"h%zu-%zu-%zu\" class=\"i\">+", i, j, k, i, j, k);
 				else if (line->new_lineno == -1)
-					fprintf(fp, "<a href=\"#h%zu-%zu-%zu\" id=\"h%zu-%zu-%zu\" class=\"d\">-",
-						i, j, k, i, j, k);
+					fprintf(fp, "<a href=\"#h%zu-%zu-%zu\" id=\"h%zu-%zu-%zu\" class=\"d\">-", i, j, k, i, j, k);
 				else
 					putc(' ', fp);
 				xmlencodeline(fp, line->content, line->content_len);
@@ -339,9 +336,7 @@ writediff(FILE *fp, const char* relpath, struct commitinfo *ci)
 	}
 }
 
-static void
-writelogline(FILE *fp, const char* relpath, struct commitinfo *ci)
-{
+static void writelogline(FILE* fp, const char* relpath, struct commitinfo* ci) {
 	fputs("<tr><td>", fp);
 	if (ci->author)
 		printtimeshort(fp, &(ci->author->when));
@@ -363,17 +358,15 @@ writelogline(FILE *fp, const char* relpath, struct commitinfo *ci)
 	fputs("</td></tr>\n", fp);
 }
 
-static int
-writelog(FILE *fp, const struct repoinfo *info, const git_oid *oid)
-{
-	struct commitinfo *ci;
-	git_revwalk *w = NULL;
-	git_oid id;
-	char path[PATH_MAX], oidstr[GIT_OID_HEXSZ + 1];
-	FILE *fpfile;
-	size_t remcommits = 0;
-	int r;
-	const char* relpath;
+static int writelog(FILE* fp, const struct repoinfo* info, const git_oid* oid) {
+	struct commitinfo* ci;
+	git_revwalk*       w = NULL;
+	git_oid            id;
+	char               path[PATH_MAX], oidstr[GIT_OID_HEXSZ + 1];
+	FILE*              fpfile;
+	size_t             remcommits = 0;
+	int                r;
+	const char*        relpath;
 
 	git_revwalk_new(&w, info->repo);
 	git_revwalk_push(w, oid);
@@ -386,7 +379,7 @@ writelog(FILE *fp, const struct repoinfo *info, const git_oid *oid)
 
 		git_oid_tostr(oidstr, sizeof(oidstr), &id);
 		r = snprintf(path, sizeof(path), "%s/commit/%s.html", info->destdir, oidstr);
-		if (r < 0 || (size_t)r >= sizeof(path))
+		if (r < 0 || (size_t) r >= sizeof(path))
 			errx(1, "path truncated: 'commit/%s.html'", oidstr);
 		r = access(path, F_OK);
 
@@ -426,15 +419,17 @@ writelog(FILE *fp, const struct repoinfo *info, const git_oid *oid)
 			checkfileerror(fpfile, path, 'w');
 			fclose(fpfile);
 		}
-err:
+	err:
 		commitinfo_free(ci);
 	}
 	git_revwalk_free(w);
 
 	if (nlogcommits == 0 && remcommits != 0) {
-		fprintf(fp, "<tr><td></td><td colspan=\"5\">"
+		fprintf(fp,
+		        "<tr><td></td><td colspan=\"5\">"
 		        "%zu more commits remaining, fetch the repository"
-		        "</td></tr>\n", remcommits);
+		        "</td></tr>\n",
+		        remcommits);
 	}
 
 	relpath = "";
@@ -442,13 +437,12 @@ err:
 	return 0;
 }
 
-static size_t
-writeblob(const struct repoinfo *info, const char* relpath, git_object *obj, const char *fpath, const char *filename, const char* staticpath, size_t filesize)
-{
-	char tmp[PATH_MAX] = "", *d;
-	const char *p;
-	size_t lc = 0;
-	FILE *fp;
+static size_t writeblob(const struct repoinfo* info, const char* relpath, git_object* obj, const char* fpath,
+                        const char* filename, const char* staticpath, size_t filesize) {
+	char        tmp[PATH_MAX] = "", *d;
+	const char* p;
+	size_t      lc = 0;
+	FILE*       fp;
 
 	if (strlcpy(tmp, fpath, sizeof(tmp)) >= sizeof(tmp))
 		errx(1, "path truncated: '%s'", fpath);
@@ -473,10 +467,10 @@ writeblob(const struct repoinfo *info, const char* relpath, git_object *obj, con
 	fprintf(fp, " (%zuB) <a href='%s%s'>download</a>", filesize, relpath, staticpath);
 	fputs("</p><hr/>", fp);
 
-	if (git_blob_is_binary((git_blob *)obj))
+	if (git_blob_is_binary((git_blob*) obj))
 		fputs("<p>Binary file.</p>\n", fp);
 	else
-		lc = writeblobhtml(fp, (git_blob *)obj, filename);
+		lc = writeblobhtml(fp, (git_blob*) obj, filename);
 
 	writefooter(fp);
 	checkfileerror(fp, fpath, 'w');
@@ -487,9 +481,7 @@ writeblob(const struct repoinfo *info, const char* relpath, git_object *obj, con
 	return lc;
 }
 
-static const char *
-filemode(git_filemode_t m)
-{
+static const char* filemode(git_filemode_t m) {
 	static char mode[11];
 
 	memset(mode, '-', sizeof(mode) - 1);
@@ -512,28 +504,39 @@ filemode(git_filemode_t m)
 	else
 		mode[0] = '?';
 
-	if (m & S_IRUSR) mode[1] = 'r';
-	if (m & S_IWUSR) mode[2] = 'w';
-	if (m & S_IXUSR) mode[3] = 'x';
-	if (m & S_IRGRP) mode[4] = 'r';
-	if (m & S_IWGRP) mode[5] = 'w';
-	if (m & S_IXGRP) mode[6] = 'x';
-	if (m & S_IROTH) mode[7] = 'r';
-	if (m & S_IWOTH) mode[8] = 'w';
-	if (m & S_IXOTH) mode[9] = 'x';
+	if (m & S_IRUSR)
+		mode[1] = 'r';
+	if (m & S_IWUSR)
+		mode[2] = 'w';
+	if (m & S_IXUSR)
+		mode[3] = 'x';
+	if (m & S_IRGRP)
+		mode[4] = 'r';
+	if (m & S_IWGRP)
+		mode[5] = 'w';
+	if (m & S_IXGRP)
+		mode[6] = 'x';
+	if (m & S_IROTH)
+		mode[7] = 'r';
+	if (m & S_IWOTH)
+		mode[8] = 'w';
+	if (m & S_IXOTH)
+		mode[9] = 'x';
 
-	if (m & S_ISUID) mode[3] = (mode[3] == 'x') ? 's' : 'S';
-	if (m & S_ISGID) mode[6] = (mode[6] == 'x') ? 's' : 'S';
-	if (m & S_ISVTX) mode[9] = (mode[9] == 'x') ? 't' : 'T';
+	if (m & S_ISUID)
+		mode[3] = (mode[3] == 'x') ? 's' : 'S';
+	if (m & S_ISGID)
+		mode[6] = (mode[6] == 'x') ? 's' : 'S';
+	if (m & S_ISVTX)
+		mode[9] = (mode[9] == 'x') ? 't' : 'T';
 
 	return mode;
 }
 
-static void 
-writefile(git_object *obj, const char *fpath, size_t filesize) {
-	char tmp[PATH_MAX] = "", *d;
-	const char *p;
-	FILE *fp;
+static void writefile(git_object* obj, const char* fpath, size_t filesize) {
+	char        tmp[PATH_MAX] = "", *d;
+	const char* p;
+	FILE*       fp;
 
 	if (strlcpy(tmp, fpath, sizeof(tmp)) >= sizeof(tmp))
 		errx(1, "path truncated: '%s'", fpath);
@@ -555,37 +558,34 @@ writefile(git_object *obj, const char *fpath, size_t filesize) {
 	fclose(fp);
 }
 
-static void
-unhide_filename(char* path) {
+static void unhide_filename(char* path) {
 	for (char* chr = path; *chr; chr++) {
 		if (*chr == '.' && (chr == path || chr[-1] == '/'))
 			*chr = '-';
 	}
 }
 
-static int
-writefilestree(FILE *fp, const struct repoinfo *info, const char* relpath, git_tree *tree, const char *path)
-{
-	const git_tree_entry *entry = NULL;
-	git_object *obj = NULL;
-	const char *entryname;
-	char filepath[PATH_MAX], entrypath[PATH_MAX], staticpath[PATH_MAX], oid[8];
-	size_t count, i, lc, filesize;
-	int r, ret;
+static int writefilestree(FILE* fp, const struct repoinfo* info, const char* relpath, git_tree* tree,
+                          const char* path) {
+	const git_tree_entry* entry = NULL;
+	git_object*           obj   = NULL;
+	const char*           entryname;
+	char                  filepath[PATH_MAX], entrypath[PATH_MAX], staticpath[PATH_MAX], oid[8];
+	size_t                count, i, lc, filesize;
+	int                   r, ret;
 
 	count = git_tree_entrycount(tree);
 	for (i = 0; i < count; i++) {
-		if (!(entry = git_tree_entry_byindex(tree, i)) ||
-		    !(entryname = git_tree_entry_name(entry)))
+		if (!(entry = git_tree_entry_byindex(tree, i)) || !(entryname = git_tree_entry_name(entry)))
 			return -1;
-		snprintf(entrypath, sizeof(entrypath), "%s/%s", path,entryname);
+		snprintf(entrypath, sizeof(entrypath), "%s/%s", path, entryname);
 
 		r = snprintf(filepath, sizeof(filepath), "%s/file/%s.html", info->destdir, entrypath);
-		if (r < 0 || (size_t)r >= sizeof(filepath))
+		if (r < 0 || (size_t) r >= sizeof(filepath))
 			errx(1, "path truncated: '%s/file/%s.html'", info->destdir, entrypath);
 
 		r = snprintf(staticpath, sizeof(staticpath), "%s/static/%s", info->destdir, entrypath);
-		if (r < 0 || (size_t)r >= sizeof(staticpath))
+		if (r < 0 || (size_t) r >= sizeof(staticpath))
 			errx(1, "path truncated: '%s/static/%s'", info->destdir, entrypath);
 
 		unhide_filename(filepath);
@@ -593,31 +593,31 @@ writefilestree(FILE *fp, const struct repoinfo *info, const char* relpath, git_t
 
 		if (!git_tree_entry_to_object(&obj, info->repo, entry)) {
 			switch (git_object_type(obj)) {
-			case GIT_OBJ_BLOB:
-				break;
-			case GIT_OBJ_TREE:
-				/* NOTE: recurses */
-				ret = writefilestree(fp, info, relpath, (git_tree *)obj, entrypath);
-				git_object_free(obj);
-				if (ret)
-					return ret;
-				continue;
-			default:
-				git_object_free(obj);
-				continue;
+				case GIT_OBJ_BLOB:
+					break;
+				case GIT_OBJ_TREE:
+					/* NOTE: recurses */
+					ret = writefilestree(fp, info, relpath, (git_tree*) obj, entrypath);
+					git_object_free(obj);
+					if (ret)
+						return ret;
+					continue;
+				default:
+					git_object_free(obj);
+					continue;
 			}
 
-			filesize = git_blob_rawsize((git_blob *)obj);
-			lc = writeblob(info, relpath, obj, filepath, entryname, staticpath, filesize);
+			filesize = git_blob_rawsize((git_blob*) obj);
+			lc       = writeblob(info, relpath, obj, filepath, entryname, staticpath, filesize);
 
 			writefile(obj, staticpath, filesize);
 
 			r = snprintf(filepath, sizeof(filepath), "file/%s.html", entrypath);
-			if (r < 0 || (size_t)r >= sizeof(filepath))
+			if (r < 0 || (size_t) r >= sizeof(filepath))
 				errx(1, "path truncated: 'file/%s.html'", entrypath);
 
 			r = snprintf(staticpath, sizeof(staticpath), "static/%s", entrypath);
-			if (r < 0 || (size_t)r >= sizeof(staticpath))
+			if (r < 0 || (size_t) r >= sizeof(staticpath))
 				errx(1, "path truncated: 'static/%s'", entrypath);
 
 			unhide_filename(filepath);
@@ -638,8 +638,7 @@ writefilestree(FILE *fp, const struct repoinfo *info, const char* relpath, git_t
 			git_object_free(obj);
 		} else if (git_tree_entry_type(entry) == GIT_OBJ_COMMIT) {
 			/* commit object in tree is a submodule */
-			fprintf(fp, "<tr><td>m---------</td><td><a href=\"%sfile/-gitmodules.html\">",
-				relpath);
+			fprintf(fp, "<tr><td>m---------</td><td><a href=\"%sfile/-gitmodules.html\">", relpath);
 			xmlencode(fp, entrypath);
 			fputs("</a> @ ", fp);
 			git_oid_tostr(oid, sizeof(oid), git_tree_entry_id(entry));
@@ -651,20 +650,18 @@ writefilestree(FILE *fp, const struct repoinfo *info, const char* relpath, git_t
 	return 0;
 }
 
-static int
-writefiles(FILE *fp, const struct repoinfo *info, const char* relpath, const git_oid *id)
-{
-	git_tree *tree = NULL;
-	git_commit *commit = NULL;
-	int ret = -1;
+static int writefiles(FILE* fp, const struct repoinfo* info, const char* relpath, const git_oid* id) {
+	git_tree*   tree   = NULL;
+	git_commit* commit = NULL;
+	int         ret    = -1;
 
 	fputs("<table id=\"files\"><thead>\n<tr>"
 	      "<td><b>Mode</b></td><td><b>Name</b></td>"
 	      "<td class=\"num\" align=\"right\"><b>Size</b></td>"
-	      "</tr>\n</thead><tbody>\n", fp);
+	      "</tr>\n</thead><tbody>\n",
+	      fp);
 
-	if (!git_commit_lookup(&commit, info->repo, id) &&
-	    !git_commit_tree(&tree, commit))
+	if (!git_commit_lookup(&commit, info->repo, id) && !git_commit_tree(&tree, commit))
 		ret = writefilestree(fp, info, relpath, tree, "");
 
 	fputs("</tbody></table>", fp);
@@ -675,15 +672,13 @@ writefiles(FILE *fp, const struct repoinfo *info, const char* relpath, const git
 	return ret;
 }
 
-static int
-writerefs(FILE *fp, const struct repoinfo *info)
-{
-	struct referenceinfo *ris = NULL;
-	struct commitinfo *ci;
-	size_t count, i, j, refcount;
-	const char *titles[] = { "Branches", "Tags" };
-	const char *ids[] = { "branches", "tags" };
-	const char *s;
+static int writerefs(FILE* fp, const struct repoinfo* info) {
+	struct referenceinfo* ris = NULL;
+	struct commitinfo*    ci;
+	size_t                count, i, j, refcount;
+	const char*           titles[] = { "Branches", "Tags" };
+	const char*           ids[]    = { "branches", "tags" };
+	const char*           s;
 
 	if (getrefs(&ris, &refcount, info->repo) == -1)
 		return -1;
@@ -693,21 +688,22 @@ writerefs(FILE *fp, const struct repoinfo *info)
 			if (count)
 				fputs("</tbody></table><br/>\n", fp);
 			count = 0;
-			j = 1;
+			j     = 1;
 		}
 
 		/* print header if it has an entry (first). */
 		if (++count == 1) {
-			fprintf(fp, "<h2>%s</h2><table id=\"%s\">"
-		                "<thead>\n<tr><td><b>Name</b></td>"
+			fprintf(fp,
+			        "<h2>%s</h2><table id=\"%s\">"
+			        "<thead>\n<tr><td><b>Name</b></td>"
 			        "<td><b>Last commit date</b></td>"
 			        "<td><b>Author</b></td>\n</tr>\n"
 			        "</thead><tbody>\n",
-			         titles[j], ids[j]);
+			        titles[j], ids[j]);
 		}
 
 		ci = ris[i].ci;
-		s = git_reference_shorthand(ris[i].ref);
+		s  = git_reference_shorthand(ris[i].ref);
 
 		fputs("<tr><td>", fp);
 		xmlencode(fp, s);
@@ -732,22 +728,21 @@ writerefs(FILE *fp, const struct repoinfo *info)
 	return 0;
 }
 
-void
-writerepo(FILE *index, const char* repodir) {
+void writerepo(FILE* index, const char* repodir) {
 	static struct repoinfo info;
 
-	git_object *obj = NULL;
-	const git_oid *head = NULL;
-	mode_t mask;
-	FILE *fp, *fpread;
-	char path[PATH_MAX], repodirabs[PATH_MAX + 1];
-	char tmppath[64] = "gitin-cache.XXXXXX", buf[BUFSIZ];
-	size_t n;
-	int i, fd;
+	git_object*    obj  = NULL;
+	const git_oid* head = NULL;
+	mode_t         mask;
+	FILE *         fp, *fpread;
+	char           path[PATH_MAX], repodirabs[PATH_MAX + 1];
+	char           tmppath[64] = "gitin-cache.XXXXXX", buf[BUFSIZ];
+	size_t         n;
+	int            i, fd;
 
 	memset(&info, 0, sizeof(info));
 	info.repodir = repodir;
-		
+
 	snprintf(info.destdir, sizeof(info.destdir), "%s/%s/", info.repodir, destination);
 
 	printf("-> %s\n", info.repodir);
@@ -755,8 +750,7 @@ writerepo(FILE *index, const char* repodir) {
 	if (!realpath(info.repodir, repodirabs))
 		err(1, "realpath");
 
-	if (git_repository_open_ext(&info.repo, info.repodir,
-		GIT_REPOSITORY_OPEN_NO_SEARCH, NULL) < 0) {
+	if (git_repository_open_ext(&info.repo, info.repodir, GIT_REPOSITORY_OPEN_NO_SEARCH, NULL) < 0) {
 		err(1, "cannot open repository");
 		return;
 	}
@@ -797,8 +791,7 @@ writerepo(FILE *index, const char* repodir) {
 		git_object_free(obj);
 	}
 
-	if (!git_revparse_single(&obj, info.repo, "HEAD:.gitmodules") &&
-		git_object_type(obj) == GIT_OBJ_BLOB)
+	if (!git_revparse_single(&obj, info.repo, "HEAD:.gitmodules") && git_object_type(obj) == GIT_OBJ_BLOB)
 		info.submodules = ".gitmodules";
 	git_object_free(obj);
 
@@ -810,10 +803,11 @@ writerepo(FILE *index, const char* repodir) {
 	mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
 	writeheader(fp, &info, "", "Log");
 	fputs("<table id=\"log\"><thead>\n<tr><td><b>Date</b></td>"
-		"<td><b>Commit message</b></td>"
-		"<td><b>Author</b></td><td class=\"num\" align=\"right\"><b>Files</b></td>"
-		"<td class=\"num\" align=\"right\"><b>+</b></td>"
-		"<td class=\"num\" align=\"right\"><b>-</b></td></tr>\n</thead><tbody>\n", fp);
+	      "<td><b>Commit message</b></td>"
+	      "<td><b>Author</b></td><td class=\"num\" align=\"right\"><b>Files</b></td>"
+	      "<td class=\"num\" align=\"right\"><b>+</b></td>"
+	      "<td class=\"num\" align=\"right\"><b>-</b></td></tr>\n</thead><tbody>\n",
+	      fp);
 
 	if (commitcache && head) {
 		/* read from cache file (does not need to exist) */
@@ -841,9 +835,8 @@ writerepo(FILE *index, const char* repodir) {
 				n = fread(buf, 1, sizeof(buf), info.rcachefp);
 				if (ferror(info.rcachefp))
 					break;
-				if (fwrite(buf, 1, n, fp) != n ||
-					fwrite(buf, 1, n, info.wcachefp) != n)
-						break;
+				if (fwrite(buf, 1, n, fp) != n || fwrite(buf, 1, n, info.wcachefp) != n)
+					break;
 			}
 			checkfileerror(info.rcachefp, commitcache, 'r');
 			fclose(info.rcachefp);
@@ -887,8 +880,7 @@ writerepo(FILE *index, const char* repodir) {
 		if (rename(tmppath, commitcache))
 			err(1, "rename: '%s' to '%s'", tmppath, commitcache);
 		umask((mask = umask(0)));
-		if (chmod(commitcache,
-			(S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH) & ~mask))
+		if (chmod(commitcache, (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) & ~mask))
 			err(1, "chmod: '%s'", commitcache);
 	}
 

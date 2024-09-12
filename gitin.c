@@ -1,24 +1,22 @@
+#include "arg.h"
+#include "common.h"
+#include "config.h"
+#include "writeindex.h"
+
 #include <err.h>
 #include <signal.h>
 #include <stdlib.h>
 
-#include "arg.h"
-#include "common.h"
-#include "writeindex.h"
-
-#include "config.h"
-
-static void
-usage(char *argv0)
-{
-	fprintf(stderr, "usage: %s [-d destdir] [-c cachefile | -l commits] [-u baseurl] repodir\n", argv0);
+static void usage(char* argv0) {
+	fprintf(stderr,
+	        "usage: %s [-d destdir] [-c cachefile | -l commits] [-u baseurl] "
+	        "repodir\n",
+	        argv0);
 	exit(1);
 }
 
-int
-main(int argc, char *argv[])
-{
-	char* self = argv[0]; 
+int main(int argc, char* argv[]) {
+	char* self = argv[0];
 	FILE* index;
 
 	ARGBEGIN
@@ -30,11 +28,11 @@ main(int argc, char *argv[])
 			highlightcmd = EARGF(usage(self));
 			break;
 		case 'c':
-		 	commitcache = EARGF(usage(self));
-		 	break;
+			commitcache = EARGF(usage(self));
+			break;
 		case 'H':
-		 	highlightcache = EARGF(usage(self));
-		 	break;
+			highlightcache = EARGF(usage(self));
+			break;
 		case 'l':
 			nlogcommits = atoi(EARGF(usage(self)));
 			break;
@@ -65,7 +63,7 @@ main(int argc, char *argv[])
 
 	for (int i = 0; i < argc; i++)
 		writerepo(index, argv[i]);
-	
+
 	writefooter_index(index);
 	checkfileerror(index, indexfile, 'w');
 	fclose(index);
