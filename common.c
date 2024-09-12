@@ -5,9 +5,7 @@
 #include <err.h>
 #include <errno.h>
 #include <limits.h>
-#include <string.h>
 #include <sys/stat.h>
-#include <time.h>
 
 
 /* Handle read or write errors for a FILE * stream */

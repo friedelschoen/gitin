@@ -5,7 +5,6 @@
 
 #include <err.h>
 #include <signal.h>
-#include <stdlib.h>
 
 static void usage(char* argv0) {
 	fprintf(stderr,

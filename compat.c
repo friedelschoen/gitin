@@ -19,7 +19,6 @@
 #include "compat.h"
 
 #include <string.h>
-#include <sys/types.h>
 
 /*
  * Appends src to string dst of size dsize (unlike strncat, dsize is the

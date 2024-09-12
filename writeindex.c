@@ -1,8 +1,5 @@
 #include "common.h"
-#include "config.h"
 #include "writer.h"
-
-#include <stdio.h>
 
 int writeindex(FILE* fp, const struct repoinfo* info) {
 	git_commit*          commit = NULL;
