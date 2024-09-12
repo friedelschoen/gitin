@@ -3,7 +3,9 @@
 #include "commit.h"
 #include "common.h"
 #include "compat.h"
+#include "config.h"
 #include "murmur3.h"
+#include "writehtml.h"
 #include "writeindex.h"
 
 #include <err.h>
@@ -16,66 +18,6 @@
 #include <unistd.h>
 
 #define MURMUR_SEED 0xCAFE5EED    // cafeseed
-
-
-extern const char* highlightcmd;
-extern const char* logoicon;
-extern const char* faviconicon;
-extern const char* highlightcache;
-extern const char* commitcache;
-extern const char* destination;
-extern const char* pinfiles[];
-extern int         pinfileslen;
-extern const char* indexfile;
-extern const char* stylesheet;
-extern long long   nlogcommits;
-
-static void writeheader(FILE* fp, const struct repoinfo* info, const char* relpath, const char* title) {
-	fputs("<!DOCTYPE html>\n"
-	      "<html>\n<head>\n"
-	      "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n"
-	      "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n"
-	      "<title>",
-	      fp);
-	xmlencode(fp, title);
-	if (title[0] && info->name[0])
-		fputs(" - ", fp);
-	xmlencode(fp, info->name);
-	if (info->description[0])
-		fputs(" - ", fp);
-	xmlencode(fp, info->description);
-	fprintf(fp, "</title>\n<link rel=\"icon\" type=\"image/svg+xml\" href=\"%s%s\" />\n", relpath, faviconicon);
-	fprintf(fp, "<link rel=\"stylesheet\" type=\"text/css\" href=\"%s%s\" />\n", relpath, stylesheet);
-	fputs("</head>\n<body>\n<table><tr><td>", fp);
-	fprintf(fp, "<a href=\"../%s\"><img src=\"%s%s\" alt=\"\" width=\"32\" height=\"32\" /></a>", relpath, relpath,
-	        logoicon);
-	fputs("</td><td><h1>", fp);
-	xmlencode(fp, info->name);
-	fputs("</h1><span class=\"desc\">", fp);
-	xmlencode(fp, info->description);
-	fputs("</span></td></tr>", fp);
-	if (info->cloneurl[0]) {
-		fputs("<tr class=\"url\"><td></td><td>git clone <a href=\"", fp);
-		xmlencode(fp, info->cloneurl); /* not percent-encoded */
-		fputs("\">", fp);
-		xmlencode(fp, info->cloneurl);
-		fputs("</a></td></tr>", fp);
-	}
-	fputs("<tr><td></td><td>\n", fp);
-	fprintf(fp, "<a href=\"%slog.html\">Log</a> | ", relpath);
-	fprintf(fp, "<a href=\"%sfiles.html\">Files</a> | ", relpath);
-	fprintf(fp, "<a href=\"%srefs.html\">Refs</a>", relpath);
-	if (info->submodules)
-		fprintf(fp, " | <a href=\"%sfile/%s.html\">Submodules</a>", relpath, info->submodules);
-	for (int i = 0; i < info->pinfileslen; i++)
-		fprintf(fp, " | <a href=\"%sfile/%s.html\">%s</a>", relpath, info->pinfiles[i], info->pinfiles[i]);
-	fputs("</td></tr></table>\n<hr/>\n<div id=\"content\">\n", fp);
-}
-
-
-static void writefooter(FILE* fp) {
-	fputs("</div>\n</body>\n</html>\n", fp);
-}
 
 
 static size_t writeblobhtml(FILE* fp, const git_blob* blob, const char* filename) {
@@ -366,14 +308,11 @@ static int writelog(FILE* fp, const struct repoinfo* info, const git_oid* oid) {
 	FILE*              fpfile;
 	size_t             remcommits = 0;
 	int                r;
-	const char*        relpath;
 
 	git_revwalk_new(&w, info->repo);
 	git_revwalk_push(w, oid);
 
 	while (!git_revwalk_next(&id, w)) {
-		relpath = "";
-
 		if (commitcache && !memcmp(&id, &info->lastoid, sizeof(id)))
 			break;
 
@@ -398,22 +337,21 @@ static int writelog(FILE* fp, const struct repoinfo* info, const git_oid* oid) {
 			goto err;
 
 		if (nlogcommits != 0) {
-			writelogline(fp, relpath, ci);
+			writelogline(fp, "../", ci);
 			if (nlogcommits > 0)
 				nlogcommits--;
 		}
 
 		if (commitcache)
-			writelogline(info->wcachefp, relpath, ci);
+			writelogline(info->wcachefp, "../", ci);
 
 		/* check if file exists if so skip it */
 		if (r) {
-			relpath = "../";
 			if (!(fpfile = fopen(path, "w")))
 				err(1, "fopen: '%s'", path);
-			writeheader(fpfile, info, relpath, ci->summary);
+			writeheader(fpfile, info, "../", ci->summary, "");
 			fputs("<pre>", fpfile);
-			writediff(fpfile, relpath, ci);
+			writediff(fpfile, "../", ci);
 			fputs("</pre>\n", fpfile);
 			writefooter(fpfile);
 			checkfileerror(fpfile, path, 'w');
@@ -431,8 +369,6 @@ static int writelog(FILE* fp, const struct repoinfo* info, const git_oid* oid) {
 		        "</td></tr>\n",
 		        remcommits);
 	}
-
-	relpath = "";
 
 	return 0;
 }
@@ -461,7 +397,7 @@ static size_t writeblob(const struct repoinfo* info, const char* relpath, git_ob
 	if (!(fp = fopen(fpath, "w")))
 		err(1, "fopen: '%s'", fpath);
 
-	writeheader(fp, info, relpath, filename);
+	writeheader(fp, info, relpath, filename, "");
 	fputs("<p> ", fp);
 	xmlencode(fp, filename);
 	fprintf(fp, " (%zuB) <a href='%s%s'>download</a>", filesize, relpath, staticpath);
@@ -801,7 +737,7 @@ void writerepo(FILE* index, const char* repodir) {
 		err(1, "fopen: '%s'", path);
 	snprintf(path, sizeof(path), "%s/commit", info.destdir);
 	mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
-	writeheader(fp, &info, "", "Log");
+	writeheader(fp, &info, "../", "Log", "");
 	fputs("<table id=\"log\"><thead>\n<tr><td><b>Date</b></td>"
 	      "<td><b>Commit message</b></td>"
 	      "<td><b>Author</b></td><td class=\"num\" align=\"right\"><b>Files</b></td>"
@@ -858,7 +794,7 @@ void writerepo(FILE* index, const char* repodir) {
 	snprintf(path, sizeof(path), "%s/files.html", info.destdir);
 	if (!(fp = fopen(path, "w")))
 		err(1, "fopen: '%s'", path);
-	writeheader(fp, &info, "", "Files");
+	writeheader(fp, &info, "../", "Files", "");
 	if (head)
 		writefiles(fp, &info, "", head);
 	writefooter(fp);
@@ -869,7 +805,7 @@ void writerepo(FILE* index, const char* repodir) {
 	snprintf(path, sizeof(path), "%s/refs.html", info.destdir);
 	if (!(fp = fopen(path, "w")))
 		err(1, "fopen: '%s'", path);
-	writeheader(fp, &info, "", "Refs");
+	writeheader(fp, &info, "../", "References", "");
 	writerefs(fp, &info);
 	writefooter(fp);
 	checkfileerror(fp, path, 'w');
