@@ -1,6 +1,7 @@
 #include "arg.h"
 #include "common.h"
 #include "config.h"
+#include "writehtml.h"
 #include "writeindex.h"
 
 #include <err.h>
@@ -58,13 +59,18 @@ int main(int argc, char* argv[]) {
 		errx(1, "open index.html");
 	}
 
-	writeheader_index(index, "aaaa");
-	checkfileerror(index, indexfile, 'w');
+	writeheader(index, NULL, "", "My Repositories", "Repositories!");
+	fputs("<table id=\"index\"><thead>\n"
+	      "<tr><td><b>Name</b></td><td><b>Description</b></td><td><b>Last changes</b></td></tr>"
+	      "</thead><tbody>\n",
+	      index);
+
 
 	for (int i = 0; i < argc; i++)
 		writerepo(index, argv[i]);
 
-	writefooter_index(index);
+	fputs("</tbody>\n</table>", index);
+	writefooter(index);
 	checkfileerror(index, indexfile, 'w');
 	fclose(index);
 

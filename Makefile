@@ -25,6 +25,7 @@ HEADER = \
 	compat.h \
 	config.h \
 	murmur3.h \
+	writehtml.h \
 	writeindex.h \
 	writerepo.h
 
@@ -32,8 +33,10 @@ OBJECTS = \
 	commit.o \
 	common.o \
 	compat.o \
-	murmur3.o \
+	config.o \
 	gitin.o \
+	murmur3.o \
+	writehtml.o \
 	writeindex.o \
 	writerepo.o
 
