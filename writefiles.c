@@ -17,11 +17,10 @@
 
 static void unhide_filename(char* path) {
 	for (char* chr = path; *chr; chr++) {
-		if (*chr == '.' && (chr == path || chr[-1] == '/'))
+		if (*chr == '.' && (chr == path || chr[-1] == '/') && chr[1] != '/')
 			*chr = '-';
 	}
 }
-
 
 static const char* filemode(git_filemode_t m) {
 	static char mode[11];
@@ -74,7 +73,6 @@ static const char* filemode(git_filemode_t m) {
 
 	return mode;
 }
-
 
 static size_t writeblobhtml(FILE* fp, const git_blob* blob, const char* filename) {
 	static uint32_t highlighthash = 0;
@@ -174,7 +172,8 @@ static size_t writeblobhtml(FILE* fp, const git_blob* blob, const char* filename
 
 	waitpid(process, &status, 0);
 
-	printf("done\n");
+	if (WEXITSTATUS(status))
+		return -1;
 
 	return n;
 }
