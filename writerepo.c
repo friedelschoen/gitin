@@ -1,6 +1,8 @@
 #include "commit.h"
 #include "common.h"
+#include "compat.h"
 #include "config.h"
+#include "parseconfig.h"
 #include "writer.h"
 
 #include <err.h>
@@ -71,7 +73,7 @@ void writerepo(FILE* index, const char* repodir) {
 	git_object*    obj  = NULL;
 	const git_oid* head = NULL;
 	mode_t         mask;
-	FILE *         fp, *fpread;
+	FILE*          fp;
 	char           path[PATH_MAX], repodirabs[PATH_MAX + 1];
 	char           tmppath[64] = "gitin-cache.XXXXXX", buf[BUFSIZ];
 	size_t         n;
@@ -103,25 +105,23 @@ void writerepo(FILE* index, const char* repodir) {
 	else
 		info.name = "";
 
-	snprintf(path, sizeof(path), "%s/description", info.repodir);
-	if ((fpread = fopen(path, "r"))) {
-		if (!fgets(info.description, sizeof(info.description), fpread))
-			info.description[0] = '\0';
-		checkfileerror(fpread, path, 'r');
-		fclose(fpread);
+	struct configstate state;
+	snprintf(path, sizeof(path), "%s/%s", repodir, configfile);
+
+	if ((fp = fopen(path, "r"))) {
+		while (!parseconfig(&state, fp)) {
+			if (!strcmp(state.key, "description"))
+				strlcpy(info.description, state.value, sizeof(info.description));
+			if (!strcmp(state.key, "url") || !strcmp(state.key, "cloneurl"))
+				strlcpy(info.cloneurl, state.value, sizeof(info.cloneurl));
+			else
+				fprintf(stderr, "warn: ignoring unknown config-key '%s'\n", state.key);
+		}
 	}
 
-	snprintf(path, sizeof(path), "%s/url", info.repodir);
-	if ((fpread = fopen(path, "r"))) {
-		if (!fgets(info.cloneurl, sizeof(info.cloneurl), fpread))
-			info.cloneurl[0] = '\0';
-		checkfileerror(fpread, path, 'r');
-		fclose(fpread);
-		info.cloneurl[strcspn(info.cloneurl, "\n")] = '\0';
-	}
 
 	/* check pinfiles */
-	for (i = 0; i < pinfileslen && info.pinfileslen < MAXPINS; i++) {
+	for (i = 0; i < npinfiles && info.pinfileslen < MAXPINS; i++) {
 		snprintf(path, sizeof(path), "HEAD:%s", pinfiles[i]);
 		if (!git_revparse_single(&obj, info.repo, path) && git_object_type(obj) == GIT_OBJ_BLOB)
 			info.pinfiles[info.pinfileslen++] = pinfiles[i];
@@ -222,7 +222,7 @@ void writerepo(FILE* index, const char* repodir) {
 	}
 
 	writeindex(index, &info);
-	checkfileerror(index, indexfile, 'w');
+	checkfileerror(index, "index.html", 'w');
 
 	/* cleanup */
 	git_repository_free(info.repo);
