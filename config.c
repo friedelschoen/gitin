@@ -1,5 +1,7 @@
 #include "config.h"
 
+#include "common.h"
+
 /* favicon to use */
 const char* favicon     = "favicon.svg";
 const char* favicontype = "image/svg+xml";
@@ -12,9 +14,6 @@ const char* stylesheet = "style.css";
 
 /* where to put the html files relative to repodir */
 const char* destination = "";
-
-/* how to index file is called */
-const char* indexfile = "index.html";
 
 /* command to execute to highlight a file, use `cat` to disable */
 const char* highlightcmd = "chroma --html --html-only --html-inline-styles --style=xcode --lexer=$type";
@@ -36,5 +35,6 @@ long long nlogcommits = -1;
 const char* pinfiles[] = {
 	"LICENSE", "LICENSE.md", "COPYING", "README", "README.md",
 };
+int npinfiles = LEN(pinfiles);
 
-int pinfileslen = sizeof(pinfiles) / sizeof(*pinfiles);
+const char* configfile = "gitin.conf";

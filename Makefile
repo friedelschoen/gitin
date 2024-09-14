@@ -25,6 +25,7 @@ HEADER = \
 	compat.h \
 	config.h \
 	murmur3.h \
+	parseconfig.h \
 	writer.h
 
 OBJECTS = \
@@ -34,6 +35,7 @@ OBJECTS = \
 	config.o \
 	gitin.o \
 	murmur3.o \
+	parseconfig.o \
 	writefiles.o \
 	writehtml.o \
 	writeindex.o \
