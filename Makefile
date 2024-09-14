@@ -1,22 +1,25 @@
-.POSIX:
-
 NAME = gitin
-VERSION = 1.2
+VERSION = 0.1
 
 # paths
 PREFIX = /usr/local
-MANPREFIX = ${PREFIX}/man
-DOCPREFIX = ${PREFIX}/share/doc/${NAME}
+
+# library flags
+LIBS = libgit2
 
 # use system flags.
-CC = gcc
-CFLAGS = -Wall -Wextra -Wpedantic -O2 $(shell pkg-config --cflags libgit2)
-LDFLAGS = $(shell pkg-config --libs libgit2)
-CPPFLAGS = -D_XOPEN_SOURCE=700 
+CC ?= gcc
+CFLAGS := -Wall -Wextra -Wpedantic -O2 -D_XOPEN_SOURCE=700 $(shell pkg-config --cflags $(LIBS))
+LDFLAGS := $(shell pkg-config --libs $(LIBS))
 
-BIN = gitin
+BIN = ${NAME}
 
-MAN1 = gitin.1
+MAN1 = ${NAME}.1
+
+DOCS = \
+	favicon.png \
+	logo.png \
+	style.css \
 
 HEADER = \
 	arg.h \
@@ -40,52 +43,48 @@ OBJECTS = \
 	writehtml.o \
 	writeindex.o \
 	writelog.o \
-	writerepo.o 
+	writerepo.o
 
-all: ${BIN}
+all: ${BIN} ${MAN1} compile_flags.txt
 
 %.o: %.c ${HEADER}
 	${CC} -c -o $@ $< ${CFLAGS} ${CPPFLAGS}
 
-gitin: ${OBJECTS}
+${BIN}: ${OBJECTS}
 	${CC} -o $@ $^ ${LDFLAGS}
 
+%: %.in
+	sed 's/%VERSION%/${VERSION}/g' $< > $@
+
+.PHONY: all clean install uninstall dist
+
 clean:
-	rm -f ${BIN} ${OBJECTS}
+	rm -f ${BIN} ${OBJECTS} ${MAN1} compile_flags.txt
+
+compile_flags.txt:
+	echo ${CFLAGS} ${CPPFLAGS} | tr ' ' '\n' > $@
 
 install: all
-	# installing executable files.
-	mkdir -p ${DESTDIR}${PREFIX}/bin
-	cp -f ${BIN} ${DESTDIR}${PREFIX}/bin
-	for f in ${BIN}; do chmod 755 ${DESTDIR}${PREFIX}/bin/$$f; done
-	cp -f gitin-highlight ${DESTDIR}${PREFIX}/bin/
-	# installing example files.
-	mkdir -p ${DESTDIR}${DOCPREFIX}
-	cp -f style.css\
-		favicon.png\
-		logo.png\
-		example_create.sh\
-		example_post-receive.sh\
-		README\
-		${DESTDIR}${DOCPREFIX}
-	# installing manual pages.
-	mkdir -p ${DESTDIR}${MANPREFIX}/man1
-	cp -f ${MAN1} ${DESTDIR}${MANPREFIX}/man1
-	for m in ${MAN1}; do chmod 644 ${DESTDIR}${MANPREFIX}/man1/$$m; done
+	mkdir -p ${PREFIX}/bin
+	for f in ${BIN}; do \
+		install -Dm 755 $$f ${PREFIX}/bin/$$f; \
+	done
+
+	mkdir -p ${PREFIX}/share/man/man1
+	for f in ${MAN1}; do \
+		install -Dm 644 $$f ${PREFIX}/share/man/man1/$$f; \
+	done
+
+	mkdir -p  ${PREFIX}/share/doc
+	for f in ${DOCS}; do \
+		install -Dm 644 assets/$$f ${PREFIX}/share/doc/${NAME}/$$f; \
+	done
 
 uninstall:
-	# removing executable files.
-	for f in ${BIN}; do rm -f ${DESTDIR}${PREFIX}/bin/$$f; done
-	# removing example files.
-	rm -f \
-		${DESTDIR}${DOCPREFIX}/style.css\
-		${DESTDIR}${DOCPREFIX}/favicon.png\
-		${DESTDIR}${DOCPREFIX}/logo.png\
-		${DESTDIR}${DOCPREFIX}/example_create.sh\
-		${DESTDIR}${DOCPREFIX}/example_post-receive.sh\
-		${DESTDIR}${DOCPREFIX}/README
-	-rmdir ${DESTDIR}${DOCPREFIX}
-	# removing manual pages.
-	for m in ${MAN1}; do rm -f ${DESTDIR}${MANPREFIX}/man1/$$m; done
-
-.PHONY: all clean install uninstall
+	for f in ${BIN}; do \
+		rm -f ${PREFIX}/bin/$$f; \
+	done
+	for f in ${MAN1}; do \
+		rm -f ${PREFIX}/share/man/man1/$$f; \
+	done
+	rm -rf ${PREFIX}/share/doc/${NAME}
