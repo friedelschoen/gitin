@@ -1,5 +1,5 @@
-.Dd August 2, 2021
-.Dt gitin 1
+.Dd %TODAY%
+.Dt gitin %VERSION% 1
 .Os
 .Sh NAME
 .Nm gitin
