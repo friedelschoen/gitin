@@ -9,8 +9,8 @@ LIBS = libgit2
 
 # use system flags.
 CC ?= gcc
-CFLAGS := -Wall -Wextra -Wpedantic -O2 -D_XOPEN_SOURCE=700 $(shell pkg-config --cflags $(LIBS))
-LDFLAGS := $(shell pkg-config --libs $(LIBS))
+CFLAGS := -Wall -Wextra -Wpedantic -O2 -g -D_XOPEN_SOURCE=700 $(shell pkg-config --cflags $(LIBS)) #-fsanitize=address
+LDFLAGS := $(shell pkg-config --libs $(LIBS)) #-fsanitize=address
 
 BIN = ${NAME}
 

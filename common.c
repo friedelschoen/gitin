@@ -5,6 +5,7 @@
 #include <err.h>
 #include <errno.h>
 #include <limits.h>
+#include <string.h>
 #include <sys/stat.h>
 
 
@@ -136,4 +137,26 @@ void xmlencodeline(FILE* fp, const char* s, size_t len) {
 				putc(*s, fp);
 		}
 	}
+}
+
+void normalize_path(char* path) {
+	int i, j = 0;
+	int len = strlen(path);
+
+	for (i = 0; i < len; i++) {
+		// Copy characters unless it's a double '/'
+		if (!(path[i] == '/' && path[i + 1] == '/')) {
+			path[j++] = path[i];
+		}
+	}
+
+	// Null-terminate the string
+	path[j] = '\0';
+}
+
+void repeat(char* dest, const char* source, int times) {
+	// when `times` is 0 we want dest terminated
+	*dest = '\0';
+	while (times-- > 0)
+		dest = stpcpy(dest, source);
 }

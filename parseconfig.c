@@ -42,7 +42,6 @@ int parseconfig(struct configstate* state, FILE* fp) {
 			continue;
 
 		return 0;
-		//		return handler(state->key, state->value, userdata);
 	}
 }
 

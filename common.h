@@ -26,3 +26,7 @@ void xmlencode(FILE* fp, const char* s);
 
 /* Escape characters below as HTML 2.0 / XML 1.0, ignore printing '\r', '\n' */
 void xmlencodeline(FILE* fp, const char* s, size_t len);
+
+void normalize_path(char* path);
+
+void repeat(char* dest, const char* source, int times);
