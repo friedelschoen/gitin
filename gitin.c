@@ -76,7 +76,7 @@ int main(int argc, char* argv[]) {
 		}
 	}
 
-	writeheader(index, NULL, "", name, description);
+	writeheader(index, NULL, "", "", name, description);
 	fputs("<table id=\"index\"><thead>\n"
 	      "<tr><td><b>Name</b></td><td><b>Description</b></td><td><b>Last changes</b></td></tr>"
 	      "</thead><tbody>\n",

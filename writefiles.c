@@ -15,7 +15,7 @@
 #define MURMUR_SEED 0xCAFE5EED    // cafeseed
 
 
-static void unhide_filename(char* path) {
+static void unhide_path(char* path) {
 	for (char* chr = path; *chr; chr++) {
 		if (*chr == '.' && (chr == path || chr[-1] == '/') && chr[1] != '/')
 			*chr = '-';
@@ -106,6 +106,7 @@ static size_t writeblobhtml(FILE* fp, const git_blob* blob, const char* filename
 
 	contenthash = murmurhash3(s, len, MURMUR_SEED);
 	snprintf(cachepath, sizeof(cachepath), "%s/%x-%x.html", highlightcache, highlighthash, contenthash);
+	normalize_path(cachepath);
 
 	if ((cache = fopen(cachepath, "r"))) {
 		n = 0;
@@ -202,7 +203,7 @@ static size_t writeblob(const struct repoinfo* info, const char* relpath, git_ob
 	if (!(fp = fopen(fpath, "w")))
 		err(1, "fopen: '%s'", fpath);
 
-	writeheader(fp, info, relpath, filename, "");
+	writeheader(fp, info, "../", relpath, filename, "");
 	fputs("<p> ", fp);
 	xmlencode(fp, filename);
 	fprintf(fp, " (%zuB) <a href='%s%s'>download</a>", filesize, relpath, staticpath);
@@ -271,8 +272,10 @@ static int writefilestree(FILE* fp, const struct repoinfo* info, const char* rel
 		if (r < 0 || (size_t) r >= sizeof(staticpath))
 			errx(1, "path truncated: '%s/static/%s'", info->destdir, entrypath);
 
-		unhide_filename(filepath);
-		unhide_filename(staticpath);
+		normalize_path(filepath);
+		normalize_path(staticpath);
+		unhide_path(filepath);
+		unhide_path(staticpath);
 
 		if (!git_tree_entry_to_object(&obj, info->repo, entry)) {
 			switch (git_object_type(obj)) {
@@ -303,8 +306,10 @@ static int writefilestree(FILE* fp, const struct repoinfo* info, const char* rel
 			if (r < 0 || (size_t) r >= sizeof(staticpath))
 				errx(1, "path truncated: 'static/%s'", entrypath);
 
-			unhide_filename(filepath);
-			unhide_filename(staticpath);
+			normalize_path(filepath);
+			normalize_path(staticpath);
+			unhide_path(filepath);
+			unhide_path(staticpath);
 
 			fputs("<tr><td>", fp);
 			fputs(filemode(git_tree_entry_filemode(entry)), fp);

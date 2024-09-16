@@ -207,6 +207,7 @@ int writelog(FILE* fp, const struct repoinfo* info, const git_oid* oid) {
 		r = snprintf(path, sizeof(path), "%s/commit/%s.html", info->destdir, oidstr);
 		if (r < 0 || (size_t) r >= sizeof(path))
 			errx(1, "path truncated: 'commit/%s.html'", oidstr);
+		normalize_path(path);
 		r = access(path, F_OK);
 
 		/* optimization: if there are no log lines to write and
@@ -236,7 +237,7 @@ int writelog(FILE* fp, const struct repoinfo* info, const git_oid* oid) {
 		if (r) {
 			if (!(fpfile = fopen(path, "w")))
 				err(1, "fopen: '%s'", path);
-			writeheader(fpfile, info, "../", ci->summary, "");
+			writeheader(fpfile, info, "../", "", ci->summary, "");
 			fputs("<pre>", fpfile);
 			writediff(fpfile, "../", ci);
 			fputs("</pre>\n", fpfile);

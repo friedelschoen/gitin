@@ -82,7 +82,8 @@ void writerepo(FILE* index, const char* repodir) {
 	memset(&info, 0, sizeof(info));
 	info.repodir = repodir;
 
-	snprintf(info.destdir, sizeof(info.destdir), "%s/%s/", info.repodir, destination);
+	snprintf(info.destdir, sizeof(info.destdir), "%s%s", destination, info.repodir);
+	normalize_path(info.destdir);
 
 	printf("-> %s\n", info.repodir);
 
@@ -107,6 +108,7 @@ void writerepo(FILE* index, const char* repodir) {
 
 	struct configstate state;
 	snprintf(path, sizeof(path), "%s/%s", repodir, configfile);
+	normalize_path(path);
 
 	if ((fp = fopen(path, "r"))) {
 		while (!parseconfig(&state, fp)) {
@@ -138,7 +140,7 @@ void writerepo(FILE* index, const char* repodir) {
 		err(1, "fopen: '%s'", path);
 	snprintf(path, sizeof(path), "%s/commit", info.destdir);
 	mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
-	writeheader(fp, &info, "../", "Log", "");
+	writeheader(fp, &info, "../", "", "Log", "");
 	fputs("<table id=\"log\"><thead>\n<tr><td><b>Date</b></td>"
 	      "<td><b>Commit message</b></td>"
 	      "<td><b>Author</b></td><td class=\"num\" align=\"right\"><b>Files</b></td>"
@@ -195,7 +197,7 @@ void writerepo(FILE* index, const char* repodir) {
 	snprintf(path, sizeof(path), "%s/files.html", info.destdir);
 	if (!(fp = fopen(path, "w")))
 		err(1, "fopen: '%s'", path);
-	writeheader(fp, &info, "../", "Files", "");
+	writeheader(fp, &info, "../", "", "Files", "");
 	if (head)
 		writefiles(fp, &info, "", head);
 	writefooter(fp);
@@ -206,7 +208,7 @@ void writerepo(FILE* index, const char* repodir) {
 	snprintf(path, sizeof(path), "%s/refs.html", info.destdir);
 	if (!(fp = fopen(path, "w")))
 		err(1, "fopen: '%s'", path);
-	writeheader(fp, &info, "../", "References", "");
+	writeheader(fp, &info, "../", "", "References", "");
 	writerefs(fp, &info);
 	writefooter(fp);
 	checkfileerror(fp, path, 'w');

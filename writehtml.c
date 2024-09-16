@@ -2,8 +2,9 @@
 #include "config.h"
 #include "writer.h"
 
-void writeheader(FILE* fp, const struct repoinfo* info, const char* relpath, const char* name,
+void writeheader(FILE* fp, const struct repoinfo* info, const char* indexrelpath, const char* relpath, const char* name,
                  const char* description) {
+
 	fputs("<!DOCTYPE html>\n"
 	      "<html>\n<head>\n"
 	      "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n"
