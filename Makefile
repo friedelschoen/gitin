@@ -9,7 +9,7 @@ LIBS = libgit2
 
 # use system flags.
 CC ?= gcc
-CFLAGS := -Wall -Wextra -Wpedantic -O2 -g -D_XOPEN_SOURCE=700 $(shell pkg-config --cflags $(LIBS)) #-fsanitize=address
+CFLAGS := -Wall -Wextra -Wpedantic -Werror -O2 -g -D_XOPEN_SOURCE=700 $(shell pkg-config --cflags $(LIBS)) #-fsanitize=address
 LDFLAGS := $(shell pkg-config --libs $(LIBS)) #-fsanitize=address
 
 BIN = ${NAME}
@@ -27,6 +27,7 @@ HEADER = \
 	common.h \
 	compat.h \
 	config.h \
+	hprintf.h \
 	murmur3.h \
 	parseconfig.h \
 	writer.h
@@ -37,6 +38,7 @@ OBJECTS = \
 	compat.o \
 	config.o \
 	gitin.o \
+	hprintf.o \
 	murmur3.o \
 	parseconfig.o \
 	writefiles.o \

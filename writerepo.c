@@ -68,27 +68,33 @@ static int writerefs(FILE* fp, const struct repoinfo* info) {
 }
 
 void writerepo(FILE* index, const char* repodir) {
-	static struct repoinfo info;
+	struct repoinfo info;
 
 	git_object*    obj  = NULL;
 	const git_oid* head = NULL;
 	mode_t         mask;
 	FILE*          fp;
-	char           path[PATH_MAX], repodirabs[PATH_MAX + 1];
+	char           path[PATH_MAX];
 	char           tmppath[64] = "gitin-cache.XXXXXX", buf[BUFSIZ];
 	size_t         n;
 	int            i, fd;
+	const char*    start;
 
 	memset(&info, 0, sizeof(info));
 	info.repodir = repodir;
 
+	info.relpath = 1;
+	for (const char* p = repodir + 1; p[1]; p++)
+		if (*p == '/')
+			info.relpath++;
+
 	snprintf(info.destdir, sizeof(info.destdir), "%s%s", destination, info.repodir);
 	normalize_path(info.destdir);
 
-	printf("-> %s\n", info.repodir);
-
-	if (!realpath(info.repodir, repodirabs))
-		err(1, "realpath");
+	if (mkdirp(info.destdir) == -1) {
+		err(1, "cannot create destdir: %s", info.destdir);
+		return;
+	}
 
 	if (git_repository_open_ext(&info.repo, info.repodir, GIT_REPOSITORY_OPEN_NO_SEARCH, NULL) < 0) {
 		err(1, "cannot open repository");
@@ -100,13 +106,16 @@ void writerepo(FILE* index, const char* repodir) {
 		head = git_object_id(obj);
 	git_object_free(obj);
 
+	start = repodir;
+	if (start[0] == '/')
+		start++;
 	/* use directory name as name */
-	if ((info.name = strrchr(repodirabs, '/')))
-		info.name++;
-	else
-		info.name = "";
+	strlcpy(info.name, start, sizeof(info.name));
+	if (info.name[strlen(info.name) - 1] == '/')
+		info.name[strlen(info.name) - 1] = '\0';
 
 	struct configstate state;
+	memset(&state, 0, sizeof(state));
 	snprintf(path, sizeof(path), "%s/%s", repodir, configfile);
 	normalize_path(path);
 
@@ -114,13 +123,12 @@ void writerepo(FILE* index, const char* repodir) {
 		while (!parseconfig(&state, fp)) {
 			if (!strcmp(state.key, "description"))
 				strlcpy(info.description, state.value, sizeof(info.description));
-			if (!strcmp(state.key, "url") || !strcmp(state.key, "cloneurl"))
+			else if (!strcmp(state.key, "url") || !strcmp(state.key, "cloneurl"))
 				strlcpy(info.cloneurl, state.value, sizeof(info.cloneurl));
 			else
 				fprintf(stderr, "warn: ignoring unknown config-key '%s'\n", state.key);
 		}
 	}
-
 
 	/* check pinfiles */
 	for (i = 0; i < npinfiles && info.pinfileslen < MAXPINS; i++) {
@@ -138,9 +146,10 @@ void writerepo(FILE* index, const char* repodir) {
 	snprintf(path, sizeof(path), "%s/log.html", info.destdir);
 	if (!(fp = fopen(path, "w")))
 		err(1, "fopen: '%s'", path);
+	fprintf(stderr, "%s\n", path);
 	snprintf(path, sizeof(path), "%s/commit", info.destdir);
 	mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
-	writeheader(fp, &info, "../", "", "Log", "");
+	writeheader(fp, &info, 0, "Log", "");
 	fputs("<table id=\"log\"><thead>\n<tr><td><b>Date</b></td>"
 	      "<td><b>Commit message</b></td>"
 	      "<td><b>Author</b></td><td class=\"num\" align=\"right\"><b>Files</b></td>"
@@ -197,9 +206,10 @@ void writerepo(FILE* index, const char* repodir) {
 	snprintf(path, sizeof(path), "%s/files.html", info.destdir);
 	if (!(fp = fopen(path, "w")))
 		err(1, "fopen: '%s'", path);
-	writeheader(fp, &info, "../", "", "Files", "");
+	fprintf(stderr, "%s\n", path);
+	writeheader(fp, &info, 0, "Files", "");
 	if (head)
-		writefiles(fp, &info, "", head);
+		writefiles(fp, &info, head);
 	writefooter(fp);
 	checkfileerror(fp, path, 'w');
 	fclose(fp);
@@ -208,7 +218,8 @@ void writerepo(FILE* index, const char* repodir) {
 	snprintf(path, sizeof(path), "%s/refs.html", info.destdir);
 	if (!(fp = fopen(path, "w")))
 		err(1, "fopen: '%s'", path);
-	writeheader(fp, &info, "../", "", "References", "");
+	fprintf(stderr, "%s\n", path);
+	writeheader(fp, &info, 0, "References", "");
 	writerefs(fp, &info);
 	writefooter(fp);
 	checkfileerror(fp, path, 'w');

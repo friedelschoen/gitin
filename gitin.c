@@ -6,7 +6,9 @@
 #include "writer.h"
 
 #include <err.h>
+#include <limits.h>
 #include <signal.h>
+#include <stdio.h>
 #include <string.h>
 
 static void usage(char* argv0) {
@@ -46,6 +48,7 @@ int main(int argc, char* argv[]) {
 
 	signal(SIGPIPE, SIG_IGN);
 
+	mkdirp(destination);
 	mkdirp(highlightcache);
 
 	/* do not search outside the git repository:
@@ -56,9 +59,12 @@ int main(int argc, char* argv[]) {
 	/* do not require the git repository to be owned by the current user */
 	git_libgit2_opts(GIT_OPT_SET_OWNER_VALIDATION, 0);
 
-	if (!(index = fopen("index.html", "w+"))) {
-		errx(1, "open index.html");
-	}
+	char indexpath[PATH_MAX];
+	snprintf(indexpath, sizeof(indexpath), "%s/index.html", destination);
+
+	if (!(index = fopen(indexpath, "w+")))
+		errx(1, "open %s", indexpath);
+	fprintf(stderr, "%s\n", indexpath);
 
 	struct configstate state;
 	FILE*              fp;
@@ -66,6 +72,7 @@ int main(int argc, char* argv[]) {
 	char               description[1024];
 
 	if ((fp = fopen(configfile, "r"))) {
+		memset(&state, 0, sizeof(state));
 		while (!parseconfig(&state, fp)) {
 			if (!strcmp(state.key, "name"))
 				strlcpy(name, state.value, sizeof(name));
@@ -76,7 +83,7 @@ int main(int argc, char* argv[]) {
 		}
 	}
 
-	writeheader(index, NULL, "", "", name, description);
+	writeheader(index, NULL, 0, name, description);
 	fputs("<table id=\"index\"><thead>\n"
 	      "<tr><td><b>Name</b></td><td><b>Description</b></td><td><b>Last changes</b></td></tr>"
 	      "</thead><tbody>\n",
@@ -87,7 +94,7 @@ int main(int argc, char* argv[]) {
 
 	fputs("</tbody>\n</table>", index);
 	writefooter(index);
-	checkfileerror(index, "index.html", 'w');
+	checkfileerror(index, indexpath, 'w');
 	fclose(index);
 
 	git_libgit2_shutdown();

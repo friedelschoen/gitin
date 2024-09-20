@@ -1,24 +1,21 @@
 #include "common.h"
 #include "config.h"
+#include "hprintf.h"
 #include "writer.h"
 
-void writeheader(FILE* fp, const struct repoinfo* info, const char* indexrelpath, const char* relpath, const char* name,
-                 const char* description) {
-
+void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char* name, const char* description) {
+	int indexrelpath = relpath + (info ? info->relpath : 0);
 	fputs("<!DOCTYPE html>\n"
 	      "<html>\n<head>\n"
 	      "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n"
-	      "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n"
-	      "<title>",
+	      "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />",
 	      fp);
-	xmlencode(fp, name);
-	fputs(" - ", fp);
-	xmlencode(fp, sitename);
-	fprintf(fp, "</title>\n<link rel=\"icon\" type=\"%s\" href=\"%s%s\" />\n", relpath, favicontype, favicon);
-	fprintf(fp, "<link rel=\"stylesheet\" type=\"text/css\" href=\"%s%s\" />\n", relpath, stylesheet);
+	hprintf(fp, "<title>%y - %y</title>\n", name, sitename);
+	hprintf(fp, "<link rel=\"icon\" type=\"%s\" href=\"%r%s\" />\n", favicontype, indexrelpath, favicon);
+	hprintf(fp, "<link rel=\"stylesheet\" type=\"text/css\" href=\"%r%s\" />\n", indexrelpath, stylesheet);
 	fputs("</head>\n<body>\n<table><tr><td>", fp);
-	fprintf(fp, "<a href=\"%s\"><img src=\"%s%s\" alt=\"\" width=\"32\" height=\"32\" /></a>", relpath, relpath,
-	        logoicon);
+	hprintf(fp, "<a href=\"%r\"><img src=\"%r%s\" alt=\"\" width=\"32\" height=\"32\" /></a>", indexrelpath,
+	        indexrelpath, logoicon);
 	fputs("</td><td><h1>", fp);
 	xmlencode(fp, name);
 	fputs("</h1><span class=\"desc\">", fp);
@@ -31,13 +28,13 @@ void writeheader(FILE* fp, const struct repoinfo* info, const char* indexrelpath
 	}
 	fputs("<tr><td></td><td>\n", fp);
 	if (info) {
-		fprintf(fp, "<a href=\"%slog.html\">Log</a> | ", relpath);
-		fprintf(fp, "<a href=\"%sfiles.html\">Files</a> | ", relpath);
-		fprintf(fp, "<a href=\"%srefs.html\">Refs</a>", relpath);
+		hprintf(fp, "<a href=\"%rlog.html\">Log</a> | ", relpath);
+		hprintf(fp, "<a href=\"%rfiles.html\">Files</a> | ", relpath);
+		hprintf(fp, "<a href=\"%rrefs.html\">Refs</a>", relpath);
 		if (info->submodules)
-			fprintf(fp, " | <a href=\"%sfile/%s.html\">Submodules</a>", relpath, info->submodules);
+			hprintf(fp, " | <a href=\"%rfile/%s.html\">Submodules</a>", relpath, info->submodules);
 		for (int i = 0; i < info->pinfileslen; i++)
-			fprintf(fp, " | <a href=\"%sfile/%s.html\">%s</a>", relpath, info->pinfiles[i], info->pinfiles[i]);
+			hprintf(fp, " | <a href=\"%rfile/%s.html\">%s</a>", relpath, info->pinfiles[i], info->pinfiles[i]);
 	} else {
 		fputs("</td><td>", fp);
 	}

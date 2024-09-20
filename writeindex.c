@@ -18,7 +18,7 @@ int writeindex(FILE* fp, const struct repoinfo* info) {
 
 	author = git_commit_author(commit);
 
-	fprintf(fp, "<tr><td><a href=\"%s/log.html\">", info->destdir);
+	fprintf(fp, "<tr><td><a href=\"%s/log.html\">", info->repodir);
 	xmlencode(fp, info->name);
 	fputs("</a></td><td>", fp);
 	xmlencode(fp, info->description);
