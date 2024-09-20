@@ -1,6 +1,7 @@
 #include "common.h"
 #include "compat.h"
 #include "config.h"
+#include "hprintf.h"
 #include "murmur3.h"
 #include "writer.h"
 
@@ -74,10 +75,10 @@ static const char* filemode(git_filemode_t m) {
 	return mode;
 }
 
-static size_t writeblobhtml(FILE* fp, const git_blob* blob, const char* filename) {
+static ssize_t writeblobhtml(FILE* fp, const git_blob* blob, const char* filename) {
 	static uint32_t highlighthash = 0;
 
-	size_t      n = 0, len;
+	ssize_t     n = 0, len;
 	const char* s = git_blob_rawcontent(blob);
 
 	static unsigned char buffer[512];
@@ -96,12 +97,9 @@ static size_t writeblobhtml(FILE* fp, const git_blob* blob, const char* filename
 	if (len == 0)
 		return 0;
 
-	if (!highlighthash) {
-		printf("highlighthash\n");
+	if (!highlighthash)
 		highlighthash = murmurhash3(highlightcmd, strlen(highlightcmd), MURMUR_SEED);
-	}
 
-	printf("highlighting %s: ", filename);
 	fflush(stdout);
 
 	contenthash = murmurhash3(s, len, MURMUR_SEED);
@@ -115,8 +113,6 @@ static size_t writeblobhtml(FILE* fp, const git_blob* blob, const char* filename
 			n += readlen;
 		}
 		fclose(cache);
-
-		printf("cached\n");
 
 		return n;
 	}
@@ -158,6 +154,7 @@ static size_t writeblobhtml(FILE* fp, const git_blob* blob, const char* filename
 	close(outpipefd.write);
 
 	cache = fopen(cachepath, "w+");
+	fprintf(stderr, "%s\n", cachepath);
 
 	n = 0;
 	while ((readlen = read(inpipefd.read, buffer, sizeof buffer)) > 0) {
@@ -173,18 +170,15 @@ static size_t writeblobhtml(FILE* fp, const git_blob* blob, const char* filename
 
 	waitpid(process, &status, 0);
 
-	if (WEXITSTATUS(status))
-		return -1;
-
-	return n;
+	return WEXITSTATUS(status) ? -1 : n;
 }
 
-static size_t writeblob(const struct repoinfo* info, const char* relpath, git_object* obj, const char* fpath,
-                        const char* filename, const char* staticpath, size_t filesize) {
-	char        tmp[PATH_MAX] = "", *d;
-	const char* p;
-	size_t      lc = 0;
-	FILE*       fp;
+static size_t writeblob(const struct repoinfo* info, int relpath, git_object* obj, const char* fpath,
+                        const char* filename, const char* filepath, size_t filesize) {
+
+	char   tmp[PATH_MAX] = "", *d;
+	size_t lc            = 0;
+	FILE*  fp;
 
 	if (strlcpy(tmp, fpath, sizeof(tmp)) >= sizeof(tmp))
 		errx(1, "path truncated: '%s'", fpath);
@@ -194,19 +188,14 @@ static size_t writeblob(const struct repoinfo* info, const char* relpath, git_ob
 	if (mkdirp(d))
 		return -1;
 
-	for (p = fpath, tmp[0] = '\0'; *p; p++) {
-		if (*p == '/' && strlcat(tmp, "../", sizeof(tmp)) >= sizeof(tmp))
-			errx(1, "path truncated: '../%s'", tmp);
-	}
-	relpath = tmp;
-
 	if (!(fp = fopen(fpath, "w")))
 		err(1, "fopen: '%s'", fpath);
+	fprintf(stderr, "%s\n", fpath);
 
-	writeheader(fp, info, "../", relpath, filename, "");
+	writeheader(fp, info, relpath, filename, "");
 	fputs("<p> ", fp);
 	xmlencode(fp, filename);
-	fprintf(fp, " (%zuB) <a href='%s%s'>download</a>", filesize, relpath, staticpath);
+	hprintf(fp, " (%zuB) <a href='%rstatic%s'>download</a>", filesize, relpath, filepath);
 	fputs("</p><hr/>", fp);
 
 	if (git_blob_is_binary((git_blob*) obj))
@@ -217,8 +206,6 @@ static size_t writeblob(const struct repoinfo* info, const char* relpath, git_ob
 	writefooter(fp);
 	checkfileerror(fp, fpath, 'w');
 	fclose(fp);
-
-	relpath = "";
 
 	return lc;
 }
@@ -242,6 +229,7 @@ static void writefile(git_object* obj, const char* fpath, size_t filesize) {
 
 	if (!(fp = fopen(fpath, "w")))
 		err(1, "fopen: '%s'", fpath);
+	fprintf(stderr, "%s\n", fpath);
 
 	fwrite(git_blob_rawcontent((const git_blob*) obj), filesize, 1, fp);
 	checkfileerror(fp, fpath, 'w');
@@ -249,8 +237,7 @@ static void writefile(git_object* obj, const char* fpath, size_t filesize) {
 }
 
 
-static int writefilestree(FILE* fp, const struct repoinfo* info, const char* relpath, git_tree* tree,
-                          const char* path) {
+static int writefilestree(FILE* fp, const struct repoinfo* info, int relpath, git_tree* tree, const char* path) {
 	const git_tree_entry* entry = NULL;
 	git_object*           obj   = NULL;
 	const char*           entryname;
@@ -283,7 +270,7 @@ static int writefilestree(FILE* fp, const struct repoinfo* info, const char* rel
 					break;
 				case GIT_OBJ_TREE:
 					/* NOTE: recurses */
-					ret = writefilestree(fp, info, relpath, (git_tree*) obj, entrypath);
+					ret = writefilestree(fp, info, relpath + 1, (git_tree*) obj, entrypath);
 					git_object_free(obj);
 					if (ret)
 						return ret;
@@ -294,28 +281,13 @@ static int writefilestree(FILE* fp, const struct repoinfo* info, const char* rel
 			}
 
 			filesize = git_blob_rawsize((git_blob*) obj);
-			lc       = writeblob(info, relpath, obj, filepath, entryname, staticpath, filesize);
+			lc       = writeblob(info, relpath, obj, filepath, entryname, entrypath, filesize);
 
 			writefile(obj, staticpath, filesize);
 
-			r = snprintf(filepath, sizeof(filepath), "file/%s.html", entrypath);
-			if (r < 0 || (size_t) r >= sizeof(filepath))
-				errx(1, "path truncated: 'file/%s.html'", entrypath);
-
-			r = snprintf(staticpath, sizeof(staticpath), "static/%s", entrypath);
-			if (r < 0 || (size_t) r >= sizeof(staticpath))
-				errx(1, "path truncated: 'static/%s'", entrypath);
-
-			normalize_path(filepath);
-			normalize_path(staticpath);
-			unhide_path(filepath);
-			unhide_path(staticpath);
-
 			fputs("<tr><td>", fp);
 			fputs(filemode(git_tree_entry_filemode(entry)), fp);
-			fprintf(fp, "</td><td><a href=\"%s", relpath);
-			percentencode(fp, filepath);
-			fputs("\">", fp);
+			hprintf(fp, "</td><td><a href=\"file%s.html\">", entrypath);
 			xmlencode(fp, entrypath);
 			fputs("</a></td><td class=\"num\" align=\"right\">", fp);
 			if (lc > 0)
@@ -326,7 +298,7 @@ static int writefilestree(FILE* fp, const struct repoinfo* info, const char* rel
 			git_object_free(obj);
 		} else if (git_tree_entry_type(entry) == GIT_OBJ_COMMIT) {
 			/* commit object in tree is a submodule */
-			fprintf(fp, "<tr><td>m---------</td><td><a href=\"%sfile/-gitmodules.html\">", relpath);
+			hprintf(fp, "<tr><td>m---------</td><td><a href=\"%rfile/-gitmodules.html\">", relpath);
 			xmlencode(fp, entrypath);
 			fputs("</a> @ ", fp);
 			git_oid_tostr(oid, sizeof(oid), git_tree_entry_id(entry));
@@ -338,7 +310,7 @@ static int writefilestree(FILE* fp, const struct repoinfo* info, const char* rel
 	return 0;
 }
 
-int writefiles(FILE* fp, const struct repoinfo* info, const char* relpath, const git_oid* id) {
+int writefiles(FILE* fp, const struct repoinfo* info, const git_oid* id) {
 	git_tree*   tree   = NULL;
 	git_commit* commit = NULL;
 	int         ret    = -1;
@@ -350,7 +322,7 @@ int writefiles(FILE* fp, const struct repoinfo* info, const char* relpath, const
 	      fp);
 
 	if (!git_commit_lookup(&commit, info->repo, id) && !git_commit_tree(&tree, commit))
-		ret = writefilestree(fp, info, relpath, tree, "");
+		ret = writefilestree(fp, info, 1, tree, "");
 
 	fputs("</tbody></table>", fp);
 

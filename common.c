@@ -140,18 +140,37 @@ void xmlencodeline(FILE* fp, const char* s, size_t len) {
 }
 
 void normalize_path(char* path) {
-	int i, j = 0;
-	int len = strlen(path);
+	char* src = path;
+	char* dst = path;
 
-	for (i = 0; i < len; i++) {
-		// Copy characters unless it's a double '/'
-		if (!(path[i] == '/' && path[i + 1] == '/')) {
-			path[j++] = path[i];
+	while (*src) {
+		// Handle "//" by skipping over it
+		if (src[0] == '/' && src[1] == '/') {
+			src++;
+			continue;
 		}
+		// Handle "/./" by skipping over it
+		if (src[0] == '/' && src[1] == '.' && src[2] == '/') {
+			src += 2;
+			continue;
+		}
+		// Handle "/../" by removing the last component
+		if (src[0] == '/' && src[1] == '.' && src[2] == '.' && src[3] == '/') {
+			// Backtrack to the previous directory in dst
+			if (dst != path) {
+				dst--;
+				while (dst > path && *dst != '/') {
+					dst--;
+				}
+			}
+			src += 3;
+			continue;
+		}
+		// Copy the current character to the destination
+		*dst++ = *src++;
 	}
-
-	// Null-terminate the string
-	path[j] = '\0';
+	// Null-terminate the result
+	*dst = '\0';
 }
 
 void repeat(char* dest, const char* source, int times) {

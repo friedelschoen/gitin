@@ -1,6 +1,7 @@
 #include "commit.h"
 #include "common.h"
 #include "config.h"
+#include "hprintf.h"
 #include "writer.h"
 
 #include <err.h>
@@ -9,11 +10,11 @@
 #include <unistd.h>
 
 
-static void writecommit(FILE* fp, const char* relpath, struct commitinfo* ci) {
-	fprintf(fp, "<b>commit</b> <a href=\"%scommit/%s.html\">%s</a>\n", relpath, ci->oid, ci->oid);
+static void writecommit(FILE* fp, int relpath, struct commitinfo* ci) {
+	hprintf(fp, "<b>commit</b> <a href=\"%rcommit/%s.html\">%s</a>\n", relpath, ci->oid, ci->oid);
 
 	if (ci->parentoid[0])
-		fprintf(fp, "<b>parent</b> <a href=\"%scommit/%s.html\">%s</a>\n", relpath, ci->parentoid, ci->parentoid);
+		hprintf(fp, "<b>parent</b> <a href=\"%rcommit/%s.html\">%s</a>\n", relpath, ci->parentoid, ci->parentoid);
 
 	if (ci->author) {
 		fputs("<b>Author:</b> ", fp);
@@ -34,7 +35,7 @@ static void writecommit(FILE* fp, const char* relpath, struct commitinfo* ci) {
 }
 
 
-static void writediff(FILE* fp, const char* relpath, struct commitinfo* ci) {
+static void writediff(FILE* fp, int relpath, struct commitinfo* ci) {
 	const git_diff_delta* delta;
 	const git_diff_hunk*  hunk;
 	const git_diff_line*  line;
@@ -122,11 +123,11 @@ static void writediff(FILE* fp, const char* relpath, struct commitinfo* ci) {
 	for (i = 0; i < ci->ndeltas; i++) {
 		patch = ci->deltas[i]->patch;
 		delta = git_patch_get_delta(patch);
-		fprintf(fp, "<b>diff --git a/<a id=\"h%zu\" href=\"%sfile/", i, relpath);
+		hprintf(fp, "<b>diff --git a/<a id=\"h%zu\" href=\"%rfile/", i, relpath);
 		percentencode(fp, delta->old_file.path);
 		fputs(".html\">", fp);
 		xmlencode(fp, delta->old_file.path);
-		fprintf(fp, "</a> b/<a href=\"%sfile/", relpath);
+		hprintf(fp, "</a> b/<a href=\"%rfile/", relpath);
 		percentencode(fp, delta->new_file.path);
 		fprintf(fp, ".html\">");
 		xmlencode(fp, delta->new_file.path);
@@ -165,13 +166,13 @@ static void writediff(FILE* fp, const char* relpath, struct commitinfo* ci) {
 	}
 }
 
-static void writelogline(FILE* fp, const char* relpath, struct commitinfo* ci) {
+static void writelogline(FILE* fp, int relpath, struct commitinfo* ci) {
 	fputs("<tr><td>", fp);
 	if (ci->author)
 		printtimeshort(fp, &(ci->author->when));
 	fputs("</td><td>", fp);
 	if (ci->summary) {
-		fprintf(fp, "<a href=\"%scommit/%s.html\">", relpath, ci->oid);
+		hprintf(fp, "<a href=\"%rcommit/%s.html\">", relpath, ci->oid);
 		xmlencode(fp, ci->summary);
 		fputs("</a>", fp);
 	}
@@ -225,21 +226,22 @@ int writelog(FILE* fp, const struct repoinfo* info, const git_oid* oid) {
 			goto err;
 
 		if (nlogcommits != 0) {
-			writelogline(fp, "../", ci);
+			writelogline(fp, 0, ci);
 			if (nlogcommits > 0)
 				nlogcommits--;
 		}
 
 		if (commitcache)
-			writelogline(info->wcachefp, "../", ci);
+			writelogline(info->wcachefp, 0, ci);
 
 		/* check if file exists if so skip it */
 		if (r) {
 			if (!(fpfile = fopen(path, "w")))
 				err(1, "fopen: '%s'", path);
-			writeheader(fpfile, info, "../", "", ci->summary, "");
+			fprintf(stderr, "%s\n", path);
+			writeheader(fpfile, info, 1, ci->summary, "");
 			fputs("<pre>", fpfile);
-			writediff(fpfile, "../", ci);
+			writediff(fpfile, 1, ci);
 			fputs("</pre>\n", fpfile);
 			writefooter(fpfile);
 			checkfileerror(fpfile, path, 'w');
