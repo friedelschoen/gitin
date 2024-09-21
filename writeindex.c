@@ -1,4 +1,5 @@
 #include "common.h"
+#include "hprintf.h"
 #include "writer.h"
 
 int writeindex(FILE* fp, const struct repoinfo* info) {
@@ -18,13 +19,10 @@ int writeindex(FILE* fp, const struct repoinfo* info) {
 
 	author = git_commit_author(commit);
 
-	fprintf(fp, "<tr><td><a href=\"%s/log.html\">", info->repodir);
-	xmlencode(fp, info->name);
-	fputs("</a></td><td>", fp);
-	xmlencode(fp, info->description);
-	fputs("</td><td>", fp);
+	hprintf(fp, "<tr><td><a href=\"%s/log.html\">%y</a></td><td>%y</td><td>", info->repodir, info->name,
+	        info->description);
 	if (author)
-		printtimeshort(fp, &(author->when));
+		hprintf(fp, "%t", &author->when);
 	fputs("</td></tr>", fp);
 
 	git_commit_free(commit);

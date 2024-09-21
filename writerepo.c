@@ -2,6 +2,7 @@
 #include "common.h"
 #include "compat.h"
 #include "config.h"
+#include "hprintf.h"
 #include "parseconfig.h"
 #include "writer.h"
 
@@ -44,14 +45,12 @@ static int writerefs(FILE* fp, const struct repoinfo* info) {
 		ci = ris[i].ci;
 		s  = git_reference_shorthand(ris[i].ref);
 
-		fputs("<tr><td>", fp);
-		xmlencode(fp, s);
+		hprintf(fp, "<tr><td>%y</td><td>", s);
+		if (ci->author)
+			hprintf(fp, "%t", &ci->author->when);
 		fputs("</td><td>", fp);
 		if (ci->author)
-			printtimeshort(fp, &(ci->author->when));
-		fputs("</td><td>", fp);
-		if (ci->author)
-			xmlencode(fp, ci->author->name);
+			hprintf(fp, "%y", ci->author->name);
 		fputs("</td></tr>\n", fp);
 	}
 	/* table footer */

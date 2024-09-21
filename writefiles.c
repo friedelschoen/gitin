@@ -193,10 +193,7 @@ static size_t writeblob(const struct repoinfo* info, int relpath, git_object* ob
 	fprintf(stderr, "%s\n", fpath);
 
 	writeheader(fp, info, relpath, filename, "");
-	fputs("<p> ", fp);
-	xmlencode(fp, filename);
-	hprintf(fp, " (%zuB) <a href='%rstatic%s'>download</a>", filesize, relpath, filepath);
-	fputs("</p><hr/>", fp);
+	hprintf(fp, "<p> %y (%zuB) <a href='%rstatic%s'>download</a></p><hr/>", filename, filesize, relpath, filepath);
 
 	if (git_blob_is_binary((git_blob*) obj))
 		fputs("<p>Binary file.</p>\n", fp);
@@ -285,11 +282,9 @@ static int writefilestree(FILE* fp, const struct repoinfo* info, int relpath, gi
 
 			writefile(obj, staticpath, filesize);
 
-			fputs("<tr><td>", fp);
-			fputs(filemode(git_tree_entry_filemode(entry)), fp);
-			hprintf(fp, "</td><td><a href=\"file%s.html\">", entrypath);
-			xmlencode(fp, entrypath);
-			fputs("</a></td><td class=\"num\" align=\"right\">", fp);
+			fprintf(fp, "<tr><td>%s</td>\n", filemode(git_tree_entry_filemode(entry)));
+			hprintf(fp, "<td><a href=\"file%s.html\">%y</a></td>", entrypath, entrypath);
+			fputs("<td class=\"num\" align=\"right\">", fp);
 			if (lc > 0)
 				fprintf(fp, "%zuL", lc);
 			else
@@ -298,12 +293,9 @@ static int writefilestree(FILE* fp, const struct repoinfo* info, int relpath, gi
 			git_object_free(obj);
 		} else if (git_tree_entry_type(entry) == GIT_OBJ_COMMIT) {
 			/* commit object in tree is a submodule */
-			hprintf(fp, "<tr><td>m---------</td><td><a href=\"%rfile/-gitmodules.html\">", relpath);
-			xmlencode(fp, entrypath);
-			fputs("</a> @ ", fp);
 			git_oid_tostr(oid, sizeof(oid), git_tree_entry_id(entry));
-			xmlencode(fp, oid);
-			fputs("</td><td class=\"num\" align=\"right\"></td></tr>\n", fp);
+			hprintf(fp, "<tr><td>m---------</td><td><a href=\"%rfile/-gitmodules.html\">%y</a>", relpath, entrypath);
+			hprintf(fp, " @ %y</td><td class=\"num\" align=\"right\"></td></tr>\n", oid);
 		}
 	}
 
