@@ -8,34 +8,41 @@
 
 #include <err.h>
 #include <limits.h>
+#include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
 
 
-static int writerefs(FILE* fp, const struct repoinfo* info) {
+static int writerefs(FILE* fp, const struct repoinfo* info, const git_oid* head) {
 	struct referenceinfo* ris = NULL;
 	struct commitinfo*    ci;
 	size_t                count, i, j, refcount;
 	const char*           titles[] = { "Branches", "Tags" };
 	const char*           ids[]    = { "branches", "tags" };
 	const char*           s;
+	int                   ishead;
 
 	if (getrefs(&ris, &refcount, info->repo) == -1)
 		return -1;
 
+	fprintf(fp, "<div id=\"refcontainer\">\n");
+
 	for (i = 0, j = 0, count = 0; i < refcount; i++) {
 		if (j == 0 && git_reference_is_tag(ris[i].ref)) {
 			if (count)
-				fputs("</tbody></table><br/>\n", fp);
+				fputs("</tbody></table></div>\n", fp);
 			count = 0;
 			j     = 1;
 		}
 
+
+		ishead = head && !git_oid_cmp(git_reference_target(ris[i].ref), head);
+
 		/* print header if it has an entry (first). */
 		if (++count == 1) {
 			fprintf(fp,
-			        "<h2>%s</h2><table id=\"%s\">"
-			        "<thead>\n<tr><td><b>Name</b></td>"
+			        "<div class=\"ref\"><h2>%s</h2><table id=\"%s\">"
+			        "<thead>\n<tr><td class=\"expand\"><b>Name</b></td>"
 			        "<td><b>Last commit date</b></td>"
 			        "<td><b>Author</b></td>\n</tr>\n"
 			        "</thead><tbody>\n",
@@ -45,7 +52,10 @@ static int writerefs(FILE* fp, const struct repoinfo* info) {
 		ci = ris[i].ci;
 		s  = git_reference_shorthand(ris[i].ref);
 
-		hprintf(fp, "<tr><td>%y</td><td>", s);
+		if (ishead)
+			hprintf(fp, "<tr><td><b>%y</b></td><td>", s);
+		else
+			hprintf(fp, "<tr><td>%y</td><td>", s);
 		if (ci->author)
 			hprintf(fp, "%t", &ci->author->when);
 		fputs("</td><td>", fp);
@@ -55,13 +65,15 @@ static int writerefs(FILE* fp, const struct repoinfo* info) {
 	}
 	/* table footer */
 	if (count)
-		fputs("</tbody></table><br/>\n", fp);
+		fputs("</tbody></table></div>\n", fp);
 
 	for (i = 0; i < refcount; i++) {
 		commitinfo_free(ris[i].ci);
 		git_reference_free(ris[i].ref);
 	}
 	free(ris);
+
+	fprintf(fp, "</div>\n");
 
 	return 0;
 }
@@ -88,7 +100,7 @@ void writerepo(FILE* index, const char* repodir) {
 	const git_oid* head = NULL;
 	mode_t         mask;
 	FILE*          fp;
-	char           path[PATH_MAX];
+	char           path[PATH_MAX], description[256];
 	char           tmppath[64] = "gitin-cache.XXXXXX", buf[BUFSIZ];
 	size_t         n;
 	int            i, fd;
@@ -161,7 +173,8 @@ void writerepo(FILE* index, const char* repodir) {
 	if (!(fp = fopen(path, "w")))
 		err(1, "fopen: '%s'", path);
 	fprintf(stderr, "%s\n", path);
-	writeheader(fp, &info, 0, "Files", "");
+	snprintf(description, sizeof(description), "Files of %s", info.name);
+	writeheader(fp, &info, 0, "Files", description);
 	if (head)
 		writefiles(fp, &info, head);
 	writefooter(fp);
@@ -175,9 +188,11 @@ void writerepo(FILE* index, const char* repodir) {
 	fprintf(stderr, "%s\n", path);
 	snprintf(path, sizeof(path), "%s/commit", info.destdir);
 	mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
-	writeheader(fp, &info, 0, "Log", "");
-	fputs("<table id=\"log\"><thead>\n<tr><td><b>Date</b></td>"
-	      "<td><b>Commit message</b></td>"
+	snprintf(description, sizeof(description), "Commits of %s", info.name);
+	writeheader(fp, &info, 0, "Log", description);
+	writerefs(fp, &info, head);
+	fputs("<h2>Commits</h2>\n<table id=\"log\"><thead>\n<tr><td><b>Date</b></td>"
+	      "<td class=\"expand\"><b>Commit message</b></td>"
 	      "<td><b>Author</b></td><td class=\"num\" align=\"right\"><b>Files</b></td>"
 	      "<td class=\"num\" align=\"right\"><b>+</b></td>"
 	      "<td class=\"num\" align=\"right\"><b>-</b></td></tr>\n</thead><tbody>\n",
@@ -228,16 +243,17 @@ void writerepo(FILE* index, const char* repodir) {
 	checkfileerror(fp, path, 'w');
 	fclose(fp);
 
-	/* summary page with branches and tags */
-	snprintf(path, sizeof(path), "%s/refs.html", info.destdir);
-	if (!(fp = fopen(path, "w")))
-		err(1, "fopen: '%s'", path);
-	fprintf(stderr, "%s\n", path);
-	writeheader(fp, &info, 0, "References", "");
-	writerefs(fp, &info);
-	writefooter(fp);
-	checkfileerror(fp, path, 'w');
-	fclose(fp);
+	// /* summary page with branches and tags */
+	// snprintf(path, sizeof(path), "%s/refs.html", info.destdir);
+	// if (!(fp = fopen(path, "w")))
+	// 	err(1, "fopen: '%s'", path);
+	// fprintf(stderr, "%s\n", path);
+	// snprintf(description, sizeof(description), "References and Branches of %s", info.name);
+	// writeheader(fp, &info, 0, "References", description);
+	// writerefs(fp, &info);
+	// writefooter(fp);
+	// checkfileerror(fp, path, 'w');
+	// fclose(fp);
 
 	/* rename new cache file on success */
 	if (commitcache && head) {

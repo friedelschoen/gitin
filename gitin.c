@@ -85,7 +85,7 @@ int main(int argc, char* argv[]) {
 
 	writeheader(index, NULL, 0, name, description);
 	fputs("<table id=\"index\"><thead>\n"
-	      "<tr><td><b>Name</b></td><td><b>Description</b></td><td><b>Last changes</b></td></tr>"
+	      "<tr><td><b>Name</b></td><td class=\"expand\"><b>Description</b></td><td><b>Last changes</b></td></tr>"
 	      "</thead><tbody>\n",
 	      index);
 
