@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 #define MAXPINS 8
-
+#define SUMMARY 5
 
 struct repoinfo {
 	git_repository* repo;

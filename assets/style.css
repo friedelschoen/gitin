@@ -105,6 +105,25 @@ pre a.d:hover {
 	text-decoration: none;
 }
 
+#footer {
+    padding: 1em;
+    text-align: center;
+    font-size: 0.9em;
+    color: #777;
+    border-top: 1px solid #555;
+    margin-top: 1em;
+}
+
+#footer i {
+    font-style: normal;
+    font-weight: bold;
+}
+
+#footer code {
+    font-family: monospace;
+    color: #333;
+} 
+
 @media (prefers-color-scheme: dark) {
 	body {
 		background-color: #000;
@@ -151,4 +170,13 @@ pre a.d:hover {
 	#files tr:hover td {
 		background-color: #111;
 	}
+
+	 #footer {
+        color: #999;
+        border-top: 1px solid #222;
+    }
+    #footer code {
+        color: #bdbdbd;
+    }
 }
+

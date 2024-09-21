@@ -324,7 +324,7 @@ int writefiles(FILE* fp, struct repoinfo* info, const git_oid* id) {
 	int         ret    = -1;
 
 	fputs("<table id=\"files\"><thead>\n<tr>"
-	      "<td><b>Mode</b></td><td><b>Name</b></td>"
+	      "<td><b>Mode</b></td><td class=\"expand\"><b>Name</b></td>"
 	      "<td class=\"num\" align=\"right\"><b>Size</b></td>"
 	      "</tr>\n</thead><tbody>\n",
 	      fp);

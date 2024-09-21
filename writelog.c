@@ -42,6 +42,7 @@ static void writediff(FILE* fp, const struct repoinfo* info, int relpath, struct
 	char                  linestr[80];
 	int                   c;
 
+
 	writecommit(fp, relpath, ci);
 
 	if (!ci->deltas)
@@ -102,7 +103,7 @@ static void writediff(FILE* fp, const struct repoinfo* info, int relpath, struct
 		memset(&linestr, '+', add);
 		memset(&linestr[add], '-', del);
 
-		fprintf(fp, "</a></td><td> | </td><td class=\"num\">%zu</td><td><span class=\"i\">",
+		fprintf(fp, "</a></td><td class=\"num\">%zu</td><td class=\"expand\"><span class=\"i\">",
 		        ci->deltas[i]->addcount + ci->deltas[i]->delcount);
 		fwrite(&linestr, 1, add, fp);
 		fputs("</span><span class=\"d\">", fp);
@@ -126,9 +127,10 @@ static void writediff(FILE* fp, const struct repoinfo* info, int relpath, struct
 			hprintf(fp, "<b>diff --git a/%y ", delta->old_file.path);
 
 		if (hasheadfile(info, delta->new_file.path))
-			hprintf(fp, "b/<a href=\"%rfile/%h.html\">%y</a></b>", relpath, delta->new_file.path, delta->new_file.path);
+			hprintf(fp, "b/<a href=\"%rfile/%h.html\">%y</a></b>\n", relpath, delta->new_file.path,
+			        delta->new_file.path);
 		else
-			hprintf(fp, "b/%y</b>", delta->new_file.path);
+			hprintf(fp, "b/%y</b>\n", delta->new_file.path);
 
 		/* check binary data */
 		if (delta->flags & GIT_DIFF_FLAG_BINARY) {

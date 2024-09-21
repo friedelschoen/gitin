@@ -13,15 +13,15 @@ void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char*
 	hprintf(fp, "<link rel=\"icon\" type=\"%s\" href=\"%r%s\" />\n", favicontype, indexrelpath, favicon);
 	hprintf(fp, "<link rel=\"stylesheet\" type=\"text/css\" href=\"%r%s\" />\n", indexrelpath, stylesheet);
 	fputs("</head>\n<body>\n<table><tr><td>", fp);
-	hprintf(fp, "<a href=\"%r\"><img src=\"%r%s\" alt=\"\" width=\"32\" height=\"32\" /></a>", indexrelpath,
+	hprintf(fp, "<a href=\"%r\"><img src=\"%r%s\" alt=\"\" width=\"100\" height=\"100\" /></a>", indexrelpath,
 	        indexrelpath, logoicon);
-	hprintf(fp, "</td><td><h1>%y</h1>\n<span class=\"desc\">%y</span>", name, description);
+	hprintf(fp, "</td><td class=\"expand\"><h1>%y</h1>\n<span class=\"desc\">%y</span>", name, description);
 	fputs("</td></tr>", fp);
 	if (info && *info->cloneurl) {
-		hprintf(fp, "<tr class=\"url\"><td></td><td>git clone <a href=\"%s\">%y</a></td></tr>", info->cloneurl,
-		        info->cloneurl);
+		hprintf(fp, "<tr class=\"url\"><td></td><td class=\"expand\">git clone <a href=\"%s\">%y</a></td></tr>",
+		        info->cloneurl, info->cloneurl);
 	}
-	fputs("<tr><td></td><td>\n", fp);
+	fputs("<tr><td></td><td class=\"expand\">\n", fp);
 	if (info) {
 		hprintf(fp, "<a href=\"%rlog.html\">Log</a> | ", relpath);
 		hprintf(fp, "<a href=\"%rfiles.html\">Files</a> | ", relpath);
