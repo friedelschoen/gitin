@@ -16,15 +16,11 @@ void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char*
 	fputs("</head>\n<body>\n<table><tr><td>", fp);
 	hprintf(fp, "<a href=\"%r\"><img src=\"%r%s\" alt=\"\" width=\"32\" height=\"32\" /></a>", indexrelpath,
 	        indexrelpath, logoicon);
-	fputs("</td><td><h1>", fp);
-	xmlencode(fp, name);
-	fputs("</h1><span class=\"desc\">", fp);
-	xmlencode(fp, description);
-	fputs("</span></td></tr>", fp);
+	hprintf(fp, "</td><td><h1>%y</h1>\n<span class=\"desc\">%y</span>", name, description);
+	fputs("</td></tr>", fp);
 	if (info && *info->cloneurl) {
-		fprintf(fp, "<tr class=\"url\"><td></td><td>git clone <a href=\"%s\">", info->cloneurl);
-		xmlencode(fp, info->cloneurl);
-		fputs("</a></td></tr>", fp);
+		hprintf(fp, "<tr class=\"url\"><td></td><td>git clone <a href=\"%s\">%y</a></td></tr>", info->cloneurl,
+		        info->cloneurl);
 	}
 	fputs("<tr><td></td><td>\n", fp);
 	if (info) {

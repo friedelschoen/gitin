@@ -16,22 +16,12 @@ static void writecommit(FILE* fp, int relpath, struct commitinfo* ci) {
 	if (ci->parentoid[0])
 		hprintf(fp, "<b>parent</b> <a href=\"%rcommit/%s.html\">%s</a>\n", relpath, ci->parentoid, ci->parentoid);
 
-	if (ci->author) {
-		fputs("<b>Author:</b> ", fp);
-		xmlencode(fp, ci->author->name);
-		fputs(" &lt;<a href=\"mailto:", fp);
-		xmlencode(fp, ci->author->email); /* not percent-encoded */
-		fputs("\">", fp);
-		xmlencode(fp, ci->author->email);
-		fputs("</a>&gt;\n<b>Date:</b>   ", fp);
-		printtime(fp, &(ci->author->when));
-		putc('\n', fp);
-	}
-	if (ci->msg) {
-		putc('\n', fp);
-		xmlencode(fp, ci->msg);
-		putc('\n', fp);
-	}
+	if (ci->author)
+		hprintf(fp, "<b>Author:</b> %y &lt;<a href=\"mailto:%y\">%y</a>&gt;\n<b>Date:</b>   %T\n", ci->author->name,
+		        ci->author->email, ci->author->email, &ci->author->when);
+
+	if (ci->msg)
+		hprintf(fp, "\n%y\n", ci->msg);
 }
 
 
@@ -87,12 +77,9 @@ static void writediff(FILE* fp, int relpath, struct commitinfo* ci) {
 		else
 			fprintf(fp, "<tr><td class=\"%c\">%c", c, c);
 
-		fprintf(fp, "</td><td><a href=\"#h%zu\">", i);
-		xmlencode(fp, delta->old_file.path);
-		if (strcmp(delta->old_file.path, delta->new_file.path)) {
-			fputs(" -&gt; ", fp);
-			xmlencode(fp, delta->new_file.path);
-		}
+		hprintf(fp, "</td><td><a href=\"#h%zu\">%y", i, delta->old_file.path);
+		if (strcmp(delta->old_file.path, delta->new_file.path))
+			hprintf(fp, " -&gt; \n%y", delta->new_file.path);
 
 		add     = ci->deltas[i]->addcount;
 		del     = ci->deltas[i]->delcount;
@@ -123,15 +110,9 @@ static void writediff(FILE* fp, int relpath, struct commitinfo* ci) {
 	for (i = 0; i < ci->ndeltas; i++) {
 		patch = ci->deltas[i]->patch;
 		delta = git_patch_get_delta(patch);
-		hprintf(fp, "<b>diff --git a/<a id=\"h%zu\" href=\"%rfile/", i, relpath);
-		percentencode(fp, delta->old_file.path);
-		fputs(".html\">", fp);
-		xmlencode(fp, delta->old_file.path);
-		hprintf(fp, "</a> b/<a href=\"%rfile/", relpath);
-		percentencode(fp, delta->new_file.path);
-		fprintf(fp, ".html\">");
-		xmlencode(fp, delta->new_file.path);
-		fprintf(fp, "</a></b>\n");
+		hprintf(fp, "<b>diff --git a/<a id=\"h%zu\" href=\"%rfile/%Y.html\">%y</a> ", i, relpath, delta->old_file.path,
+		        delta->old_file.path);
+		hprintf(fp, "b/<a href=\"%rfile/%Y.html\">%y</a></b>", relpath, delta->new_file.path, delta->new_file.path);
 
 		/* check binary data */
 		if (delta->flags & GIT_DIFF_FLAG_BINARY) {
@@ -144,9 +125,7 @@ static void writediff(FILE* fp, int relpath, struct commitinfo* ci) {
 			if (git_patch_get_hunk(&hunk, &nhunklines, patch, j))
 				break;
 
-			fprintf(fp, "<a href=\"#h%zu-%zu\" id=\"h%zu-%zu\" class=\"h\">", i, j, i, j);
-			xmlencode(fp, hunk->header);
-			fputs("</a>", fp);
+			hprintf(fp, "<a href=\"#h%zu-%zu\" id=\"h%zu-%zu\" class=\"h\">%y</a>\n", i, j, i, j, hunk->header);
 
 			for (k = 0;; k++) {
 				if (git_patch_get_line_in_hunk(&line, patch, j, k))
@@ -169,16 +148,14 @@ static void writediff(FILE* fp, int relpath, struct commitinfo* ci) {
 static void writelogline(FILE* fp, int relpath, struct commitinfo* ci) {
 	fputs("<tr><td>", fp);
 	if (ci->author)
-		printtimeshort(fp, &(ci->author->when));
+		hprintf(fp, "%t", &ci->author->when);
 	fputs("</td><td>", fp);
 	if (ci->summary) {
-		hprintf(fp, "<a href=\"%rcommit/%s.html\">", relpath, ci->oid);
-		xmlencode(fp, ci->summary);
-		fputs("</a>", fp);
+		hprintf(fp, "<a href=\"%rcommit/%s.html\">%y</a>", relpath, ci->oid, ci->summary);
 	}
 	fputs("</td><td>", fp);
 	if (ci->author)
-		xmlencode(fp, ci->author->name);
+		hprintf(fp, "%y", ci->author->name);
 	fputs("</td><td class=\"num\" align=\"right\">", fp);
 	fprintf(fp, "%zu", ci->filecount);
 	fputs("</td><td class=\"num\" align=\"right\">", fp);

@@ -1,5 +1,6 @@
-#include "common.h"
 #include "hprintf.h"
+
+#include "common.h"
 
 #include <assert.h>
 #include <stdarg.h>
@@ -8,7 +9,80 @@
 
 #define RELPATHMAX 50
 
-// Custom function similar to fprintf with %r and %h specifiers, manually handling %s, %d, %zd, %u, %zu, %c
+
+static void printtime(FILE* fp, const git_time* intime) {
+	struct tm* intm;
+	time_t     t;
+	char       out[32];
+
+	t = (time_t) intime->time + (intime->offset * 60);
+	if (!(intm = gmtime(&t)))
+		return;
+	strftime(out, sizeof(out), "%a, %e %b %Y %H:%M:%S", intm);
+	if (intime->offset < 0)
+		fprintf(fp, "%s -%02d%02d", out, -(intime->offset) / 60, -(intime->offset) % 60);
+	else
+		fprintf(fp, "%s +%02d%02d", out, intime->offset / 60, intime->offset % 60);
+}
+
+static void printtimeshort(FILE* fp, const git_time* intime) {
+	struct tm* intm;
+	time_t     t;
+	char       out[32];
+
+	t = (time_t) intime->time;
+	if (!(intm = gmtime(&t)))
+		return;
+	strftime(out, sizeof(out), "%Y-%m-%d %H:%M", intm);
+	fputs(out, fp);
+}
+
+/* Percent-encode, see RFC3986 section 2.1. */
+static void percentencode(FILE* fp, const char* s) {
+	static char   tab[] = "0123456789ABCDEF";
+	unsigned char uc;
+
+	while (*s) {
+		uc = *s;
+		/* NOTE: do not encode '/' for paths or ",-." */
+		if (uc < ',' || uc >= 127 || (uc >= ':' && uc <= '@') || uc == '[' || uc == ']') {
+			putc('%', fp);
+			putc(tab[(uc >> 4) & 0x0f], fp);
+			putc(tab[uc & 0x0f], fp);
+		} else {
+			putc(uc, fp);
+		}
+		s++;
+	}
+}
+
+/* Escape characters below as HTML 2.0 / XML 1.0. */
+static void xmlencode(FILE* fp, const char* s) {
+	while (*s) {
+		switch (*s) {
+			case '<':
+				fputs("&lt;", fp);
+				break;
+			case '>':
+				fputs("&gt;", fp);
+				break;
+			case '\'':
+				fputs("&#39;", fp);
+				break;
+			case '&':
+				fputs("&amp;", fp);
+				break;
+			case '"':
+				fputs("&quot;", fp);
+				break;
+			default:
+				putc(*s, fp);
+		}
+		s++;
+	}
+}
+
+// Custom function similar to fprintf with %r and %h specifiers
 void hprintf(FILE* file, const char* format, ...) {
 	va_list args;
 	va_start(args, format);
@@ -37,7 +111,16 @@ void hprintf(FILE* file, const char* format, ...) {
 			// Handle %y for xmlencoding
 			const char* path = va_arg(args, const char*);
 			xmlencode(file, path);
-
+		} else if (*p == 'Y') {
+			// Handle %Y for percentencode
+			const char* path = va_arg(args, const char*);
+			percentencode(file, path);
+		} else if (*p == 'T') {
+			const git_time* time = va_arg(args, const git_time*);
+			printtime(file, time);
+		} else if (*p == 't') {
+			const git_time* time = va_arg(args, const git_time*);
+			printtimeshort(file, time);
 
 		} else if (strncmp(p, "zd", 2) == 0) {
 			// Handle %zd for signed size_t (use PRIdPTR from inttypes.h)
