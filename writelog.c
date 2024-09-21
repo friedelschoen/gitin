@@ -24,8 +24,16 @@ static void writecommit(FILE* fp, int relpath, struct commitinfo* ci) {
 		hprintf(fp, "\n%y\n", ci->msg);
 }
 
+static int hasheadfile(const struct repoinfo* info, const char* filename) {
+	for (int i = 0; i < info->headfileslen; i++) {
+		if (strcmp(info->headfiles[i], filename) == 0) {
+			return 1;
+		}
+	}
+	return 0;
+}
 
-static void writediff(FILE* fp, int relpath, struct commitinfo* ci) {
+static void writediff(FILE* fp, const struct repoinfo* info, int relpath, struct commitinfo* ci) {
 	const git_diff_delta* delta;
 	const git_diff_hunk*  hunk;
 	const git_diff_line*  line;
@@ -110,9 +118,17 @@ static void writediff(FILE* fp, int relpath, struct commitinfo* ci) {
 	for (i = 0; i < ci->ndeltas; i++) {
 		patch = ci->deltas[i]->patch;
 		delta = git_patch_get_delta(patch);
-		hprintf(fp, "<b>diff --git a/<a id=\"h%zu\" href=\"%rfile/%Y.html\">%y</a> ", i, relpath, delta->old_file.path,
-		        delta->old_file.path);
-		hprintf(fp, "b/<a href=\"%rfile/%Y.html\">%y</a></b>", relpath, delta->new_file.path, delta->new_file.path);
+
+		if (hasheadfile(info, delta->old_file.path))
+			hprintf(fp, "<b>diff --git a/<a id=\"h%zu\" href=\"%rfile/%h.html\">%y</a> ", i, relpath,
+			        delta->old_file.path, delta->old_file.path);
+		else
+			hprintf(fp, "<b>diff --git a/%y ", delta->old_file.path);
+
+		if (hasheadfile(info, delta->new_file.path))
+			hprintf(fp, "b/<a href=\"%rfile/%h.html\">%y</a></b>", relpath, delta->new_file.path, delta->new_file.path);
+		else
+			hprintf(fp, "b/%y</b>", delta->new_file.path);
 
 		/* check binary data */
 		if (delta->flags & GIT_DIFF_FLAG_BINARY) {
@@ -218,7 +234,7 @@ int writelog(FILE* fp, const struct repoinfo* info, const git_oid* oid) {
 			fprintf(stderr, "%s\n", path);
 			writeheader(fpfile, info, 1, ci->summary, "");
 			fputs("<pre>", fpfile);
-			writediff(fpfile, 1, ci);
+			writediff(fpfile, info, 1, ci);
 			fputs("</pre>\n", fpfile);
 			writefooter(fpfile);
 			checkfileerror(fpfile, path, 'w');

@@ -16,13 +16,6 @@
 #define MURMUR_SEED 0xCAFE5EED    // cafeseed
 
 
-static void unhide_path(char* path) {
-	for (char* chr = path; *chr; chr++) {
-		if (*chr == '.' && (chr == path || chr[-1] == '/') && chr[1] != '/')
-			*chr = '-';
-	}
-}
-
 static const char* filemode(git_filemode_t m) {
 	static char mode[11];
 
@@ -97,6 +90,11 @@ static ssize_t writeblobhtml(FILE* fp, const git_blob* blob, const char* filenam
 	if (len == 0)
 		return 0;
 
+	if (maxfilesize != -1 && len >= maxfilesize) {
+		fputs("<p>File too big.</p>\n", fp);
+		return 0;
+	}
+
 	if (!highlighthash)
 		highlighthash = murmurhash3(highlightcmd, strlen(highlightcmd), MURMUR_SEED);
 
@@ -149,6 +147,7 @@ static ssize_t writeblobhtml(FILE* fp, const git_blob* blob, const char* filenam
 	if (write(outpipefd.write, s, len) == -1) {
 		perror("write(highlight)");
 		exit(1);
+		goto wait;
 	}
 
 	close(outpipefd.write);
@@ -168,6 +167,7 @@ static ssize_t writeblobhtml(FILE* fp, const git_blob* blob, const char* filenam
 	if (cache)
 		fclose(cache);
 
+wait:
 	waitpid(process, &status, 0);
 
 	return WEXITSTATUS(status) ? -1 : n;
@@ -233,33 +233,39 @@ static void writefile(git_object* obj, const char* fpath, size_t filesize) {
 	fclose(fp);
 }
 
+static void addheadfile(struct repoinfo* info, const char* filename) {
+	// Reallocate more space if needed
+	if (info->headfileslen >= info->headfilesalloc) {
+		int    new_alloc = info->headfilesalloc == 0 ? 4 : info->headfilesalloc * 2;
+		char** temp      = realloc(info->headfiles, new_alloc * sizeof(char*));
+		if (temp == NULL) {
+			perror("Failed to realloc");
+			return;
+		}
+		info->headfiles      = temp;
+		info->headfilesalloc = new_alloc;
+	}
 
-static int writefilestree(FILE* fp, const struct repoinfo* info, int relpath, git_tree* tree, const char* path) {
+	// Copy the string and store it in the list
+	if ((info->headfiles[info->headfileslen++] = strdup(filename)) == NULL) {
+		perror("Failed to strdup");
+		exit(1);
+	}
+}
+
+static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree* tree, const char* path) {
 	const git_tree_entry* entry = NULL;
 	git_object*           obj   = NULL;
 	const char*           entryname;
 	char                  filepath[PATH_MAX], entrypath[PATH_MAX], staticpath[PATH_MAX], oid[8];
 	size_t                count, i, lc, filesize;
-	int                   r, ret;
+	int                   ret;
 
 	count = git_tree_entrycount(tree);
 	for (i = 0; i < count; i++) {
 		if (!(entry = git_tree_entry_byindex(tree, i)) || !(entryname = git_tree_entry_name(entry)))
 			return -1;
 		snprintf(entrypath, sizeof(entrypath), "%s/%s", path, entryname);
-
-		r = snprintf(filepath, sizeof(filepath), "%s/file/%s.html", info->destdir, entrypath);
-		if (r < 0 || (size_t) r >= sizeof(filepath))
-			errx(1, "path truncated: '%s/file/%s.html'", info->destdir, entrypath);
-
-		r = snprintf(staticpath, sizeof(staticpath), "%s/static/%s", info->destdir, entrypath);
-		if (r < 0 || (size_t) r >= sizeof(staticpath))
-			errx(1, "path truncated: '%s/static/%s'", info->destdir, entrypath);
-
-		normalize_path(filepath);
-		normalize_path(staticpath);
-		unhide_path(filepath);
-		unhide_path(staticpath);
 
 		if (!git_tree_entry_to_object(&obj, info->repo, entry)) {
 			switch (git_object_type(obj)) {
@@ -277,13 +283,23 @@ static int writefilestree(FILE* fp, const struct repoinfo* info, int relpath, gi
 					continue;
 			}
 
+			addheadfile(info, entrypath + 1);    // +1 to remove leading slash
+
+			(void) snprintf(filepath, sizeof(filepath), "%s/file/%s.html", info->destdir, entrypath);
+			(void) snprintf(staticpath, sizeof(staticpath), "%s/static/%s", info->destdir, entrypath);
+
+			normalize_path(filepath);
+			normalize_path(staticpath);
+			unhide_path(filepath);
+			unhide_path(staticpath);
+
 			filesize = git_blob_rawsize((git_blob*) obj);
 			lc       = writeblob(info, relpath, obj, filepath, entryname, entrypath, filesize);
 
 			writefile(obj, staticpath, filesize);
 
 			fprintf(fp, "<tr><td>%s</td>\n", filemode(git_tree_entry_filemode(entry)));
-			hprintf(fp, "<td><a href=\"file%s.html\">%y</a></td>", entrypath, entrypath);
+			hprintf(fp, "<td><a href=\"file%h.html\">%y</a></td>", entrypath, entrypath + 1);
 			fputs("<td class=\"num\" align=\"right\">", fp);
 			if (lc > 0)
 				fprintf(fp, "%zuL", lc);
@@ -294,7 +310,7 @@ static int writefilestree(FILE* fp, const struct repoinfo* info, int relpath, gi
 		} else if (git_tree_entry_type(entry) == GIT_OBJ_COMMIT) {
 			/* commit object in tree is a submodule */
 			git_oid_tostr(oid, sizeof(oid), git_tree_entry_id(entry));
-			hprintf(fp, "<tr><td>m---------</td><td><a href=\"%rfile/-gitmodules.html\">%y</a>", relpath, entrypath);
+			hprintf(fp, "<tr><td>m---------</td><td><a href=\"file/-gitmodules.html\">%y</a>", entrypath);
 			hprintf(fp, " @ %y</td><td class=\"num\" align=\"right\"></td></tr>\n", oid);
 		}
 	}
@@ -302,7 +318,7 @@ static int writefilestree(FILE* fp, const struct repoinfo* info, int relpath, gi
 	return 0;
 }
 
-int writefiles(FILE* fp, const struct repoinfo* info, const git_oid* id) {
+int writefiles(FILE* fp, struct repoinfo* info, const git_oid* id) {
 	git_tree*   tree   = NULL;
 	git_commit* commit = NULL;
 	int         ret    = -1;

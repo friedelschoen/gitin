@@ -21,8 +21,10 @@ const char* highlightcmd = "chroma --html --html-only --html-inline-styles --sty
 /* name of cache directory for highlighting */
 const char* highlightcache = ".gitin/files";
 
+long long maxfilesize = 1e+6;    // 1MB
+
 /* name of cache directory for commit */
-const char* commitcache = ".gitincommits";
+const char* commitcache = NULL;    //".gitincommits";
 
 const char* sitename = "My Repositories";
 

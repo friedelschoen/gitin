@@ -14,3 +14,4 @@ extern long long   nlogcommits;
 extern const char* sitename;
 extern const char* footertext;
 extern const char* configfile;
+extern long long   maxfilesize;

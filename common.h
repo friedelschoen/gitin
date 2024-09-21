@@ -20,3 +20,4 @@ int  mkdirp(const char* path);
 void xmlencodeline(FILE* fp, const char* s, size_t len);
 
 void normalize_path(char* path);
+void unhide_path(char* path);
