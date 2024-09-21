@@ -105,7 +105,7 @@ void hprintf(FILE* file, const char* format, ...) {
 			const char* path = va_arg(args, const char*);
 			char        dest[strlen(path) + 1];
 			strcpy(dest, path);
-			normalize_path(dest);
+			unhide_path(dest);
 			fprintf(file, "%s", dest);
 		} else if (*p == 'y') {
 			// Handle %y for xmlencoding

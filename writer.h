@@ -14,14 +14,17 @@ struct repoinfo {
 	int         relpath;
 
 	char name[100];
+	char description[255];
+	char cloneurl[255];
 
 	const char* submodules;
 
 	const char* pinfiles[MAXPINS];
 	int         pinfileslen;
 
-	char description[255];
-	char cloneurl[255];
+	char** headfiles;
+	int    headfileslen;
+	int    headfilesalloc;
 
 	/* cache */
 	git_oid lastoid;
@@ -30,7 +33,7 @@ struct repoinfo {
 };
 
 void writefooter(FILE* fp);
-int  writefiles(FILE* fp, const struct repoinfo* info, const git_oid* id);
+int  writefiles(FILE* fp, struct repoinfo* info, const git_oid* id);
 int  writeindex(FILE* fp, const struct repoinfo* info);
 int  writelog(FILE* fp, const struct repoinfo* info, const git_oid* oid);
 void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char* name, const char* description);

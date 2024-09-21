@@ -66,6 +66,21 @@ static int writerefs(FILE* fp, const struct repoinfo* info) {
 	return 0;
 }
 
+void freeheadfiles(struct repoinfo* info) {
+	if (info->headfiles != NULL) {
+		// Free each string in the list
+		for (int i = 0; i < info->headfileslen; i++) {
+			free(info->headfiles[i]);
+		}
+		// Free the list itself
+		free(info->headfiles);
+		info->headfiles = NULL;
+	}
+
+	info->headfileslen   = 0;
+	info->headfilesalloc = 0;
+}
+
 void writerepo(FILE* index, const char* repodir) {
 	struct repoinfo info;
 
@@ -141,6 +156,18 @@ void writerepo(FILE* index, const char* repodir) {
 		info.submodules = ".gitmodules";
 	git_object_free(obj);
 
+	/* files for HEAD, it must be before writelog, as it also populates headfiles! */
+	snprintf(path, sizeof(path), "%s/files.html", info.destdir);
+	if (!(fp = fopen(path, "w")))
+		err(1, "fopen: '%s'", path);
+	fprintf(stderr, "%s\n", path);
+	writeheader(fp, &info, 0, "Files", "");
+	if (head)
+		writefiles(fp, &info, head);
+	writefooter(fp);
+	checkfileerror(fp, path, 'w');
+	fclose(fp);
+
 	/* log for HEAD */
 	snprintf(path, sizeof(path), "%s/log.html", info.destdir);
 	if (!(fp = fopen(path, "w")))
@@ -201,18 +228,6 @@ void writerepo(FILE* index, const char* repodir) {
 	checkfileerror(fp, path, 'w');
 	fclose(fp);
 
-	/* files for HEAD */
-	snprintf(path, sizeof(path), "%s/files.html", info.destdir);
-	if (!(fp = fopen(path, "w")))
-		err(1, "fopen: '%s'", path);
-	fprintf(stderr, "%s\n", path);
-	writeheader(fp, &info, 0, "Files", "");
-	if (head)
-		writefiles(fp, &info, head);
-	writefooter(fp);
-	checkfileerror(fp, path, 'w');
-	fclose(fp);
-
 	/* summary page with branches and tags */
 	snprintf(path, sizeof(path), "%s/refs.html", info.destdir);
 	if (!(fp = fopen(path, "w")))
@@ -238,4 +253,5 @@ void writerepo(FILE* index, const char* repodir) {
 
 	/* cleanup */
 	git_repository_free(info.repo);
+	freeheadfiles(&info);
 }
