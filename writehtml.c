@@ -18,14 +18,15 @@ void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char*
 	hprintf(fp, "</td><td class=\"expand\"><h1>%y</h1>\n<span class=\"desc\">%y</span>", name, description);
 	fputs("</td></tr>", fp);
 	if (info && *info->cloneurl) {
-		hprintf(fp, "<tr class=\"url\"><td></td><td class=\"expand\">git clone <a href=\"%s\">%y</a></td></tr>",
-		        info->cloneurl, info->cloneurl);
+		hprintf(
+		    fp,
+		    "<tr class=\"url\"><td></td><td class=\"expand\"><code>git clone <a href=\"%s\">%y</a></code></td></tr>",
+		    info->cloneurl, info->cloneurl);
 	}
 	fputs("<tr><td></td><td class=\"expand\">\n", fp);
 	if (info) {
-		hprintf(fp, "<a href=\"%rlog.html\">Log</a> | ", relpath);
-		hprintf(fp, "<a href=\"%rfiles.html\">Files</a> | ", relpath);
-		hprintf(fp, "<a href=\"%rrefs.html\">Refs</a>", relpath);
+		hprintf(fp, "<a href=\"%rindex.html\">Log</a>", relpath);
+		hprintf(fp, " | <a href=\"%rfiles.html\">Files</a> ", relpath);
 		if (info->submodules)
 			hprintf(fp, " | <a href=\"%rfile/%s.html\">Submodules</a>", relpath, info->submodules);
 		for (int i = 0; i < info->pinfileslen; i++)

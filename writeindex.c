@@ -18,7 +18,7 @@ int writeindex(FILE* fp, const struct repoinfo* info) {
 
 	author = git_commit_author(commit);
 
-	hprintf(fp, "<tr><td><a href=\"%s/log.html\">%y</a></td><td>%y</td><td>", info->repodir, info->name,
+	hprintf(fp, "<tr><td><a href=\"%s/index.html\">%y</a></td><td>%y</td><td>", info->repodir, info->name,
 	        info->description);
 	if (author)
 		hprintf(fp, "%t", &author->when);
