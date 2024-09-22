@@ -3,6 +3,7 @@
 #include "compat.h"
 #include "config.h"
 #include "hprintf.h"
+#include "makearchive.h"
 #include "parseconfig.h"
 #include "writer.h"
 
@@ -35,7 +36,7 @@ static int writerefs(FILE* fp, const struct repoinfo* info, const git_oid* head)
 			j     = 1;
 		}
 
-
+		makearchive(info, ris[i].ref);
 		ishead = head && !git_oid_cmp(git_reference_target(ris[i].ref), head);
 
 		/* print header if it has an entry (first). */
@@ -52,10 +53,12 @@ static int writerefs(FILE* fp, const struct repoinfo* info, const git_oid* head)
 		ci = ris[i].ci;
 		s  = git_reference_shorthand(ris[i].ref);
 
+		hprintf(fp, "<tr><td><a href=\"archive/%s.tar.gz\">", s);
 		if (ishead)
-			hprintf(fp, "<tr><td><b>%y</b></td><td>", s);
+			hprintf(fp, "<b>%y</b>", s);
 		else
-			hprintf(fp, "<tr><td>%y</td><td>", s);
+			hprintf(fp, "%y", s);
+		hprintf(fp, "</a></td><td>", s);
 		if (ci->author)
 			hprintf(fp, "%t", &ci->author->when);
 		fputs("</td><td>", fp);

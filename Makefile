@@ -5,12 +5,12 @@ VERSION = 0.1
 PREFIX = /usr/local
 
 # library flags
-LIBS = libgit2
+LIBS = libgit2 libarchive
 
 # use system flags.
 CC ?= gcc
-CFLAGS := -Wall -Wextra -Wpedantic -Werror -O2 -g -D_XOPEN_SOURCE=700 $(shell pkg-config --cflags $(LIBS)) #-fsanitize=address
-LDFLAGS := $(shell pkg-config --libs $(LIBS)) #-fsanitize=address
+CFLAGS := -Wall -Wextra -Wpedantic -Werror -O2 -g -D_XOPEN_SOURCE=700 $(shell pkg-config --cflags $(LIBS))
+LDFLAGS := $(shell pkg-config --libs $(LIBS))
 
 BIN = ${NAME}
 
@@ -28,6 +28,7 @@ HEADER = \
 	compat.h \
 	config.h \
 	hprintf.h \
+	makearchive.h \
 	murmur3.h \
 	parseconfig.h \
 	writer.h
@@ -39,6 +40,7 @@ OBJECTS = \
 	config.o \
 	gitin.o \
 	hprintf.o \
+	makearchive.o \
 	murmur3.o \
 	parseconfig.o \
 	writefiles.o \
