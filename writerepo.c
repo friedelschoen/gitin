@@ -182,14 +182,14 @@ void writerepo(FILE* index, const char* repodir) {
 	fclose(fp);
 
 	/* log for HEAD */
-	snprintf(path, sizeof(path), "%s/log.html", info.destdir);
+	snprintf(path, sizeof(path), "%s/index.html", info.destdir);
 	if (!(fp = fopen(path, "w")))
 		err(1, "fopen: '%s'", path);
 	fprintf(stderr, "%s\n", path);
 	snprintf(path, sizeof(path), "%s/commit", info.destdir);
 	mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
 	snprintf(description, sizeof(description), "Commits of %s", info.name);
-	writeheader(fp, &info, 0, "Log", description);
+	writeheader(fp, &info, 0, info.name, description);
 	writerefs(fp, &info, head);
 	fputs("<h2>Commits</h2>\n<table id=\"log\"><thead>\n<tr><td><b>Date</b></td>"
 	      "<td class=\"expand\"><b>Commit message</b></td>"
@@ -219,7 +219,7 @@ void writerepo(FILE* index, const char* repodir) {
 		writelog(fp, &info, head);
 
 		if (info.rcachefp) {
-			/* append previous log to log.html and the new cache */
+			/* append previous log to index.html and the new cache */
 			while (!feof(info.rcachefp)) {
 				n = fread(buf, 1, sizeof(buf), info.rcachefp);
 				if (ferror(info.rcachefp))
@@ -239,21 +239,9 @@ void writerepo(FILE* index, const char* repodir) {
 
 	fputs("</tbody></table>", fp);
 	writefooter(fp);
-	snprintf(path, sizeof(path), "%s/log.html", info.destdir);
+	snprintf(path, sizeof(path), "%s/index.html", info.destdir);
 	checkfileerror(fp, path, 'w');
 	fclose(fp);
-
-	// /* summary page with branches and tags */
-	// snprintf(path, sizeof(path), "%s/refs.html", info.destdir);
-	// if (!(fp = fopen(path, "w")))
-	// 	err(1, "fopen: '%s'", path);
-	// fprintf(stderr, "%s\n", path);
-	// snprintf(description, sizeof(description), "References and Branches of %s", info.name);
-	// writeheader(fp, &info, 0, "References", description);
-	// writerefs(fp, &info);
-	// writefooter(fp);
-	// checkfileerror(fp, path, 'w');
-	// fclose(fp);
 
 	/* rename new cache file on success */
 	if (commitcache && head) {

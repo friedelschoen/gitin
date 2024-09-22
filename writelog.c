@@ -216,7 +216,7 @@ int writelog(FILE* fp, const struct repoinfo* info, const git_oid* oid) {
 
 		if (!(ci = commitinfo_getbyoid(&id, info->repo)))
 			break;
-		/* diffstat: for gitin HTML required for the log.html line */
+		/* diffstat: for gitin HTML required for the index.html line */
 		if (commitinfo_getstats(ci, info->repo) == -1)
 			goto err;
 
