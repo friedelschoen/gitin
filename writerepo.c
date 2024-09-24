@@ -31,7 +31,7 @@ void writerepo(FILE* index, const char* repodir) {
 
 	git_object* obj = NULL;
 	FILE*       fp;
-	char        path[PATH_MAX], description[256];
+	char        path[PATH_MAX];
 	int         i;
 	const char* start;
 
@@ -102,8 +102,7 @@ void writerepo(FILE* index, const char* repodir) {
 	if (!(fp = fopen(path, "w")))
 		err(1, "fopen: '%s'", path);
 	fprintf(stderr, "%s\n", path);
-	snprintf(description, sizeof(description), "Files of %s", info.name);
-	writeheader(fp, &info, 0, "Files", description);
+	writeheader(fp, &info, 0, "Files", "Files of %y", info.name);
 	if (info.head)
 		writefiles(fp, &info);
 	writefooter(fp);
@@ -117,8 +116,7 @@ void writerepo(FILE* index, const char* repodir) {
 	fprintf(stderr, "%s\n", path);
 	snprintf(path, sizeof(path), "%s/commit", info.destdir);
 	mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
-	snprintf(description, sizeof(description), "Commits of %s", info.name);
-	writeheader(fp, &info, 0, info.name, description);
+	writeheader(fp, &info, 0, info.name, "Commits of %y", info.name);
 	writerefs(fp, &info);
 	fputs("<h2>Commits</h2>\n<table id=\"log\"><thead>\n<tr><td><b>Date</b></td>"
 	      "<td class=\"expand\"><b>Commit message</b></td>"

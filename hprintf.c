@@ -82,11 +82,15 @@ static void xmlencode(FILE* fp, const char* s) {
 	}
 }
 
-// Custom function similar to fprintf with %r and %h specifiers
 void hprintf(FILE* file, const char* format, ...) {
 	va_list args;
 	va_start(args, format);
+	vhprintf(file, format, args);
+	va_end(args);
+}
 
+// Custom function similar to fprintf with %r and %h specifiers
+void vhprintf(FILE* file, const char* format, va_list args) {
 	for (const char* p = format; *p; p++) {
 		if (*p != '%') {    // For normal characters, just print them
 			fputc(*p, file);
@@ -149,6 +153,4 @@ void hprintf(FILE* file, const char* format, ...) {
 			fprintf(file, "%%%c", *p);
 		}
 	}
-
-	va_end(args);
 }
