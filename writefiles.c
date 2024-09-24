@@ -285,8 +285,8 @@ static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree
 
 			addheadfile(info, entrypath + 1);    // +1 to remove leading slash
 
-			(void) snprintf(filepath, sizeof(filepath), "%s/file/%s.html", info->destdir, entrypath);
-			(void) snprintf(staticpath, sizeof(staticpath), "%s/static/%s", info->destdir, entrypath);
+			snprintf(filepath, sizeof(filepath), "%s/file/%s.html", info->destdir, entrypath);
+			snprintf(staticpath, sizeof(staticpath), "%s/static/%s", info->destdir, entrypath);
 
 			normalize_path(filepath);
 			normalize_path(staticpath);
@@ -318,7 +318,7 @@ static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree
 	return 0;
 }
 
-int writefiles(FILE* fp, struct repoinfo* info, const git_oid* id) {
+int writefiles(FILE* fp, struct repoinfo* info) {
 	git_tree*   tree   = NULL;
 	git_commit* commit = NULL;
 	int         ret    = -1;
@@ -329,7 +329,7 @@ int writefiles(FILE* fp, struct repoinfo* info, const git_oid* id) {
 	      "</tr>\n</thead><tbody>\n",
 	      fp);
 
-	if (!git_commit_lookup(&commit, info->repo, id) && !git_commit_tree(&tree, commit))
+	if (!git_commit_lookup(&commit, info->repo, info->head) && !git_commit_tree(&tree, commit))
 		ret = writefilestree(fp, info, 1, tree, "");
 
 	fputs("</tbody></table>", fp);

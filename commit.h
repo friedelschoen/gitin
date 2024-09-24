@@ -2,10 +2,6 @@
 
 #include <git2.h>
 
-struct referenceinfo {
-	git_reference* ref;
-	git_commit*    commit;
-};
 
 struct deltainfo {
 	git_patch* patch;
@@ -28,6 +24,5 @@ struct commitstats {
 	size_t             ndeltas;
 };
 
-int  getrefs(struct referenceinfo** pris, size_t* prefcount, git_repository* repo);
 int  commitinfo_getstats(struct commitstats* ci, git_commit* commit, git_repository* repo);
 void commitinfo_free(struct commitstats* ci);
