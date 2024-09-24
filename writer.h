@@ -8,6 +8,7 @@
 
 struct repoinfo {
 	git_repository* repo;
+	const git_oid*  head;
 
 	const char* repodir;
 	char        destdir[1024];
@@ -28,8 +29,9 @@ struct repoinfo {
 };
 
 void writefooter(FILE* fp);
-int  writefiles(FILE* fp, struct repoinfo* info, const git_oid* id);
+int  writefiles(FILE* fp, struct repoinfo* info);
 int  writeindex(FILE* fp, const struct repoinfo* info);
 int  writelog(FILE* fp, const struct repoinfo* info);
 void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char* name, const char* description);
+int  writerefs(FILE* fp, const struct repoinfo* info);
 void writerepo(FILE* index, const char* repodir);

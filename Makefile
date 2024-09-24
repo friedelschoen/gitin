@@ -8,8 +8,8 @@ PREFIX = /usr/local
 LIBS = libgit2 libarchive
 
 # use system flags.
-CC ?= gcc
-CFLAGS := -Wall -Wextra -Wpedantic -Werror -O2 -g -D_XOPEN_SOURCE=700 $(shell pkg-config --cflags $(LIBS))
+CC ?= clang
+CFLAGS := -Wall -Wextra -Wpedantic -Werror -Wno-format-truncation -O2 -g -D_XOPEN_SOURCE=700 $(shell pkg-config --cflags $(LIBS)) 
 LDFLAGS := $(shell pkg-config --libs $(LIBS))
 
 BIN = ${NAME}
@@ -47,6 +47,7 @@ OBJECTS = \
 	writehtml.o \
 	writeindex.o \
 	writelog.o \
+	writerefs.o \
 	writerepo.o
 
 all: ${BIN} ${MAN1} compile_flags.txt

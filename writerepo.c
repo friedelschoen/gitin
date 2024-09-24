@@ -1,88 +1,15 @@
-#include "commit.h"
 #include "common.h"
 #include "compat.h"
 #include "config.h"
-#include "hprintf.h"
-#include "makearchive.h"
 #include "parseconfig.h"
 #include "writer.h"
 
 #include <err.h>
-#include <git2/commit.h>
-#include <git2/signature.h>
-#include <git2/types.h>
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
 
-
-static int writerefs(FILE* fp, const struct repoinfo* info, const git_oid* head) {
-	struct referenceinfo* ris = NULL;
-	const git_signature*  author;
-	size_t                count, i, j, refcount;
-	const char*           titles[] = { "Branches", "Tags" };
-	const char*           ids[]    = { "branches", "tags" };
-	const char*           s;
-	int                   ishead;
-
-	if (getrefs(&ris, &refcount, info->repo) == -1)
-		return -1;
-
-	fprintf(fp, "<div id=\"refcontainer\">\n");
-
-	for (i = 0, j = 0, count = 0; i < refcount; i++) {
-		if (j == 0 && git_reference_is_tag(ris[i].ref)) {
-			if (count)
-				fputs("</tbody></table></div>\n", fp);
-			count = 0;
-			j     = 1;
-		}
-
-		makearchive(info, ris[i].ref);
-		ishead = head && !git_oid_cmp(git_reference_target(ris[i].ref), head);
-
-		/* print header if it has an entry (first). */
-		if (++count == 1) {
-			fprintf(fp,
-			        "<div class=\"ref\"><h2>%s</h2><table id=\"%s\">"
-			        "<thead>\n<tr><td class=\"expand\"><b>Name</b></td>"
-			        "<td><b>Last commit date</b></td>"
-			        "<td><b>Author</b></td>\n</tr>\n"
-			        "</thead><tbody>\n",
-			        titles[j], ids[j]);
-		}
-
-		s      = git_reference_shorthand(ris[i].ref);
-		author = git_commit_author(ris[i].commit);
-
-		hprintf(fp, "<tr><td><a href=\"archive/%s.tar.gz\">", s);
-		if (ishead)
-			hprintf(fp, "<b>%y</b>", s);
-		else
-			hprintf(fp, "%y", s);
-		hprintf(fp, "</a></td><td>", s);
-		if (author)
-			hprintf(fp, "%t", &author->when);
-		fputs("</td><td>", fp);
-		if (author)
-			hprintf(fp, "%y", author->name);
-		fputs("</td></tr>\n", fp);
-	}
-	/* table footer */
-	if (count)
-		fputs("</tbody></table></div>\n", fp);
-
-	for (i = 0; i < refcount; i++) {
-		git_commit_free(ris[i].commit);
-		git_reference_free(ris[i].ref);
-	}
-	free(ris);
-
-	fprintf(fp, "</div>\n");
-
-	return 0;
-}
 
 void freeheadfiles(struct repoinfo* info) {
 	if (info->headfiles != NULL) {
@@ -102,12 +29,11 @@ void freeheadfiles(struct repoinfo* info) {
 void writerepo(FILE* index, const char* repodir) {
 	struct repoinfo info;
 
-	git_object*    obj  = NULL;
-	const git_oid* head = NULL;
-	FILE*          fp;
-	char           path[PATH_MAX], description[256];
-	int            i;
-	const char*    start;
+	git_object* obj = NULL;
+	FILE*       fp;
+	char        path[PATH_MAX], description[256];
+	int         i;
+	const char* start;
 
 	memset(&info, 0, sizeof(info));
 	info.repodir = repodir;
@@ -132,7 +58,7 @@ void writerepo(FILE* index, const char* repodir) {
 
 	/* find HEAD */
 	if (!git_revparse_single(&obj, info.repo, "HEAD"))
-		head = git_object_id(obj);
+		info.head = git_object_id(obj);
 	git_object_free(obj);
 
 	start = repodir;
@@ -178,8 +104,8 @@ void writerepo(FILE* index, const char* repodir) {
 	fprintf(stderr, "%s\n", path);
 	snprintf(description, sizeof(description), "Files of %s", info.name);
 	writeheader(fp, &info, 0, "Files", description);
-	if (head)
-		writefiles(fp, &info, head);
+	if (info.head)
+		writefiles(fp, &info);
 	writefooter(fp);
 	checkfileerror(fp, path, 'w');
 	fclose(fp);
@@ -193,7 +119,7 @@ void writerepo(FILE* index, const char* repodir) {
 	mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
 	snprintf(description, sizeof(description), "Commits of %s", info.name);
 	writeheader(fp, &info, 0, info.name, description);
-	writerefs(fp, &info, head);
+	writerefs(fp, &info);
 	fputs("<h2>Commits</h2>\n<table id=\"log\"><thead>\n<tr><td><b>Date</b></td>"
 	      "<td class=\"expand\"><b>Commit message</b></td>"
 	      "<td><b>Author</b></td><td class=\"num\" align=\"right\"><b>Files</b></td>"
@@ -201,7 +127,7 @@ void writerepo(FILE* index, const char* repodir) {
 	      "<td class=\"num\" align=\"right\"><b>-</b></td></tr>\n</thead><tbody>\n",
 	      fp);
 
-	if (head)
+	if (info.head)
 		writelog(fp, &info);
 
 	fputs("</tbody></table>", fp);
