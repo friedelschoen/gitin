@@ -2,8 +2,13 @@
 #include "hprintf.h"
 #include "writer.h"
 
-void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char* name, const char* description) {
-	int indexrelpath = relpath + (info ? info->relpath : 0);
+#include <stdarg.h>
+#include <stdio.h>
+
+void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char* name, const char* description, ...) {
+	va_list desc_args;
+	int     indexrelpath = relpath + (info ? info->relpath : 0);
+
 	fputs("<!DOCTYPE html>\n"
 	      "<html>\n<head>\n"
 	      "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n"
@@ -15,8 +20,12 @@ void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char*
 	fputs("</head>\n<body>\n<table><tr><td>", fp);
 	hprintf(fp, "<a href=\"%r\"><img src=\"%r%s\" alt=\"\" width=\"100\" height=\"100\" /></a>", indexrelpath,
 	        indexrelpath, logoicon);
-	hprintf(fp, "</td><td class=\"expand\"><h1>%y</h1>\n<span class=\"desc\">%y</span>", name, description);
-	fputs("</td></tr>", fp);
+	hprintf(fp, "</td><td class=\"expand\"><h1>%y</h1>\n<span class=\"desc\">", name);
+
+	va_start(desc_args, description);
+	vhprintf(fp, description, desc_args);
+	va_end(desc_args);
+	fputs("</span></td></tr>", fp);
 	if (info && *info->cloneurl) {
 		hprintf(
 		    fp,
