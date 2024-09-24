@@ -1,18 +1,24 @@
 #include "commit.h"
 
 #include <err.h>
+#include <stdio.h>
 #include <string.h>
+
 
 static int refs_cmp(const void* v1, const void* v2) {
 	const struct referenceinfo *r1 = v1, *r2 = v2;
 	time_t                      t1, t2;
 	int                         r;
+	const struct git_signature *author1, *author2;
 
 	if ((r = git_reference_is_tag(r1->ref) - git_reference_is_tag(r2->ref)))
 		return r;
 
-	t1 = r1->ci->author ? r1->ci->author->when.time : 0;
-	t2 = r2->ci->author ? r2->ci->author->when.time : 0;
+	author1 = git_commit_author(r1->commit);
+	author2 = git_commit_author(r2->commit);
+
+	t1 = author1 ? author1->when.time : 0;
+	t2 = author2 ? author2->when.time : 0;
 	if ((r = t1 > t2 ? -1 : (t1 == t2 ? 0 : 1)))
 		return r;
 
@@ -21,11 +27,9 @@ static int refs_cmp(const void* v1, const void* v2) {
 
 int getrefs(struct referenceinfo** pris, size_t* prefcount, git_repository* repo) {
 	struct referenceinfo*   ris  = NULL;
-	struct commitinfo*      ci   = NULL;
 	git_reference_iterator* it   = NULL;
-	const git_oid*          id   = NULL;
 	git_object*             obj  = NULL;
-	git_reference *         dref = NULL, *r, *ref = NULL;
+	git_reference *         dref = NULL, *ref = NULL;
 	size_t                  i, refcount;
 
 	*pris      = NULL;
@@ -41,35 +45,17 @@ int getrefs(struct referenceinfo** pris, size_t* prefcount, git_repository* repo
 			continue;
 		}
 
-		switch (git_reference_type(ref)) {
-			case GIT_REF_SYMBOLIC:
-				if (git_reference_resolve(&dref, ref))
-					goto err;
-				r = dref;
-				break;
-			case GIT_REF_OID:
-				r = ref;
-				break;
-			default:
-				continue;
-		}
-		if (!git_reference_target(r) || git_reference_peel(&obj, r, GIT_OBJ_ANY))
+		if (git_reference_resolve(&dref, ref))
 			goto err;
-		if (!(id = git_object_id(obj)))
+
+		if (git_reference_peel(&obj, dref, GIT_OBJECT_COMMIT))
 			goto err;
-		if (!(ci = commitinfo_getbyoid(id, repo)))
-			break;
 
 		if (!(ris = realloc(ris, (refcount + 1) * sizeof(*ris))))
 			err(1, "realloc");
-		ris[refcount].ci  = ci;
-		ris[refcount].ref = r;
+		ris[refcount].commit = (git_commit*) obj;
+		ris[refcount].ref    = dref;
 		refcount++;
-
-		git_object_free(obj);
-		obj = NULL;
-		git_reference_free(dref);
-		dref = NULL;
 	}
 	git_reference_iterator_free(it);
 
@@ -84,9 +70,8 @@ int getrefs(struct referenceinfo** pris, size_t* prefcount, git_repository* repo
 err:
 	git_object_free(obj);
 	git_reference_free(dref);
-	commitinfo_free(ci);
 	for (i = 0; i < refcount; i++) {
-		commitinfo_free(ris[i].ci);
+		git_commit_free(ris[i].commit);
 		git_reference_free(ris[i].ref);
 	}
 	free(ris);
@@ -94,15 +79,8 @@ err:
 	return -1;
 }
 
-void deltainfo_free(struct deltainfo* di) {
-	if (!di)
-		return;
-	git_patch_free(di->patch);
-	memset(di, 0, sizeof(*di));
-	free(di);
-}
 
-int commitinfo_getstats(struct commitinfo* ci, git_repository* repo) {
+int commitinfo_getstats(struct commitstats* ci, git_commit* commit, git_repository* repo) {
 	struct deltainfo*     di;
 	git_diff_options      opts;
 	git_diff_find_options fopts;
@@ -113,9 +91,11 @@ int commitinfo_getstats(struct commitinfo* ci, git_repository* repo) {
 	size_t                ndeltas, nhunks, nhunklines;
 	size_t                i, j, k;
 
-	if (git_tree_lookup(&(ci->commit_tree), repo, git_commit_tree_id(ci->commit)))
+	memset(ci, 0, sizeof(*ci));
+
+	if (git_tree_lookup(&(ci->commit_tree), repo, git_commit_tree_id(commit)))
 		goto err;
-	if (!git_commit_parent(&(ci->parent), ci->commit, 0)) {
+	if (!git_commit_parent(&(ci->parent), commit, 0)) {
 		if (git_tree_lookup(&(ci->parent_tree), repo, git_commit_tree_id(ci->parent))) {
 			ci->parent      = NULL;
 			ci->parent_tree = NULL;
@@ -127,9 +107,7 @@ int commitinfo_getstats(struct commitinfo* ci, git_repository* repo) {
 	if (git_diff_tree_to_tree(&(ci->diff), repo, ci->parent_tree, ci->commit_tree, &opts))
 		goto err;
 
-	if (git_diff_find_init_options(&fopts, GIT_DIFF_FIND_OPTIONS_VERSION))
-		goto err;
-	/* find renames and copies, exact matches (no heuristic) for renames. */
+	git_diff_find_init_options(&fopts, GIT_DIFF_FIND_OPTIONS_VERSION);
 	fopts.flags |= GIT_DIFF_FIND_RENAMES | GIT_DIFF_FIND_COPIES | GIT_DIFF_FIND_EXACT_MATCH_ONLY;
 	if (git_diff_find_similar(ci->diff, &fopts))
 		goto err;
@@ -149,7 +127,6 @@ int commitinfo_getstats(struct commitinfo* ci, git_repository* repo) {
 
 		delta = git_patch_get_delta(patch);
 
-		/* skip stats for binary data */
 		if (delta->flags & GIT_DIFF_FLAG_BINARY)
 			continue;
 
@@ -176,69 +153,33 @@ int commitinfo_getstats(struct commitinfo* ci, git_repository* repo) {
 	return 0;
 
 err:
-	git_diff_free(ci->diff);
-	ci->diff = NULL;
-	git_tree_free(ci->commit_tree);
-	ci->commit_tree = NULL;
-	git_tree_free(ci->parent_tree);
-	ci->parent_tree = NULL;
-	git_commit_free(ci->parent);
-	ci->parent = NULL;
-
-	if (ci->deltas)
-		for (i = 0; i < ci->ndeltas; i++)
-			deltainfo_free(ci->deltas[i]);
-	free(ci->deltas);
-	ci->deltas    = NULL;
-	ci->ndeltas   = 0;
-	ci->addcount  = 0;
-	ci->delcount  = 0;
-	ci->filecount = 0;
-
+	commitinfo_free(ci);
 	return -1;
 }
 
-void commitinfo_free(struct commitinfo* ci) {
+void commitinfo_free(struct commitstats* ci) {
 	size_t i;
 
 	if (!ci)
 		return;
-	if (ci->deltas)
-		for (i = 0; i < ci->ndeltas; i++)
-			deltainfo_free(ci->deltas[i]);
 
-	free(ci->deltas);
-	git_diff_free(ci->diff);
-	git_tree_free(ci->commit_tree);
-	git_tree_free(ci->parent_tree);
-	git_commit_free(ci->commit);
-	git_commit_free(ci->parent);
-	memset(ci, 0, sizeof(*ci));
-	free(ci);
-}
+	if (ci->deltas) {
+		for (i = 0; i < ci->ndeltas; i++) {
+			if (!ci->deltas[i])
+				continue;
+			git_patch_free(ci->deltas[i]->patch);
+			free(ci->deltas[i]);
+		}
+		free(ci->deltas);
+	}
 
-struct commitinfo* commitinfo_getbyoid(const git_oid* id, git_repository* repo) {
-	struct commitinfo* ci;
+	if (ci->diff)
+		git_diff_free(ci->diff);
+	if (ci->commit_tree)
+		git_tree_free(ci->commit_tree);
+	if (ci->parent_tree)
+		git_tree_free(ci->parent_tree);
 
-	if (!(ci = calloc(1, sizeof(struct commitinfo))))
-		err(1, "calloc");
-
-	if (git_commit_lookup(&(ci->commit), repo, id))
-		goto err;
-	ci->id = id;
-
-	git_oid_tostr(ci->oid, sizeof(ci->oid), git_commit_id(ci->commit));
-	git_oid_tostr(ci->parentoid, sizeof(ci->parentoid), git_commit_parent_id(ci->commit, 0));
-
-	ci->author    = git_commit_author(ci->commit);
-	ci->committer = git_commit_committer(ci->commit);
-	ci->summary   = git_commit_summary(ci->commit);
-	ci->msg       = git_commit_message(ci->commit);
-
-	return ci;
-
-err:
-	commitinfo_free(ci);
-
-	return NULL;
+	git_commit_free(ci->parent);    // Free the parent commit
+	memset(ci, 0, sizeof(*ci));     // Reset structure
 }

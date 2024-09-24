@@ -8,6 +8,9 @@
 #include "writer.h"
 
 #include <err.h>
+#include <git2/commit.h>
+#include <git2/signature.h>
+#include <git2/types.h>
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
@@ -16,7 +19,7 @@
 
 static int writerefs(FILE* fp, const struct repoinfo* info, const git_oid* head) {
 	struct referenceinfo* ris = NULL;
-	struct commitinfo*    ci;
+	const git_signature*  author;
 	size_t                count, i, j, refcount;
 	const char*           titles[] = { "Branches", "Tags" };
 	const char*           ids[]    = { "branches", "tags" };
@@ -50,8 +53,8 @@ static int writerefs(FILE* fp, const struct repoinfo* info, const git_oid* head)
 			        titles[j], ids[j]);
 		}
 
-		ci = ris[i].ci;
-		s  = git_reference_shorthand(ris[i].ref);
+		s      = git_reference_shorthand(ris[i].ref);
+		author = git_commit_author(ris[i].commit);
 
 		hprintf(fp, "<tr><td><a href=\"archive/%s.tar.gz\">", s);
 		if (ishead)
@@ -59,11 +62,11 @@ static int writerefs(FILE* fp, const struct repoinfo* info, const git_oid* head)
 		else
 			hprintf(fp, "%y", s);
 		hprintf(fp, "</a></td><td>", s);
-		if (ci->author)
-			hprintf(fp, "%t", &ci->author->when);
+		if (author)
+			hprintf(fp, "%t", &author->when);
 		fputs("</td><td>", fp);
-		if (ci->author)
-			hprintf(fp, "%y", ci->author->name);
+		if (author)
+			hprintf(fp, "%y", author->name);
 		fputs("</td></tr>\n", fp);
 	}
 	/* table footer */
@@ -71,7 +74,7 @@ static int writerefs(FILE* fp, const struct repoinfo* info, const git_oid* head)
 		fputs("</tbody></table></div>\n", fp);
 
 	for (i = 0; i < refcount; i++) {
-		commitinfo_free(ris[i].ci);
+		git_commit_free(ris[i].commit);
 		git_reference_free(ris[i].ref);
 	}
 	free(ris);
@@ -101,12 +104,9 @@ void writerepo(FILE* index, const char* repodir) {
 
 	git_object*    obj  = NULL;
 	const git_oid* head = NULL;
-	mode_t         mask;
 	FILE*          fp;
 	char           path[PATH_MAX], description[256];
-	char           tmppath[64] = "gitin-cache.XXXXXX", buf[BUFSIZ];
-	size_t         n;
-	int            i, fd;
+	int            i;
 	const char*    start;
 
 	memset(&info, 0, sizeof(info));
@@ -201,59 +201,14 @@ void writerepo(FILE* index, const char* repodir) {
 	      "<td class=\"num\" align=\"right\"><b>-</b></td></tr>\n</thead><tbody>\n",
 	      fp);
 
-	if (commitcache && head) {
-		/* read from cache file (does not need to exist) */
-		if ((info.rcachefp = fopen(commitcache, "r"))) {
-			if (!fgets(info.lastoidstr, sizeof(info.lastoidstr), info.rcachefp))
-				errx(1, "%s: no object id", commitcache);
-			if (git_oid_fromstr(&info.lastoid, info.lastoidstr))
-				errx(1, "%s: invalid object id", commitcache);
-		}
-
-		/* write log to (temporary) cache */
-		if ((fd = mkstemp(tmppath)) == -1)
-			err(1, "mkstemp");
-		if (!(info.wcachefp = fdopen(fd, "w")))
-			err(1, "fdopen: '%s'", tmppath);
-		/* write last commit id (HEAD) */
-		git_oid_tostr(buf, sizeof(buf), head);
-		fprintf(info.wcachefp, "%s\n", buf);
-
-		writelog(fp, &info, head);
-
-		if (info.rcachefp) {
-			/* append previous log to index.html and the new cache */
-			while (!feof(info.rcachefp)) {
-				n = fread(buf, 1, sizeof(buf), info.rcachefp);
-				if (ferror(info.rcachefp))
-					break;
-				if (fwrite(buf, 1, n, fp) != n || fwrite(buf, 1, n, info.wcachefp) != n)
-					break;
-			}
-			checkfileerror(info.rcachefp, commitcache, 'r');
-			fclose(info.rcachefp);
-		}
-		checkfileerror(info.wcachefp, tmppath, 'w');
-		fclose(info.wcachefp);
-	} else {
-		if (head)
-			writelog(fp, &info, head);
-	}
+	if (head)
+		writelog(fp, &info);
 
 	fputs("</tbody></table>", fp);
 	writefooter(fp);
 	snprintf(path, sizeof(path), "%s/index.html", info.destdir);
 	checkfileerror(fp, path, 'w');
 	fclose(fp);
-
-	/* rename new cache file on success */
-	if (commitcache && head) {
-		if (rename(tmppath, commitcache))
-			err(1, "rename: '%s' to '%s'", tmppath, commitcache);
-		umask((mask = umask(0)));
-		if (chmod(commitcache, (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) & ~mask))
-			err(1, "chmod: '%s'", commitcache);
-	}
 
 	writeindex(index, &info);
 	checkfileerror(index, "index.html", 'w');

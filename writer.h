@@ -25,16 +25,11 @@ struct repoinfo {
 	char** headfiles;
 	int    headfileslen;
 	int    headfilesalloc;
-
-	/* cache */
-	git_oid lastoid;
-	char    lastoidstr[GIT_OID_HEXSZ + 2]; /* id + newline + NUL byte */
-	FILE *  rcachefp, *wcachefp;
 };
 
 void writefooter(FILE* fp);
 int  writefiles(FILE* fp, struct repoinfo* info, const git_oid* id);
 int  writeindex(FILE* fp, const struct repoinfo* info);
-int  writelog(FILE* fp, const struct repoinfo* info, const git_oid* oid);
+int  writelog(FILE* fp, const struct repoinfo* info);
 void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char* name, const char* description);
 void writerepo(FILE* index, const char* repodir);
