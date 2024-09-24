@@ -5,23 +5,34 @@
 #include "writer.h"
 
 #include <err.h>
+#include <git2/commit.h>
+#include <git2/errors.h>
+#include <git2/oid.h>
+#include <git2/types.h>
 #include <limits.h>
 #include <string.h>
 #include <unistd.h>
 
 
-static void writecommit(FILE* fp, int relpath, struct commitinfo* ci) {
-	hprintf(fp, "<b>commit</b> <a href=\"%rcommit/%s.html\">%s</a>\n", relpath, ci->oid, ci->oid);
+static void writecommit(FILE* fp, int relpath, const git_commit* commit) {
+	char                 oid[GIT_OID_HEXSZ + 1], parentoid[GIT_OID_HEXSZ + 1];
+	const git_signature* author = git_commit_author(commit);
+	const char*          msg    = git_commit_message(commit);
 
-	if (ci->parentoid[0])
-		hprintf(fp, "<b>parent</b> <a href=\"%rcommit/%s.html\">%s</a>\n", relpath, ci->parentoid, ci->parentoid);
+	git_oid_tostr(oid, sizeof(oid), git_commit_id(commit));
+	git_oid_tostr(parentoid, sizeof(parentoid), git_commit_parent_id(commit, 0));
 
-	if (ci->author)
-		hprintf(fp, "<b>Author:</b> %y &lt;<a href=\"mailto:%y\">%y</a>&gt;\n<b>Date:</b>   %T\n", ci->author->name,
-		        ci->author->email, ci->author->email, &ci->author->when);
+	hprintf(fp, "<b>commit</b> <a href=\"%rcommit/%s.html\">%s</a>\n", relpath, oid, oid);
 
-	if (ci->msg)
-		hprintf(fp, "\n%y\n", ci->msg);
+	if (*parentoid)
+		hprintf(fp, "<b>parent</b> <a href=\"%rcommit/%s.html\">%s</a>\n", relpath, parentoid, parentoid);
+
+	if (author)
+		hprintf(fp, "<b>Author:</b> %y &lt;<a href=\"mailto:%y\">%y</a>&gt;\n<b>Date:</b>   %T\n", author->name,
+		        author->email, author->email, &author->when);
+
+	if (msg)
+		hprintf(fp, "\n%y\n", msg);
 }
 
 static int hasheadfile(const struct repoinfo* info, const char* filename) {
@@ -33,7 +44,7 @@ static int hasheadfile(const struct repoinfo* info, const char* filename) {
 	return 0;
 }
 
-static void writediff(FILE* fp, const struct repoinfo* info, int relpath, struct commitinfo* ci) {
+static void writediff(FILE* fp, const struct repoinfo* info, int relpath, git_commit* commit, struct commitstats* ci) {
 	const git_diff_delta* delta;
 	const git_diff_hunk*  hunk;
 	const git_diff_line*  line;
@@ -42,8 +53,7 @@ static void writediff(FILE* fp, const struct repoinfo* info, int relpath, struct
 	char                  linestr[80];
 	int                   c;
 
-
-	writecommit(fp, relpath, ci);
+	writecommit(fp, relpath, commit);
 
 	if (!ci->deltas)
 		return;
@@ -132,7 +142,6 @@ static void writediff(FILE* fp, const struct repoinfo* info, int relpath, struct
 		else
 			hprintf(fp, "b/%y</b>\n", delta->new_file.path);
 
-		/* check binary data */
 		if (delta->flags & GIT_DIFF_FLAG_BINARY) {
 			fputs("Binary files differ.\n", fp);
 			continue;
@@ -163,17 +172,23 @@ static void writediff(FILE* fp, const struct repoinfo* info, int relpath, struct
 	}
 }
 
-static void writelogline(FILE* fp, int relpath, struct commitinfo* ci) {
+static void writelogline(FILE* fp, int relpath, git_commit* commit, const struct commitstats* ci) {
+	char                 oid[GIT_OID_HEXSZ + 1];
+	const git_signature* author  = git_commit_author(commit);
+	const char*          summary = git_commit_summary(commit);
+
+	git_oid_tostr(oid, sizeof(oid), git_commit_id(commit));
+
 	fputs("<tr><td>", fp);
-	if (ci->author)
-		hprintf(fp, "%t", &ci->author->when);
+	if (author)
+		hprintf(fp, "%t", &author->when);
 	fputs("</td><td>", fp);
-	if (ci->summary) {
-		hprintf(fp, "<a href=\"%rcommit/%s.html\">%y</a>", relpath, ci->oid, ci->summary);
+	if (summary) {
+		hprintf(fp, "<a href=\"%rcommit/%s.html\">%y</a>", relpath, oid, summary);
 	}
 	fputs("</td><td>", fp);
-	if (ci->author)
-		hprintf(fp, "%y", ci->author->name);
+	if (author)
+		hprintf(fp, "%y", author->name);
 	fputs("</td><td class=\"num\" align=\"right\">", fp);
 	fprintf(fp, "%zu", ci->filecount);
 	fputs("</td><td class=\"num\" align=\"right\">", fp);
@@ -183,70 +198,74 @@ static void writelogline(FILE* fp, int relpath, struct commitinfo* ci) {
 	fputs("</td></tr>\n", fp);
 }
 
-int writelog(FILE* fp, const struct repoinfo* info, const git_oid* oid) {
-	struct commitinfo* ci;
-	git_revwalk*       w = NULL;
+int writelog(FILE* fp, const struct repoinfo* info) {
+	git_commit*        commit = NULL;
+	git_revwalk*       w      = NULL;
 	git_oid            id;
 	char               path[PATH_MAX], oidstr[GIT_OID_HEXSZ + 1];
 	FILE*              fpfile;
 	size_t             remcommits = 0;
-	int                r;
+	const char*        summary;
+	struct commitstats ci;
 
-	git_revwalk_new(&w, info->repo);
-	git_revwalk_push(w, oid);
+	// Create a revwalk to iterate through the commits
+	if (git_revwalk_new(&w, info->repo)) {
+		fprintf(stderr, "Error initializing revwalk\n");
+		return -1;
+	}
+	git_revwalk_push_head(w);
 
+	// Iterate through the commits
 	while (!git_revwalk_next(&id, w)) {
-		if (commitcache && !memcmp(&id, &info->lastoid, sizeof(id)))
-			break;
-
-		git_oid_tostr(oidstr, sizeof(oidstr), &id);
-		r = snprintf(path, sizeof(path), "%s/commit/%s.html", info->destdir, oidstr);
-		if (r < 0 || (size_t) r >= sizeof(path))
-			errx(1, "path truncated: 'commit/%s.html'", oidstr);
-		normalize_path(path);
-		r = access(path, F_OK);
-
-		/* optimization: if there are no log lines to write and
-		   the commit file already exists: skip the diffstat */
-		if (!nlogcommits) {
-			remcommits++;
-			if (!r)
-				continue;
+		// Lookup the commit object
+		if (git_commit_lookup(&commit, info->repo, &id)) {
+			fprintf(stderr, "Error looking up commit\n");
+			continue;
 		}
 
-		if (!(ci = commitinfo_getbyoid(&id, info->repo)))
-			break;
-		/* diffstat: for gitin HTML required for the index.html line */
-		if (commitinfo_getstats(ci, info->repo) == -1)
-			goto err;
+		if (commitinfo_getstats(&ci, commit, info->repo) == -1)
+			continue;
 
+		git_oid_tostr(oidstr, sizeof(oidstr), &id);
+		snprintf(path, sizeof(path), "%s/commit/%s.html", info->destdir, oidstr);
+		normalize_path(path);
+
+		// Skip commits that are already written
+		if (!nlogcommits) {
+			remcommits++;
+		}
+
+		summary = git_commit_summary(commit);
+
+		// Write the commit's diff to a file
+		if (!(fpfile = fopen(path, "w"))) {
+			err(1, "fopen: '%s'", path);
+		}
+		fprintf(stderr, "%s\n", path);
+		writeheader(fpfile, info, 1, summary, "");
+		fputs("<pre>", fpfile);
+		(void) writediff;
+		writediff(fpfile, info, 1, commit, &ci);
+		fputs("</pre>\n", fpfile);
+		writefooter(fpfile);
+		checkfileerror(fpfile, path, 'w');
+		fclose(fpfile);
+
+		// Write the log line
 		if (nlogcommits != 0) {
-			writelogline(fp, 0, ci);
+			(void) writelogline;
+			writelogline(fp, 0, commit, &ci);
 			if (nlogcommits > 0)
 				nlogcommits--;
 		}
 
-		if (commitcache)
-			writelogline(info->wcachefp, 0, ci);
-
-		/* check if file exists if so skip it */
-		if (r) {
-			if (!(fpfile = fopen(path, "w")))
-				err(1, "fopen: '%s'", path);
-			fprintf(stderr, "%s\n", path);
-			writeheader(fpfile, info, 1, ci->summary, "");
-			fputs("<pre>", fpfile);
-			writediff(fpfile, info, 1, ci);
-			fputs("</pre>\n", fpfile);
-			writefooter(fpfile);
-			checkfileerror(fpfile, path, 'w');
-			fclose(fpfile);
-		}
-	err:
-		commitinfo_free(ci);
+		commitinfo_free(&ci);
+		git_commit_free(commit);
 	}
+
 	git_revwalk_free(w);
 
+	// Handle remaining commits
 	if (nlogcommits == 0 && remcommits != 0) {
 		fprintf(fp,
 		        "<tr><td></td><td colspan=\"5\">"
