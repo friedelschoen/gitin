@@ -10,12 +10,6 @@ struct deltainfo {
 };
 
 struct commitstats {
-	git_commit* parent;
-	git_tree*   commit_tree;
-	git_tree*   parent_tree;
-
-	git_diff* diff;
-
 	size_t addcount;
 	size_t delcount;
 	size_t filecount;
