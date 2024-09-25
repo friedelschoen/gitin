@@ -20,8 +20,9 @@ static void usage(char* argv0) {
 }
 
 int main(int argc, char* argv[]) {
-	char* self = argv[0];
-	FILE* index;
+	char*       self = argv[0];
+	FILE*       index;
+	const char* destination = ".";
 
 	ARGBEGIN
 	switch (OPT) {
@@ -90,7 +91,7 @@ int main(int argc, char* argv[]) {
 	      index);
 
 	for (int i = 0; i < argc; i++)
-		writerepo(index, argv[i]);
+		writerepo(index, argv[i], destination);
 
 	fputs("</tbody>\n</table>", index);
 	writefooter(index);

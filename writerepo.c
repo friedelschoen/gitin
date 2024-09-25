@@ -26,7 +26,7 @@ void freeheadfiles(struct repoinfo* info) {
 	info->headfilesalloc = 0;
 }
 
-void writerepo(FILE* index, const char* repodir) {
+void writerepo(FILE* index, const char* repodir, const char* destination) {
 	struct repoinfo info;
 
 	git_object* obj = NULL;
@@ -43,7 +43,7 @@ void writerepo(FILE* index, const char* repodir) {
 		if (*p == '/')
 			info.relpath++;
 
-	snprintf(info.destdir, sizeof(info.destdir), "%s%s", destination, info.repodir);
+	snprintf(info.destdir, sizeof(info.destdir), "%s/%s", destination, info.repodir);
 	normalize_path(info.destdir);
 
 	if (mkdirp(info.destdir) == -1) {
@@ -102,7 +102,7 @@ void writerepo(FILE* index, const char* repodir) {
 	if (!(fp = fopen(path, "w")))
 		err(1, "fopen: '%s'", path);
 	fprintf(stderr, "%s\n", path);
-	writeheader(fp, &info, 0, "Files", "Files of %y", info.name);
+	writeheader(fp, &info, 0, info.name, "%y", info.description);
 	if (info.head)
 		writefiles(fp, &info);
 	writefooter(fp);
@@ -116,7 +116,7 @@ void writerepo(FILE* index, const char* repodir) {
 	fprintf(stderr, "%s\n", path);
 	snprintf(path, sizeof(path), "%s/commit", info.destdir);
 	mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
-	writeheader(fp, &info, 0, info.name, "Commits of %y", info.name);
+	writeheader(fp, &info, 0, info.name, "%y", info.description);
 	writerefs(fp, &info);
 	fputs("<h2>Commits</h2>\n<table id=\"log\"><thead>\n<tr><td><b>Date</b></td>"
 	      "<td class=\"expand\"><b>Commit message</b></td>"
