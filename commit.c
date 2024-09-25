@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <string.h>
 
-
 int commitinfo_getstats(struct commitstats* ci, git_commit* commit, git_repository* repo) {
 	struct deltainfo*     di;
 	git_diff_options      opts;
@@ -16,33 +15,38 @@ int commitinfo_getstats(struct commitstats* ci, git_commit* commit, git_reposito
 	size_t                ndeltas, nhunks, nhunklines;
 	size_t                i, j, k;
 
+	git_commit* parent      = NULL;
+	git_tree*   commit_tree = NULL;
+	git_tree*   parent_tree = NULL;
+	git_diff*   diff        = NULL;
+
 	memset(ci, 0, sizeof(*ci));
 
-	if (git_tree_lookup(&(ci->commit_tree), repo, git_commit_tree_id(commit)))
+	if (git_tree_lookup(&commit_tree, repo, git_commit_tree_id(commit)))
 		goto err;
-	if (!git_commit_parent(&(ci->parent), commit, 0)) {
-		if (git_tree_lookup(&(ci->parent_tree), repo, git_commit_tree_id(ci->parent))) {
-			ci->parent      = NULL;
-			ci->parent_tree = NULL;
+	if (!git_commit_parent(&parent, commit, 0)) {
+		if (git_tree_lookup(&parent_tree, repo, git_commit_tree_id(parent))) {
+			parent      = NULL;
+			parent_tree = NULL;
 		}
 	}
 
-	git_diff_init_options(&opts, GIT_DIFF_OPTIONS_VERSION);
+	git_diff_options_init(&opts, GIT_DIFF_OPTIONS_VERSION);
 	opts.flags |= GIT_DIFF_DISABLE_PATHSPEC_MATCH | GIT_DIFF_IGNORE_SUBMODULES | GIT_DIFF_INCLUDE_TYPECHANGE;
-	if (git_diff_tree_to_tree(&(ci->diff), repo, ci->parent_tree, ci->commit_tree, &opts))
+	if (git_diff_tree_to_tree(&diff, repo, parent_tree, commit_tree, &opts))
 		goto err;
 
-	git_diff_find_init_options(&fopts, GIT_DIFF_FIND_OPTIONS_VERSION);
+	git_diff_find_options_init(&fopts, GIT_DIFF_FIND_OPTIONS_VERSION);
 	fopts.flags |= GIT_DIFF_FIND_RENAMES | GIT_DIFF_FIND_COPIES | GIT_DIFF_FIND_EXACT_MATCH_ONLY;
-	if (git_diff_find_similar(ci->diff, &fopts))
+	if (git_diff_find_similar(diff, &fopts))
 		goto err;
 
-	ndeltas = git_diff_num_deltas(ci->diff);
+	ndeltas = git_diff_num_deltas(diff);
 	if (ndeltas && !(ci->deltas = calloc(ndeltas, sizeof(struct deltainfo*))))
 		err(1, "calloc");
 
 	for (i = 0; i < ndeltas; i++) {
-		if (git_patch_from_diff(&patch, ci->diff, i))
+		if (git_patch_from_diff(&patch, diff, i))
 			goto err;
 
 		if (!(di = calloc(1, sizeof(struct deltainfo))))
@@ -75,9 +79,18 @@ int commitinfo_getstats(struct commitstats* ci, git_commit* commit, git_reposito
 	ci->ndeltas   = i;
 	ci->filecount = i;
 
+	git_diff_free(diff);
+	git_tree_free(commit_tree);
+	git_tree_free(parent_tree);
+	git_commit_free(parent);
+
 	return 0;
 
 err:
+	git_diff_free(diff);
+	git_tree_free(commit_tree);
+	git_tree_free(parent_tree);
+	git_commit_free(parent);
 	commitinfo_free(ci);
 	return -1;
 }
@@ -98,13 +111,5 @@ void commitinfo_free(struct commitstats* ci) {
 		free(ci->deltas);
 	}
 
-	if (ci->diff)
-		git_diff_free(ci->diff);
-	if (ci->commit_tree)
-		git_tree_free(ci->commit_tree);
-	if (ci->parent_tree)
-		git_tree_free(ci->parent_tree);
-
-	git_commit_free(ci->parent);    // Free the parent commit
-	memset(ci, 0, sizeof(*ci));     // Reset structure
+	memset(ci, 0, sizeof(*ci));    // Reset structure
 }
