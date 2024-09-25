@@ -12,11 +12,8 @@ const char* logoicon = "logo.svg";
 /* stylesheet to use */
 const char* stylesheet = "style.css";
 
-/* where to put the html files relative to repodir */
-const char* destination = "";
-
 /* command to execute to highlight a file, use `cat` to disable */
-const char* highlightcmd = "chroma --html --html-only --html-inline-styles --style=xcode --lexer=$type";
+const char* highlightcmd = "chroma --html --html-only --html-lines --html-inline-styles --style=pastie --lexer=$type";
 
 /* name of cache directory for highlighting */
 const char* highlightcache = ".gitin/files";

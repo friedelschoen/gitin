@@ -34,4 +34,4 @@ int  writeindex(FILE* fp, const struct repoinfo* info);
 int  writelog(FILE* fp, const struct repoinfo* info);
 void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char* name, const char* description, ...);
 int  writerefs(FILE* fp, const struct repoinfo* info);
-void writerepo(FILE* index, const char* repodir);
+void writerepo(FILE* index, const char* repodir, const char* destination);

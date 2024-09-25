@@ -8,8 +8,8 @@ PREFIX = /usr/local
 LIBS = libgit2 libarchive
 
 # use system flags.
-CC ?= clang
-CFLAGS := -Wall -Wextra -Wpedantic -Werror -Wno-format-truncation -O2 -g -D_XOPEN_SOURCE=700 $(shell pkg-config --cflags $(LIBS)) 
+CC ?= gcc
+CFLAGS := -Wall -Wextra -Wpedantic -Werror -O2 -g -D_XOPEN_SOURCE=700 $(shell pkg-config --cflags $(LIBS)) 
 LDFLAGS := $(shell pkg-config --libs $(LIBS))
 
 BIN = ${NAME}

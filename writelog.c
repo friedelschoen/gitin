@@ -242,7 +242,7 @@ int writelog(FILE* fp, const struct repoinfo* info) {
 			err(1, "fopen: '%s'", path);
 		}
 		fprintf(stderr, "%s\n", path);
-		writeheader(fpfile, info, 1, summary, "");
+		writeheader(fpfile, info, 1, info->name, "%y", summary);
 		fputs("<pre>", fpfile);
 		(void) writediff;
 		writediff(fpfile, info, 1, commit, &ci);

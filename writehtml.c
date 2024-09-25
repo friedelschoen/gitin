@@ -18,7 +18,7 @@ void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char*
 	hprintf(fp, "<link rel=\"icon\" type=\"%s\" href=\"%r%s\" />\n", favicontype, indexrelpath, favicon);
 	hprintf(fp, "<link rel=\"stylesheet\" type=\"text/css\" href=\"%r%s\" />\n", indexrelpath, stylesheet);
 	fputs("</head>\n<body>\n<table><tr><td>", fp);
-	hprintf(fp, "<a href=\"%r\"><img src=\"%r%s\" alt=\"\" width=\"100\" height=\"100\" /></a>", indexrelpath,
+	hprintf(fp, "<a href=\"%r\"><img src=\"%r%s\" alt=\"\" width=\"50\" height=\"50\" /></a>", indexrelpath,
 	        indexrelpath, logoicon);
 	hprintf(fp, "</td><td class=\"expand\"><h1>%y</h1>\n<span class=\"desc\">", name);
 

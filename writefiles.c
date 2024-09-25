@@ -192,7 +192,7 @@ static size_t writeblob(const struct repoinfo* info, int relpath, git_object* ob
 		err(1, "fopen: '%s'", fpath);
 	fprintf(stderr, "%s\n", fpath);
 
-	writeheader(fp, info, relpath, filename, "");
+	writeheader(fp, info, relpath, info->name, "%y", filepath);
 	hprintf(fp, "<p> %y (%zuB) <a href='%rstatic%s'>download</a></p><hr/>", filename, filesize, relpath, filepath);
 
 	if (git_blob_is_binary((git_blob*) obj))
