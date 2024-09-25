@@ -15,6 +15,7 @@ img, h1, h2 {
 
 img {
 	border: 0;
+    max-width: 100%; /* Responsive images */
 }
 
 a:target {
@@ -37,12 +38,36 @@ a.line {
 	text-decoration: none;
 }
 
-table thead td {
-	font-weight: bold;
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1em 0;
+}
+
+#content table {
+	border: 1px solid #333;
 }
 
 table td {
-	padding: 0 0.4em;
+    padding: 0.5em;
+}
+
+table thead tr {
+	background-color: #ddd;
+}
+
+table thead td {
+    font-weight: bold;
+}
+
+table td:not(.expand) {
+	white-space: nowrap;
+	min-width: 32px;
+}
+
+table td.expand {
+    white-space: wrap;
+	width: 99%; /* Let the second column take up the remaining space */
 }
 
 #content table td {
@@ -50,19 +75,8 @@ table td {
 	white-space: nowrap;
 }
 
-#branches tr:hover td,
-#tags tr:hover td,
-#index tr:hover td,
-#log tr:hover td,
-#files tr:hover td {
+#content table tbody tr:hover td {
 	background-color: #eee;
-}
-
-#index tr td:nth-child(2),
-#tags tr td:nth-child(3),
-#branches tr td:nth-child(3),
-#log tr td:nth-child(2) {
-	white-space: normal;
 }
 
 td.num {
@@ -83,46 +97,35 @@ pre {
 	font-family: monospace;
 }
 
-pre a.h {
-	color: #00a;
-}
-
-.A,
-span.i,
-pre a.i {
-	color: #070;
-}
-
-.D,
-span.d,
-pre a.d {
-	color: #e00;
-}
-
-pre a.h:hover,
-pre a.i:hover,
-pre a.d:hover {
-	text-decoration: none;
-}
-
 #footer {
     padding: 1em;
     text-align: center;
     font-size: 0.9em;
-    color: #777;
+    color: #ddd;
+	background-color: #777;
     border-top: 1px solid #555;
     margin-top: 1em;
 }
 
-#footer i {
+#footer code {
     font-style: normal;
     font-weight: bold;
+    font-family: monospace;
+    color: #eee;
+} 
+
+
+/* Flexbox container for the tables */
+#refcontainer {
+    display: flex; /* Flexbox layout */
+    gap: 20px; /* Space between the two tables */
 }
 
-#footer code {
-    font-family: monospace;
-    color: #333;
-} 
+#refcontainer .ref {
+    flex: 1; /* Allow the tables to take equal width */
+    width: 100%; /* Ensure the tables are responsive */
+}
+
 
 @media (prefers-color-scheme: dark) {
 	body {
