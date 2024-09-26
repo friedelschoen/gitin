@@ -28,7 +28,6 @@ HEADER = \
 	compat.h \
 	config.h \
 	hprintf.h \
-	makearchive.h \
 	murmur3.h \
 	parseconfig.h \
 	writer.h
@@ -40,9 +39,9 @@ OBJECTS = \
 	config.o \
 	gitin.o \
 	hprintf.o \
-	makearchive.o \
 	murmur3.o \
 	parseconfig.o \
+	writearchive.o \
 	writefiles.o \
 	writehtml.o \
 	writeindex.o \
