@@ -134,6 +134,7 @@ static ssize_t writeblobhtml(FILE* fp, const git_blob* blob, const char* filenam
 		close(inpipefd.read);
 
 		setenv("filename", filename, 1);
+		setenv("style", colorscheme, 1);
 		setenv("type", type, 1);
 		execlp("sh", "sh", "-c", highlightcmd, NULL);
 
