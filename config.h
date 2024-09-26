@@ -7,6 +7,7 @@ extern const char* favicontype;
 extern const char* highlightcache;
 extern const char* commitcache;
 extern const char* pinfiles[];
+extern const char* colorscheme;
 extern int         npinfiles;
 extern const char* stylesheet;
 extern long long   nlogcommits;
