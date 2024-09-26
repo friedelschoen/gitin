@@ -3,8 +3,8 @@
 #include "common.h"
 
 #include <assert.h>
+#include <git2.h>
 #include <stdarg.h>
-#include <stdio.h>
 #include <string.h>
 
 #define RELPATHMAX 50

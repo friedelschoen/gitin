@@ -5,9 +5,6 @@
 #include <archive_entry.h>
 #include <libgen.h>
 #include <limits.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 
 // Function to write a blob (file) from the repository to the archive

@@ -1,6 +1,7 @@
 #include "hprintf.h"
 #include "writer.h"
 
+
 int writeindex(FILE* fp, const struct repoinfo* info) {
 	git_commit*          commit = NULL;
 	const git_signature* author;

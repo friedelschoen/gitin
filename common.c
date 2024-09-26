@@ -40,7 +40,7 @@ int mkdirp(const char* path) {
 void xmlencodeline(FILE* fp, const char* s, size_t len) {
 	size_t        i = 0;
 	unsigned char c;
-	uint32_t      codepoint;
+	unsigned int  codepoint;
 
 	while (i < len && *s) {
 		c = (unsigned char) *s;
