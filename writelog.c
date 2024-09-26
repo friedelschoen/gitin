@@ -5,13 +5,8 @@
 #include "writer.h"
 
 #include <err.h>
-#include <git2/commit.h>
-#include <git2/errors.h>
-#include <git2/oid.h>
-#include <git2/types.h>
 #include <limits.h>
 #include <string.h>
-#include <unistd.h>
 
 
 static void writecommit(FILE* fp, int relpath, const git_commit* commit) {

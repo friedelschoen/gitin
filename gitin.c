@@ -8,8 +8,8 @@
 #include <err.h>
 #include <limits.h>
 #include <signal.h>
-#include <stdio.h>
 #include <string.h>
+
 
 static void usage(char* argv0) {
 	fprintf(stderr,

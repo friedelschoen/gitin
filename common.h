@@ -1,6 +1,5 @@
 #pragma once
 
-#include <git2.h>
 #include <stdio.h>
 
 #define LEN(s) (sizeof(s) / sizeof(*s))

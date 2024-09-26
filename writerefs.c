@@ -2,7 +2,6 @@
 #include "writer.h"
 
 #include <string.h>
-#include <time.h>
 
 
 struct referenceinfo {

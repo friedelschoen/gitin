@@ -1,7 +1,6 @@
 #include "commit.h"
 
 #include <err.h>
-#include <stdio.h>
 #include <string.h>
 
 int commitinfo_getstats(struct commitstats* ci, git_commit* commit, git_repository* repo) {

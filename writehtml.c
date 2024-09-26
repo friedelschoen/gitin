@@ -3,7 +3,7 @@
 #include "writer.h"
 
 #include <stdarg.h>
-#include <stdio.h>
+
 
 void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char* name, const char* description, ...) {
 	va_list desc_args;
