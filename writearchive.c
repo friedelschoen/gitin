@@ -1,10 +1,8 @@
-#include "makearchive.h"
-
 #include "common.h"
+#include "writer.h"
 
 #include <archive.h>
 #include <archive_entry.h>
-#include <git2/tree.h>
 #include <libgen.h>
 #include <limits.h>
 #include <stdio.h>
@@ -70,7 +68,7 @@ static int process_tree(git_repository* repo, git_tree* tree, const char* base_p
 }
 
 // Updated function to accept git_reference instead of branch/tag name
-int makearchive(const struct repoinfo* info, const struct git_reference* ref) {
+int writearchive(const struct repoinfo* info, const struct git_reference* ref) {
 	git_object* target = NULL;
 	git_commit* commit = NULL;
 	git_tree*   tree   = NULL;

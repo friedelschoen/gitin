@@ -28,6 +28,7 @@ struct repoinfo {
 	int    headfilesalloc;
 };
 
+int  writearchive(const struct repoinfo* info, const struct git_reference* ref);
 void writefooter(FILE* fp);
 int  writefiles(FILE* fp, struct repoinfo* info);
 int  writeindex(FILE* fp, const struct repoinfo* info);

@@ -1,5 +1,4 @@
 #include "hprintf.h"
-#include "makearchive.h"
 #include "writer.h"
 
 #include <string.h>
@@ -46,7 +45,7 @@ static int writeref(FILE* fp, const struct repoinfo* info, struct referenceinfo*
 	        title);
 
 	for (size_t i = 0; i < nrefs; i++) {
-		makearchive(info, refs[i].ref);
+		writearchive(info, refs[i].ref);
 		ishead = info->head && !git_oid_cmp(git_reference_target(refs[i].ref), info->head);
 
 		name   = git_reference_shorthand(refs[i].ref);
