@@ -29,7 +29,7 @@ const char* stylesheet = "style.css";
 const char* highlightcmd = "chroma --html --html-only --html-lines --html-inline-styles --style=$scheme --lexer=$type";
 
 /* Color scheme to use for syntax highlighting in the HTML output. */
-const char* colorscheme = "pastei";
+const char* colorscheme = "pastie";
 
 /* Directory to store cached highlighted files, improving performance for repeated operations. */
 const char* highlightcache = ".gitin/files";
