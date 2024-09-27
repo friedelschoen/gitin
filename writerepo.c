@@ -82,6 +82,7 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 			else
 				fprintf(stderr, "warn: ignoring unknown config-key '%s'\n", state.key);
 		}
+		fclose(fp);
 	}
 
 	/* check pinfiles */
@@ -133,7 +134,7 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 	checkfileerror(fp, path, 'w');
 	fclose(fp);
 
-	writeindex(index, &info);
+	writeindexline(index, &info);
 	checkfileerror(index, "index.html", 'w');
 
 	/* cleanup */

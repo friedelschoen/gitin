@@ -31,7 +31,8 @@ struct repoinfo {
 int  writearchive(const struct repoinfo* info, const struct git_reference* ref);
 void writefooter(FILE* fp);
 int  writefiles(FILE* fp, struct repoinfo* info);
-int  writeindex(FILE* fp, const struct repoinfo* info);
+void writeindex(const char* destdir, char** repos, int nrepos);
+int  writeindexline(FILE* fp, const struct repoinfo* info);
 int  writelog(FILE* fp, const struct repoinfo* info);
 void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char* name, const char* description, ...);
 int  writerefs(FILE* fp, const struct repoinfo* info);
