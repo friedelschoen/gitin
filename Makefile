@@ -6,7 +6,9 @@ PREFIX = /usr/local
 
 # flags
 CC ?= gcc
-CFLAGS = -Wall -Wextra -Wpedantic -Werror -O2 -g -D_XOPEN_SOURCE=700 $(shell pkg-config --cflags $(LIBS))
+CFLAGS = -Wall -Wextra -Wpedantic -Werror -O2 -g \
+		 -D_XOPEN_SOURCE=700 -D_GNU_SOURCE \
+		 $(shell pkg-config --cflags $(LIBS))
 LDFLAGS = $(shell pkg-config --libs $(LIBS))
 
 BINS = gitin findrepos

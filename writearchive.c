@@ -1,4 +1,5 @@
 #include "common.h"
+#include "config.h"
 #include "writer.h"
 
 #include <archive.h>
@@ -87,15 +88,17 @@ int writearchive(const struct repoinfo* info, const struct git_reference* ref) {
 
 	git_oid_tostr(oid, sizeof(oid), git_commit_id(commit));
 
-	snprintf(path, sizeof(path), "%s/.gitin/archive/%s", info->destdir, git_reference_shorthand(ref));
-	if ((fp = fopen(path, "r"))) {
-		fread(configoid, GIT_OID_HEXSZ, 1, fp);
-		configoid[GIT_OID_HEXSZ] = '\0';
-		fclose(fp);
+	if (!force) {
+		snprintf(path, sizeof(path), "%s/.gitin/archive/%s", info->destdir, git_reference_shorthand(ref));
+		if ((fp = fopen(path, "r"))) {
+			fread(configoid, GIT_OID_HEXSZ, 1, fp);
+			configoid[GIT_OID_HEXSZ] = '\0';
+			fclose(fp);
 
-		if (!strcmp(oid, configoid)) {
-			git_commit_free(commit);
-			return 0;
+			if (!strcmp(oid, configoid)) {
+				git_commit_free(commit);
+				return 0;
+			}
 		}
 	}
 
