@@ -6,6 +6,9 @@
 #include "writer.h"
 
 #include <err.h>
+#include <git2/commit.h>
+#include <git2/deprecated.h>
+#include <git2/oid.h>
 #include <libgen.h>
 #include <limits.h>
 #include <string.h>
@@ -68,21 +71,19 @@ static const char* filemode(git_filemode_t m) {
 	return mode;
 }
 
-static ssize_t writeblobhtml(FILE* fp, const struct repoinfo* info, const git_blob* blob, const char* filename) {
-	ssize_t     n = 0, len;
-	const char* s = git_blob_rawcontent(blob);
-
+static ssize_t highlight(FILE* fp, const struct repoinfo* info, const git_blob* blob, const char* filename) {
 	static unsigned char buffer[512];
 	static char          cachepath[PATH_MAX];
-
-	FILE*    cache;
-	pipe_t   inpipefd;
-	pipe_t   outpipefd;
-	pid_t    process;
-	ssize_t  readlen;
-	int      status;
-	uint32_t contenthash;
-	char*    type;
+	ssize_t              n = 0, len;
+	const char*          s = git_blob_rawcontent(blob);
+	FILE*                cache;
+	pipe_t               inpipefd;
+	pipe_t               outpipefd;
+	pid_t                process;
+	ssize_t              readlen;
+	int                  status;
+	uint32_t             contenthash;
+	char*                type;
 
 	len = git_blob_rawsize(blob);
 	if (len == 0)
@@ -194,7 +195,7 @@ static size_t writeblob(const struct repoinfo* info, int relpath, git_object* ob
 	if (git_blob_is_binary((git_blob*) obj))
 		fputs("<p>Binary file.</p>\n", fp);
 	else
-		lc = writeblobhtml(fp, info, (git_blob*) obj, filename);
+		lc = highlight(fp, info, (git_blob*) obj, filename);
 
 	writefooter(fp);
 	checkfileerror(fp, fpath, 'w');
@@ -314,11 +315,28 @@ static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree
 	return 0;
 }
 
-int writefiles(FILE* fp, struct repoinfo* info) {
+int writefiles(struct repoinfo* info) {
 	git_tree*   tree   = NULL;
 	git_commit* commit = NULL;
 	int         ret    = -1;
 	char        path[PATH_MAX];
+	FILE *      cache, *fp;
+	char        headoid[GIT_OID_HEXSZ + 1], oid[GIT_OID_HEXSZ + 1];
+
+	if (info->head) {
+		git_oid_tostr(headoid, sizeof(headoid), info->head);
+
+		snprintf(path, sizeof(path), "%s/.gitin/filetree", info->destdir);
+		if ((cache = fopen(path, "r"))) {
+			fread(oid, GIT_OID_HEXSZ, 1, cache);
+			oid[GIT_OID_HEXSZ] = '\0';
+			fclose(cache);
+
+			if (!strcmp(oid, headoid)) {
+				return 0;
+			}
+		}
+	}
 
 	// clean /file and /blob because they're rewritten nontheless
 	snprintf(path, sizeof(path), "%s/file", info->destdir);
@@ -326,19 +344,38 @@ int writefiles(FILE* fp, struct repoinfo* info) {
 	snprintf(path, sizeof(path), "%s/blob", info->destdir);
 	removedir(path);
 
+	/* files for HEAD, it must be before writelog, as it also populates headfiles! */
+	snprintf(path, sizeof(path), "%s/files.html", info->destdir);
+	if (!(fp = fopen(path, "w")))
+		err(1, "fopen: '%s'", path);
+	fprintf(stderr, "%s\n", path);
+	writeheader(fp, info, 0, info->name, "%y", info->description);
+
 	fputs("<table id=\"files\"><thead>\n<tr>"
 	      "<td><b>Mode</b></td><td class=\"expand\"><b>Name</b></td>"
 	      "<td class=\"num\" align=\"right\"><b>Size</b></td>"
 	      "</tr>\n</thead><tbody>\n",
 	      fp);
 
-	if (!git_commit_lookup(&commit, info->repo, info->head) && !git_commit_tree(&tree, commit))
+	if (info->head && !git_commit_lookup(&commit, info->repo, info->head) && !git_commit_tree(&tree, commit))
 		ret = writefilestree(fp, info, 1, tree, "");
+
+	git_tree_free(tree);
 
 	fputs("</tbody></table>", fp);
 
+	writefooter(fp);
+	checkfileerror(fp, path, 'w');
+	fclose(fp);
+
+	snprintf(path, sizeof(path), "%s/.gitin/filetree", info->destdir);
+	if ((cache = fopen(path, "w"))) {
+		fprintf(stderr, "%s\n", path);
+		fwrite(headoid, GIT_OID_HEXSZ, 1, cache);
+		fclose(cache);
+	}
+
 	git_commit_free(commit);
-	git_tree_free(tree);
 
 	return ret;
 }

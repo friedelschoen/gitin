@@ -101,17 +101,7 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 		info.submodules = ".gitmodules";
 	git_object_free(obj);
 
-	/* files for HEAD, it must be before writelog, as it also populates headfiles! */
-	snprintf(path, sizeof(path), "%s/files.html", info.destdir);
-	if (!(fp = fopen(path, "w")))
-		err(1, "fopen: '%s'", path);
-	fprintf(stderr, "%s\n", path);
-	writeheader(fp, &info, 0, info.name, "%y", info.description);
-	if (info.head)
-		writefiles(fp, &info);
-	writefooter(fp);
-	checkfileerror(fp, path, 'w');
-	fclose(fp);
+	writefiles(&info);
 
 	/* log for HEAD */
 	snprintf(path, sizeof(path), "%s/index.html", info.destdir);
