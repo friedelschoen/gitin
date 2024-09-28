@@ -1,0 +1,60 @@
+.TH FINDREPOS 1 "September 2024" "findrepos %VERSION%" "User Commands"
+.SH NAME
+findrepos \- recursively search for bare Git repositories
+
+.SH SYNOPSIS
+.B findrepos
+[\fIstart-point\fR]
+
+.SH DESCRIPTION
+.B findrepos
+is a utility that recursively searches through directories starting from a given point and identifies directories that are bare Git repositories. A bare Git repository is identified by the presence of a \fBHEAD\fR file directly in the directory.
+
+If no \fIstart-point\fR is provided, the search will start from the current directory.
+
+.SH OPTIONS
+.TP
+.I start-point
+The directory from which to begin the search. If omitted, the program will start from the current directory (`.`).
+
+.SH USAGE
+.PP
+To search from the current directory:
+
+.nf
+    findrepos
+.fi
+
+To search from a specific directory:
+
+.nf
+    findrepos /path/to/directory
+.fi
+
+.SH EXAMPLES
+.PP
+Start searching for bare Git repositories from the current directory:
+
+.nf
+    findrepos
+.fi
+
+Start searching for bare Git repositories from the specified directory `/home/user/projects`:
+
+.nf
+    findrepos /home/user/projects
+.fi
+
+.SH EXIT STATUS
+.TP
+.B 0
+Successful execution.
+.TP
+.B 1
+Invalid arguments (too many arguments or unrecognized option).
+
+.SH SEE ALSO
+git(1)
+
+.SH AUTHOR
+Written by Friedel Schön

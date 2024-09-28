@@ -4,17 +4,14 @@ VERSION = 0.1
 # paths
 PREFIX = /usr/local
 
-# library flags
-LIBS = libgit2 libarchive
-
 # use system flags.
 CC ?= gcc
-CFLAGS := -Wall -Wextra -Wpedantic -Werror -O2 -g -D_XOPEN_SOURCE=700 $(shell pkg-config --cflags $(LIBS)) 
-LDFLAGS := $(shell pkg-config --libs $(LIBS))
+CFLAGS = -Wall -Wextra -Wpedantic -Werror -O2 -g -D_XOPEN_SOURCE=700 $(shell pkg-config --cflags $(LIBS)) 
+LDFLAGS = $(shell pkg-config --libs $(LIBS))
 
-BIN = ${NAME}
+BINS = gitin findrepos
 
-MAN1 = ${NAME}.1
+MAN1 = gitin.1 findrepos.1
 
 DOCS = \
 	favicon.png \
@@ -37,7 +34,6 @@ OBJECTS = \
 	common.o \
 	compat.o \
 	config.o \
-	gitin.o \
 	hprintf.o \
 	murmur3.o \
 	parseconfig.o \
@@ -49,28 +45,35 @@ OBJECTS = \
 	writerefs.o \
 	writerepo.o
 
-all: ${BIN} ${MAN1} compile_flags.txt
+all: ${BINS} ${MAN1} compile_flags.txt
 
 %.o: %.c ${HEADER}
 	${CC} -c -o $@ $< ${CFLAGS} ${CPPFLAGS}
 
-${BIN}: ${OBJECTS}
-	${CC} -o $@ $^ ${LDFLAGS}
-
 %: %.in
 	sed 's/%VERSION%/${VERSION}/g' $< > $@
+
+%: %.o
+	${CC} -o $@ $^ ${LDFLAGS}
+
+gitin: LIBS = libgit2 libarchive
+gitin: ${OBJECTS}
+
+findrepos: LIBS = libgit2
+findrepos: findrepos.o
 
 .PHONY: all clean install uninstall dist
 
 clean:
-	rm -f ${BIN} ${OBJECTS} ${MAN1} compile_flags.txt
+	rm -f ${BINS} ${BINS:=.o} ${OBJECTS} ${MAN1} compile_flags.txt
 
+compile_flags.txt: LIBS=libgit2 libarchive
 compile_flags.txt:
 	echo ${CFLAGS} ${CPPFLAGS} | tr ' ' '\n' > $@
 
 install: all
 	mkdir -p ${PREFIX}/bin
-	for f in ${BIN}; do \
+	for f in ${BINS}; do \
 		install -Dm 755 $$f ${PREFIX}/bin/$$f; \
 	done
 
@@ -85,7 +88,7 @@ install: all
 	done
 
 uninstall:
-	for f in ${BIN}; do \
+	for f in ${BINS}; do \
 		rm -f ${PREFIX}/bin/$$f; \
 	done
 	for f in ${MAN1}; do \
