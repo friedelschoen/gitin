@@ -189,7 +189,7 @@ static size_t writeblob(const struct repoinfo* info, int relpath, git_object* ob
 	fprintf(stderr, "%s\n", fpath);
 
 	writeheader(fp, info, relpath, info->name, "%y", filepath);
-	hprintf(fp, "<p> %y (%zuB) <a href='%rstatic%s'>download</a></p><hr/>", filename, filesize, relpath, filepath);
+	hprintf(fp, "<p> %y (%zuB) <a href='%rblob%h'>download</a></p><hr/>", filename, filesize, relpath, filepath);
 
 	if (git_blob_is_binary((git_blob*) obj))
 		fputs("<p>Binary file.</p>\n", fp);
@@ -282,7 +282,7 @@ static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree
 			addheadfile(info, entrypath + 1);    // +1 to remove leading slash
 
 			snprintf(filepath, sizeof(filepath), "%s/file/%s.html", info->destdir, entrypath);
-			snprintf(staticpath, sizeof(staticpath), "%s/static/%s", info->destdir, entrypath);
+			snprintf(staticpath, sizeof(staticpath), "%s/blob/%s", info->destdir, entrypath);
 
 			normalize_path(filepath);
 			normalize_path(staticpath);
@@ -320,10 +320,10 @@ int writefiles(FILE* fp, struct repoinfo* info) {
 	int         ret    = -1;
 	char        path[PATH_MAX];
 
-	// clean /file and /static because they're rewritten nontheless
+	// clean /file and /blob because they're rewritten nontheless
 	snprintf(path, sizeof(path), "%s/file", info->destdir);
 	removedir(path);
-	snprintf(path, sizeof(path), "%s/static", info->destdir);
+	snprintf(path, sizeof(path), "%s/blob", info->destdir);
 	removedir(path);
 
 	fputs("<table id=\"files\"><thead>\n<tr>"
