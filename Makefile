@@ -60,7 +60,7 @@ gitin: LIBS = libgit2 libarchive
 gitin: ${OBJECTS}
 
 findrepos: LIBS = libgit2
-findrepos: findrepos.o
+findrepos: findrepos.o config.o
 
 .PHONY: all clean install uninstall dist
 

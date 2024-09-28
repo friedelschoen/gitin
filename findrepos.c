@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include <dirent.h>
 #include <limits.h>
 #include <stdio.h>
@@ -13,7 +15,15 @@ int check_git_repo(const char* path) {
 
 	// Check for bare repository (HEAD file directly in the directory)
 	snprintf(git_path, sizeof(git_path), "%s/HEAD", path);
-	return stat(git_path, &statbuf) == 0 && S_ISREG(statbuf.st_mode);
+	if (stat(git_path, &statbuf) != 0 || !S_ISREG(statbuf.st_mode))
+		return 0;
+
+	// Check for bare repository (HEAD file directly in the directory)
+	snprintf(git_path, sizeof(git_path), "%s/%s", path, configfile);
+	if (stat(git_path, &statbuf) != 0 || !S_ISREG(statbuf.st_mode))
+		return 0;
+
+	return 1;
 }
 
 void recurse_directories(const char* base_path) {
