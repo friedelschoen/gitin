@@ -65,24 +65,9 @@ static void writecategory(FILE* index, const char* name, int len) {
 	hprintf(index, "<tr class=\"category\"><td>%y</td><td>%y</td><td></td></tr>\n", category, description);
 }
 
-static int countchr(const char* str, char chr) {
-	int count = 0;
-	while (*str) {
-		if (*str++ == chr)
-			count++;
-	}
-	return count;
-}
-
 static int sortpath(const void* leftp, const void* rightp) {
 	const char* left  = *(const char**) leftp;
 	const char* right = *(const char**) rightp;
-
-	int left_slash  = countchr(left, '/');
-	int right_slash = countchr(right, '/');
-
-	if (left_slash != right_slash)
-		return left_slash - right_slash;
 
 	return strcmp(left, right);
 }
