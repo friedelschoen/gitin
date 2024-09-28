@@ -10,7 +10,7 @@
 #include <unistd.h>
 
 
-static void writecommit(FILE* fp, int relpath, const git_commit* commit) {
+static void writecommit(FILE* fp, const git_commit* commit, int parentlink) {
 	char                 oid[GIT_OID_HEXSZ + 1], parentoid[GIT_OID_HEXSZ + 1];
 	const git_signature* author = git_commit_author(commit);
 	const char*          msg    = git_commit_message(commit);
@@ -18,11 +18,14 @@ static void writecommit(FILE* fp, int relpath, const git_commit* commit) {
 	git_oid_tostr(oid, sizeof(oid), git_commit_id(commit));
 	git_oid_tostr(parentoid, sizeof(parentoid), git_commit_parent_id(commit, 0));
 
-	hprintf(fp, "<b>commit</b> <a href=\"%rcommit/%s.html\">%s</a>\n", relpath, oid, oid);
+	hprintf(fp, "<b>commit</b> <a href=\"%s.html\">%s</a>\n", oid, oid);
 
-	if (*parentoid)
-		hprintf(fp, "<b>parent</b> <a href=\"%rcommit/%s.html\">%s</a>\n", relpath, parentoid, parentoid);
-
+	if (*parentoid) {
+		if (parentlink)
+			hprintf(fp, "<b>parent</b> <a href=\"%s.html\">%s</a>\n", parentoid, parentoid);
+		else
+			hprintf(fp, "<b>parent</b> %s\n", parentoid);
+	}
 	if (author)
 		hprintf(fp, "<b>Author:</b> %y &lt;<a href=\"mailto:%y\">%y</a>&gt;\n<b>Date:</b>   %T\n", author->name,
 		        author->email, author->email, &author->when);
@@ -40,7 +43,8 @@ static int hasheadfile(const struct repoinfo* info, const char* filename) {
 	return 0;
 }
 
-static void writediff(FILE* fp, const struct repoinfo* info, int relpath, git_commit* commit, struct commitstats* ci) {
+static void writediff(FILE* fp, const struct repoinfo* info, git_commit* commit, struct commitstats* ci,
+                      int parentlink) {
 	const git_diff_delta* delta;
 	const git_diff_hunk*  hunk;
 	const git_diff_line*  line;
@@ -49,7 +53,7 @@ static void writediff(FILE* fp, const struct repoinfo* info, int relpath, git_co
 	char                  linestr[80];
 	int                   c;
 
-	writecommit(fp, relpath, commit);
+	writecommit(fp, commit, parentlink);
 
 	if (!ci->deltas)
 		return;
@@ -127,14 +131,13 @@ static void writediff(FILE* fp, const struct repoinfo* info, int relpath, git_co
 		delta = git_patch_get_delta(patch);
 
 		if (hasheadfile(info, delta->old_file.path))
-			hprintf(fp, "<b>diff --git a/<a id=\"h%zu\" href=\"%rfile/%h.html\">%y</a> ", i, relpath,
-			        delta->old_file.path, delta->old_file.path);
+			hprintf(fp, "<b>diff --git a/<a id=\"h%zu\" href=\"../file/%h.html\">%y</a> ", i, delta->old_file.path,
+			        delta->old_file.path);
 		else
 			hprintf(fp, "<b>diff --git a/%y ", delta->old_file.path);
 
 		if (hasheadfile(info, delta->new_file.path))
-			hprintf(fp, "b/<a href=\"%rfile/%h.html\">%y</a></b>\n", relpath, delta->new_file.path,
-			        delta->new_file.path);
+			hprintf(fp, "b/<a href=\"../file/%h.html\">%y</a></b>\n", delta->new_file.path, delta->new_file.path);
 		else
 			hprintf(fp, "b/%y</b>\n", delta->new_file.path);
 
@@ -241,7 +244,7 @@ int writelog(FILE* fp, const struct repoinfo* info) {
 			fprintf(stderr, "%s\n", path);
 			writeheader(fpfile, info, 1, info->name, "%y", summary);
 			fputs("<pre>", fpfile);
-			writediff(fpfile, info, 1, commit, &ci);
+			writediff(fpfile, info, commit, &ci, ncommits != maxcommits);
 			fputs("</pre>\n", fpfile);
 			writefooter(fpfile);
 			checkfileerror(fpfile, path, 'w');
