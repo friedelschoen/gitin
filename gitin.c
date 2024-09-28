@@ -25,12 +25,6 @@ int main(int argc, char** argv) {
 		case 'h':
 			highlightcmd = EARGF(usage(self));
 			break;
-		case 'c':
-			commitcache = EARGF(usage(self));
-			break;
-		case 'H':
-			highlightcache = EARGF(usage(self));
-			break;
 		case 'l':
 			maxcommits = atoi(EARGF(usage(self)));
 			break;

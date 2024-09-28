@@ -49,7 +49,7 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 		return;
 	}
 
-	snprintf(path, sizeof(path), "%s/%s", info.destdir, highlightcache);
+	snprintf(path, sizeof(path), "%s/.gitin/files", info.destdir);
 	mkdirp(path);
 	snprintf(path, sizeof(path), "%s/.gitin/archive", info.destdir);
 	mkdirp(path);

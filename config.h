@@ -4,8 +4,6 @@ extern const char* highlightcmd;
 extern const char* logoicon;
 extern const char* favicon;
 extern const char* favicontype;
-extern const char* highlightcache;
-extern const char* commitcache;
 extern const char* pinfiles[];
 extern const char* colorscheme;
 extern int         npinfiles;
