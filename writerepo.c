@@ -44,11 +44,15 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 
 	snprintf(info.destdir, sizeof(info.destdir), "%s/%s", destination, info.repodir);
 	normalize_path(info.destdir);
-
 	if (mkdirp(info.destdir) == -1) {
 		err(1, "cannot create destdir: %s", info.destdir);
 		return;
 	}
+
+	snprintf(path, sizeof(path), "%s/%s", info.destdir, highlightcache);
+	mkdirp(path);
+	snprintf(path, sizeof(path), "%s/.gitin/archive", info.destdir);
+	mkdirp(path);
 
 	if (git_repository_open_ext(&info.repo, info.repodir, GIT_REPOSITORY_OPEN_NO_SEARCH, NULL) < 0) {
 		err(1, "cannot open repository");

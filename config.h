@@ -10,7 +10,7 @@ extern const char* pinfiles[];
 extern const char* colorscheme;
 extern int         npinfiles;
 extern const char* stylesheet;
-extern long long   nlogcommits;
+extern long long   maxcommits;
 extern const char* sitename;
 extern const char* footertext;
 extern const char* configfile;
