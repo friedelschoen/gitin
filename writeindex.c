@@ -43,8 +43,9 @@ err:
 }
 
 static void writecategory(FILE* index, const char* name, int len) {
-	char               category[PATH_MAX], configpath[PATH_MAX], description[1024] = "";
-	struct configstate state;
+	char               category[PATH_MAX], configpath[PATH_MAX];
+	char*              description = "";
+	struct configstate state       = { 0 };
 	FILE*              fp;
 
 	memcpy(category, name, len);
@@ -52,10 +53,9 @@ static void writecategory(FILE* index, const char* name, int len) {
 
 	snprintf(configpath, sizeof(configpath), "%s/%s", category, configfile);
 	if ((fp = fopen(configpath, "r"))) {
-		memset(&state, 0, sizeof(state));
 		while (!parseconfig(&state, fp)) {
 			if (!strcmp(state.key, "description"))
-				strlcpy(description, state.value, sizeof(description));
+				description = state.value;
 			else
 				fprintf(stderr, "warn: ignoring unknown config-key '%s'\n", state.key);
 		}
@@ -63,6 +63,8 @@ static void writecategory(FILE* index, const char* name, int len) {
 	}
 
 	hprintf(index, "<tr class=\"category\"><td>%y</td><td>%y</td><td></td></tr>\n", category, description);
+
+	parseconfig_free(&state);
 }
 
 static int sortpath(const void* leftp, const void* rightp) {
@@ -83,25 +85,7 @@ void writeindex(const char* destdir, char** repos, int nrepos) {
 		errx(1, "open %s", path);
 	fprintf(stderr, "%s\n", path);
 
-	struct configstate state;
-	FILE*              fp;
-	char               name[256];
-	char               description[1024];
-
-	if ((fp = fopen(configfile, "r"))) {
-		memset(&state, 0, sizeof(state));
-		while (!parseconfig(&state, fp)) {
-			if (!strcmp(state.key, "name"))
-				strlcpy(name, state.value, sizeof(name));
-			else if (!strcmp(state.key, "description"))
-				strlcpy(description, state.value, sizeof(description));
-			else
-				fprintf(stderr, "warn: ignoring unknown config-key '%s'\n", state.key);
-		}
-		fclose(fp);
-	}
-
-	writeheader(index, NULL, 0, name, "%y", description);
+	writeheader(index, NULL, 0, sitename, "%y", sitedescription);
 	fputs("<table id=\"index\"><thead>\n"
 	      "<tr><td><b>Name</b></td><td class=\"expand\"><b>Description</b></td><td><b>Last changes</b></td></tr>"
 	      "</thead><tbody>\n",

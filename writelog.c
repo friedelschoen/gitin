@@ -234,7 +234,7 @@ int writelog(FILE* fp, const struct repoinfo* info) {
 		normalize_path(path);
 
 		// if it does not exist yet
-		if (access(path, F_OK)) {
+		if (force || access(path, F_OK)) {
 			summary = git_commit_summary(commit);
 
 			// Write the commit's diff to a file

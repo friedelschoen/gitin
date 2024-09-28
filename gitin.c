@@ -1,9 +1,11 @@
 #include "arg.h"
 #include "config.h"
+#include "parseconfig.h"
 #include "writer.h"
 
 #include <signal.h>
 
+int force = 0;
 
 static void usage(const char* argv0) {
 	fprintf(stderr,
@@ -22,12 +24,12 @@ int main(int argc, char** argv) {
 		case 'd':
 			destdir = EARGF(usage(self));
 			break;
-		case 'h':
-			highlightcmd = EARGF(usage(self));
+		case 'f':
+			force = 1;
 			break;
-		case 'l':
-			maxcommits = atoi(EARGF(usage(self)));
-			break;
+		default:
+			fprintf(stderr, "error: unknown option '-%c'\n", OPT);
+			return 1;
 	}
 	ARGEND
 
@@ -35,6 +37,8 @@ int main(int argc, char** argv) {
 		usage(self);
 
 	signal(SIGPIPE, SIG_IGN);
+
+	setconfig();
 
 	/* do not search outside the git repository:
 	   GIT_CONFIG_LEVEL_APP is the highest level currently */

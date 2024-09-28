@@ -100,7 +100,7 @@ static ssize_t highlight(FILE* fp, const struct repoinfo* info, const git_blob* 
 	snprintf(cachepath, sizeof(cachepath), "%s/.gitin/files/%x", info->destdir, contenthash);
 	normalize_path(cachepath);
 
-	if ((cache = fopen(cachepath, "r"))) {
+	if (!force && (cache = fopen(cachepath, "r"))) {
 		n = 0;
 		while ((readlen = fread(buffer, 1, sizeof(buffer), cache)) > 0) {
 			fwrite(buffer, 1, readlen, fp);
@@ -149,8 +149,8 @@ static ssize_t highlight(FILE* fp, const struct repoinfo* info, const git_blob* 
 
 	close(outpipefd.write);
 
-	cache = fopen(cachepath, "w+");
-	fprintf(stderr, "%s\n", cachepath);
+	if ((cache = fopen(cachepath, "w+")))
+		fprintf(stderr, "%s\n", cachepath);
 
 	n = 0;
 	while ((readlen = read(inpipefd.read, buffer, sizeof buffer)) > 0) {
@@ -323,7 +323,7 @@ int writefiles(struct repoinfo* info) {
 	FILE *      cache, *fp;
 	char        headoid[GIT_OID_HEXSZ + 1], oid[GIT_OID_HEXSZ + 1];
 
-	if (info->head) {
+	if (!force && info->head) {
 		git_oid_tostr(headoid, sizeof(headoid), info->head);
 
 		snprintf(path, sizeof(path), "%s/.gitin/filetree", info->destdir);

@@ -2,16 +2,16 @@
 
 #include <stdio.h>
 
-#define KEYMAX 128
-
 
 struct configstate {
-	char*  line;
-	size_t len;
+	char*  buffer;    // The entire config file
+	size_t buflen;
 
-	char  key[KEYMAX];
-	char* value;
+	char* current;    // Pointer to the current position in the buffer
+	char* key;        // Current key
+	char* value;      // Current value
 };
 
 int  parseconfig(struct configstate* state, FILE* fp);
 void parseconfig_free(struct configstate* state);
+void setconfig(void);
