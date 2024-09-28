@@ -31,12 +31,6 @@ const char* highlightcmd = "chroma --html --html-only --html-lines --html-inline
 /* Color scheme to use for syntax highlighting in the HTML output. */
 const char* colorscheme = "pastie";
 
-/* Directory to store cached highlighted files, improving performance for repeated operations. */
-const char* highlightcache = ".gitin/files";
-
-/* Directory to store cached commit information. Set to NULL if not used. */
-const char* commitcache = NULL;    //".gitincommits";
-
 /* Configuration file to use for additional settings. */
 const char* configfile = "gitin.conf";
 

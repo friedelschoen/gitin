@@ -97,7 +97,7 @@ static ssize_t highlight(FILE* fp, const struct repoinfo* info, const git_blob* 
 	fflush(stdout);
 
 	contenthash = murmurhash3(s, len, MURMUR_SEED);
-	snprintf(cachepath, sizeof(cachepath), "%s/%s/%x", info->destdir, highlightcache, contenthash);
+	snprintf(cachepath, sizeof(cachepath), "%s/.gitin/files/%x", info->destdir, contenthash);
 	normalize_path(cachepath);
 
 	if ((cache = fopen(cachepath, "r"))) {
