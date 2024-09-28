@@ -74,16 +74,14 @@ static int sortpath(const void* leftp, const void* rightp) {
 
 void writeindex(const char* destdir, char** repos, int nrepos) {
 	FILE* index;
+	char  path[PATH_MAX];
 
 	mkdirp(destdir);
-	mkdirp(highlightcache);
 
-	char indexpath[PATH_MAX];
-	snprintf(indexpath, sizeof(indexpath), "%s/index.html", destdir);
-
-	if (!(index = fopen(indexpath, "w+")))
-		errx(1, "open %s", indexpath);
-	fprintf(stderr, "%s\n", indexpath);
+	snprintf(path, sizeof(path), "%s/index.html", destdir);
+	if (!(index = fopen(path, "w+")))
+		errx(1, "open %s", path);
+	fprintf(stderr, "%s\n", path);
 
 	struct configstate state;
 	FILE*              fp;
@@ -125,6 +123,6 @@ void writeindex(const char* destdir, char** repos, int nrepos) {
 	}
 	fputs("</tbody>\n</table>", index);
 	writefooter(index);
-	checkfileerror(index, indexpath, 'w');
+	checkfileerror(index, path, 'w');
 	fclose(index);
 }

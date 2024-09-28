@@ -5,8 +5,10 @@
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
+#include <ftw.h>
 #include <limits.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 
 /* Handle read or write errors for a FILE * stream */
@@ -34,6 +36,18 @@ int mkdirp(const char* path) {
 	if (mkdir(tmp, S_IRWXU | S_IRWXG | S_IRWXO) < 0 && errno != EEXIST)
 		return -1;
 	return 0;
+}
+
+static int unlink_cb(const char* fpath, const struct stat* sb, int typeflag, struct FTW* ftwbuf) {
+	(void) sb;
+	(void) typeflag;
+	(void) ftwbuf;
+
+	return remove(fpath);
+}
+
+int removedir(char* path) {
+	return nftw(path, unlink_cb, 64, FTW_DEPTH | FTW_PHYS);
 }
 
 /* Escape characters below as HTML 2.0 / XML 1.0, ignore printing '\r', '\n' */

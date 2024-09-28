@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
 			highlightcache = EARGF(usage(self));
 			break;
 		case 'l':
-			nlogcommits = atoi(EARGF(usage(self)));
+			maxcommits = atoi(EARGF(usage(self)));
 			break;
 	}
 	ARGEND

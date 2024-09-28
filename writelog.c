@@ -7,6 +7,7 @@
 #include <err.h>
 #include <limits.h>
 #include <string.h>
+#include <unistd.h>
 
 
 static void writecommit(FILE* fp, int relpath, const git_commit* commit) {
@@ -199,7 +200,7 @@ int writelog(FILE* fp, const struct repoinfo* info) {
 	git_oid            id;
 	char               path[PATH_MAX], oidstr[GIT_OID_HEXSZ + 1];
 	FILE*              fpfile;
-	size_t             remcommits = 0;
+	ssize_t            ncommits = 0;
 	const char*        summary;
 	struct commitstats ci;
 
@@ -212,6 +213,10 @@ int writelog(FILE* fp, const struct repoinfo* info) {
 
 	// Iterate through the commits
 	while (!git_revwalk_next(&id, w)) {
+		ncommits++;
+		if (maxcommits > 0 && ncommits > maxcommits)
+			continue;
+
 		// Lookup the commit object
 		if (git_commit_lookup(&commit, info->repo, &id)) {
 			fprintf(stderr, "Error looking up commit\n");
@@ -225,34 +230,25 @@ int writelog(FILE* fp, const struct repoinfo* info) {
 		snprintf(path, sizeof(path), "%s/commit/%s.html", info->destdir, oidstr);
 		normalize_path(path);
 
-		// Skip commits that are already written
-		if (!nlogcommits) {
-			remcommits++;
+		// if it does not exist yet
+		if (access(path, F_OK)) {
+			summary = git_commit_summary(commit);
+
+			// Write the commit's diff to a file
+			if (!(fpfile = fopen(path, "w"))) {
+				err(1, "fopen: '%s'", path);
+			}
+			fprintf(stderr, "%s\n", path);
+			writeheader(fpfile, info, 1, info->name, "%y", summary);
+			fputs("<pre>", fpfile);
+			writediff(fpfile, info, 1, commit, &ci);
+			fputs("</pre>\n", fpfile);
+			writefooter(fpfile);
+			checkfileerror(fpfile, path, 'w');
+			fclose(fpfile);
 		}
 
-		summary = git_commit_summary(commit);
-
-		// Write the commit's diff to a file
-		if (!(fpfile = fopen(path, "w"))) {
-			err(1, "fopen: '%s'", path);
-		}
-		fprintf(stderr, "%s\n", path);
-		writeheader(fpfile, info, 1, info->name, "%y", summary);
-		fputs("<pre>", fpfile);
-		(void) writediff;
-		writediff(fpfile, info, 1, commit, &ci);
-		fputs("</pre>\n", fpfile);
-		writefooter(fpfile);
-		checkfileerror(fpfile, path, 'w');
-		fclose(fpfile);
-
-		// Write the log line
-		if (nlogcommits != 0) {
-			(void) writelogline;
-			writelogline(fp, 0, commit, &ci);
-			if (nlogcommits > 0)
-				nlogcommits--;
-		}
+		writelogline(fp, 0, commit, &ci);
 
 		commitinfo_free(&ci);
 		git_commit_free(commit);
@@ -260,13 +256,11 @@ int writelog(FILE* fp, const struct repoinfo* info) {
 
 	git_revwalk_free(w);
 
-	// Handle remaining commits
-	if (nlogcommits == 0 && remcommits != 0) {
-		fprintf(fp,
-		        "<tr><td></td><td colspan=\"5\">"
-		        "%zu more commits remaining, fetch the repository"
-		        "</td></tr>\n",
-		        remcommits);
+	if (maxcommits > 0 && ncommits > maxcommits) {
+		if (ncommits - maxcommits == 1)
+			fprintf(fp, "<tr><td></td><td colspan=\"5\">1 commit left out...</td></tr>\n");
+		else
+			fprintf(fp, "<tr><td></td><td colspan=\"5\">%lld commits left out...</td></tr>\n", ncommits - maxcommits);
 	}
 
 	return 0;

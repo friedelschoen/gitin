@@ -54,7 +54,7 @@ int npinfiles = LEN(pinfiles);
 /* Commit and log settings */
 
 /* Maximum number of commits to display in the log view. A value of -1 indicates that no limit is set. */
-long long nlogcommits = -1;
+long long maxcommits = -1;
 
 /* File size settings */
 

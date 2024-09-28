@@ -68,9 +68,7 @@ static const char* filemode(git_filemode_t m) {
 	return mode;
 }
 
-static ssize_t writeblobhtml(FILE* fp, const git_blob* blob, const char* filename) {
-	static uint32_t highlighthash = 0;
-
+static ssize_t writeblobhtml(FILE* fp, const struct repoinfo* info, const git_blob* blob, const char* filename) {
 	ssize_t     n = 0, len;
 	const char* s = git_blob_rawcontent(blob);
 
@@ -95,13 +93,10 @@ static ssize_t writeblobhtml(FILE* fp, const git_blob* blob, const char* filenam
 		return 0;
 	}
 
-	if (!highlighthash)
-		highlighthash = murmurhash3(highlightcmd, strlen(highlightcmd), MURMUR_SEED);
-
 	fflush(stdout);
 
 	contenthash = murmurhash3(s, len, MURMUR_SEED);
-	snprintf(cachepath, sizeof(cachepath), "%s/%x-%x.html", highlightcache, highlighthash, contenthash);
+	snprintf(cachepath, sizeof(cachepath), "%s/%s/%x", info->destdir, highlightcache, contenthash);
 	normalize_path(cachepath);
 
 	if ((cache = fopen(cachepath, "r"))) {
@@ -199,7 +194,7 @@ static size_t writeblob(const struct repoinfo* info, int relpath, git_object* ob
 	if (git_blob_is_binary((git_blob*) obj))
 		fputs("<p>Binary file.</p>\n", fp);
 	else
-		lc = writeblobhtml(fp, (git_blob*) obj, filename);
+		lc = writeblobhtml(fp, info, (git_blob*) obj, filename);
 
 	writefooter(fp);
 	checkfileerror(fp, fpath, 'w');
@@ -323,6 +318,13 @@ int writefiles(FILE* fp, struct repoinfo* info) {
 	git_tree*   tree   = NULL;
 	git_commit* commit = NULL;
 	int         ret    = -1;
+	char        path[PATH_MAX];
+
+	// clean /file and /static because they're rewritten nontheless
+	snprintf(path, sizeof(path), "%s/file", info->destdir);
+	removedir(path);
+	snprintf(path, sizeof(path), "%s/static", info->destdir);
+	removedir(path);
 
 	fputs("<table id=\"files\"><thead>\n<tr>"
 	      "<td><b>Mode</b></td><td class=\"expand\"><b>Name</b></td>"
