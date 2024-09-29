@@ -39,8 +39,20 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 		if (*p == '/')
 			info.relpath++;
 
+	start = repodir;
+	if (start[0] == '/')
+		start++;
+	/* use directory name as name */
+	strlcpy(info.name, start, sizeof(info.name));
+	if (info.name[strlen(info.name) - 1] == '/')
+		info.name[strlen(info.name) - 1] = '\0';
+
+
 	snprintf(info.destdir, sizeof(info.destdir), "%s/%s", destination, info.repodir);
 	normalize_path(info.destdir);
+
+	printf("updating '%s' -> %s\n", info.name, info.destdir);
+
 	if (mkdirp(info.destdir, 0777) == -1) {
 		hprintf(stderr, "error: unable to create destination directory: %w\n", info.destdir);
 		exit(100);
@@ -71,14 +83,6 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 		info.head = git_object_id(obj);
 	}
 	git_object_free(obj);
-
-	start = repodir;
-	if (start[0] == '/')
-		start++;
-	/* use directory name as name */
-	strlcpy(info.name, start, sizeof(info.name));
-	if (info.name[strlen(info.name) - 1] == '/')
-		info.name[strlen(info.name) - 1] = '\0';
 
 	struct configstate state;
 	memset(&state, 0, sizeof(state));
@@ -117,7 +121,8 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 		hprintf(stderr, "error: unable to open file: %s: %w\n", path);
 		exit(100);
 	}
-	fprintf(stderr, "%s\n", path);
+	if (verbose)
+		fprintf(stderr, "%s\n", path);
 	writeheader(fp, &info, 0, info.name, "%y", info.description);
 	writerefs(fp, &info);
 	fputs("<h2>Commits</h2>\n<table id=\"log\"><thead>\n<tr><td><b>Date</b></td>"

@@ -88,6 +88,7 @@ void writeindex(const char* destdir, char** repos, int nrepos) {
 		hprintf(stderr, "error: unable to open file: %s: %w\n", path);
 		exit(100);
 	}
+		if (verbose)
 	fprintf(stderr, "%s\n", path);    // Keeping this standard output for logging
 
 	writeheader(index, NULL, 0, sitename, "%y", sitedescription);

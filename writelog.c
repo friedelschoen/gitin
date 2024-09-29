@@ -203,7 +203,8 @@ int writelog(FILE* fp, const struct repoinfo* info) {
 				hprintf(stderr, "error: unable to open file: %s: %w\n", path);
 				exit(100);
 			}
-			fprintf(stderr, "%s\n", path);
+			if (verbose)
+				fprintf(stderr, "%s\n", path);
 			writeheader(fpfile, info, 1, info->name, "%y", summary);
 			fputs("<pre>", fpfile);
 			writediff(fpfile, info, commit, &ci, ncommits != maxcommits);
