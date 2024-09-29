@@ -7,7 +7,7 @@ PREFIX = /usr/local
 # flags
 CC ?= gcc
 CFLAGS = -Wall -Wextra -Wpedantic -Werror -O2 -g \
-		 -D_XOPEN_SOURCE=700 -D_GNU_SOURCE \
+		 -D_XOPEN_SOURCE=700 -D_GNU_SOURCE -DVERSION=\"$(VERSION)\" \
 		 $(shell pkg-config --cflags $(LIBS))
 LDFLAGS = $(shell pkg-config --libs $(LIBS))
 
@@ -66,7 +66,7 @@ findrepos: LIBS = libgit2
 findrepos: findrepos.o config.o
 
 compile_flags.txt: LIBS = libgit2 libarchive
-compile_flags.txt:
+compile_flags.txt: Makefile
 	echo $(CFLAGS) | tr ' ' '\n' > $@
 
 # pseudo targets

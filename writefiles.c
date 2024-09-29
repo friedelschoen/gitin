@@ -198,7 +198,8 @@ static ssize_t highlight(FILE* fp, const struct repoinfo* info, const git_blob* 
 	close(outpipefd.write);
 
 	if ((cache = fopen(cachepath, "w+"))) {
-		fprintf(stderr, "%s\n", cachepath);    // Keeping standard fprintf since it's just logging the path
+		if (verbose)
+			fprintf(stderr, "%s\n", cachepath);    // Keeping standard fprintf since it's just logging the path
 	}
 
 	n = 0;
@@ -238,7 +239,8 @@ static size_t writeblob(const struct repoinfo* info, int relpath, git_object* ob
 		hprintf(stderr, "error: unable to open file: %s: %w\n", fpath);
 		return -1;
 	}
-	fprintf(stderr, "%s\n", fpath);    // Keeping fprintf for basic output log
+	if (verbose)
+		fprintf(stderr, "%s\n", fpath);    // Keeping fprintf for basic output log
 
 	writeheader(fp, info, relpath, info->name, "%y", filepath);
 	hprintf(fp, "<p> %y (%zuB) <a href='%rblob%h'>download</a></p><hr/>", filename, filesize, relpath, filepath);
@@ -271,7 +273,8 @@ static void writefile(git_object* obj, const char* fpath, size_t filesize) {
 		hprintf(stderr, "error: unable to open file: %s: %w\n", fpath);
 		return;
 	}
-	fprintf(stderr, "%s\n", fpath);
+	if (verbose)
+		fprintf(stderr, "%s\n", fpath);
 
 	fwrite(git_blob_rawcontent((const git_blob*) obj), filesize, 1, fp);
 	fclose(fp);
@@ -394,7 +397,8 @@ int writefiles(struct repoinfo* info) {
 		hprintf(stderr, "error: unable to open file: %s: %w\n", path);
 		exit(100);
 	}
-	fprintf(stderr, "%s\n", path);
+	if (verbose)
+		fprintf(stderr, "%s\n", path);
 	writeheader(fp, info, 0, info->name, "%y", info->description);
 
 	fputs("<table id=\"files\"><thead>\n<tr>"
@@ -415,7 +419,8 @@ int writefiles(struct repoinfo* info) {
 
 	snprintf(path, sizeof(path), "%s/.gitin/filetree", info->destdir);
 	if ((cache = fopen(path, "w"))) {
-		fprintf(stderr, "%s\n", path);
+		if (verbose)
+			fprintf(stderr, "%s\n", path);
 		fwrite(headoid, GIT_OID_HEXSZ, 1, cache);
 		fclose(cache);
 	}

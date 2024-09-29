@@ -14,7 +14,7 @@
 #include <unistd.h>
 
 
-int force = 0;
+int force = 0, verbose = 0;
 
 static int checkrepo(const char* path) {
 	char        git_path[PATH_MAX];
@@ -76,8 +76,8 @@ static void findrepos(const char* base_path, char*** repos, int* size) {
 
 static void usage(const char* argv0, int exitcode) {
 	fprintf(stderr,
-	        "usage: %s [-fu] [-d destdir] repos...\n"
-	        "   or: %s -r [-fu] [-d destdir] startdir\n",
+	        "usage: %s [-fhu] [-C workdir] [-d destdir] repos...\n"
+	        "   or: %s [-fhu] [-C workdir] [-d destdir] -r startdir\n",
 	        argv0, argv0);
 	exit(exitcode);
 }
@@ -107,6 +107,12 @@ int main(int argc, char** argv) {
 			break;
 		case 'u':
 			update = 1;
+			break;
+		case 'V':
+			printf("gitin v%s\n", VERSION);
+			break;
+		case 'v':
+			verbose = 1;
 			break;
 		default:
 			fprintf(stderr, "error: unknown option '-%c'\n", OPT);
@@ -153,8 +159,9 @@ int main(int argc, char** argv) {
 	if (!update) {
 		writeindex(destdir, repos, nrepos);
 	} else {
-		for (int i = 0; i < nrepos; i++)
+		for (int i = 0; i < nrepos; i++) {
 			writerepo(NULL, repos[i], destdir);
+		}
 	}
 
 	git_libgit2_shutdown();
