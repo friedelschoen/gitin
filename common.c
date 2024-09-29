@@ -1,8 +1,8 @@
 #include "common.h"
 
-#include <ctype.h>
 #include <errno.h>
 #include <ftw.h>
+#include <stdio.h>
 
 
 int mkdirp(char* path, int mode) {
@@ -31,104 +31,6 @@ static int unlink_cb(const char* fpath, const struct stat* sb, int typeflag, str
 
 int removedir(char* path) {
 	return nftw(path, unlink_cb, 64, FTW_DEPTH | FTW_PHYS);
-}
-
-/* Escape characters below as HTML 2.0 / XML 1.0, ignore printing '\r', '\n' */
-void xmlencodeline(FILE* fp, const char* s, size_t len) {
-	size_t        i = 0;
-	unsigned char c;
-	unsigned int  codepoint;
-
-	while (i < len && *s) {
-		c = (unsigned char) *s;
-
-		// Handle ASCII characters
-		if (c < 0x80) {
-			switch (c) {
-				case '<':
-					fputs("&lt;", fp);
-					break;
-				case '>':
-					fputs("&gt;", fp);
-					break;
-				case '\'':
-					fputs("&#39;", fp);
-					break;
-				case '&':
-					fputs("&amp;", fp);
-					break;
-				case '"':
-					fputs("&quot;", fp);
-					break;
-				case 0x0B:
-				case 0x0C:
-					break;
-				case '\r':
-				case '\n':
-					break; /* ignore LF */
-				default:
-					if (isprint(c) || isblank(c))
-						putc(c, fp);
-					else
-						fprintf(fp, "&#%d;", c);
-			}
-			s++;
-			i++;
-		}
-		// Handle multi-byte UTF-8 sequences
-		else if (c < 0xC0) {
-			// Invalid continuation byte at start, print as is
-			fprintf(fp, "&#%d;", c);
-			s++;
-			i++;
-		} else {
-			// Decode UTF-8 sequence
-			const unsigned char* start     = (unsigned char*) s;
-			int                  remaining = 0;
-
-			if (c < 0xE0) {
-				// 2-byte sequence
-				remaining = 1;
-				codepoint = c & 0x1F;
-			} else if (c < 0xF0) {
-				// 3-byte sequence
-				remaining = 2;
-				codepoint = c & 0x0F;
-			} else if (c < 0xF8) {
-				// 4-byte sequence
-				remaining = 3;
-				codepoint = c & 0x07;
-			} else {
-				// Invalid start byte, print as is
-				fprintf(fp, "&#%d;", c);
-				s++;
-				i++;
-				continue;
-			}
-
-			// Process continuation bytes
-			while (remaining-- && *(++s)) {
-				c = (unsigned char) *s;
-				if ((c & 0xC0) != 0x80) {
-					// Invalid continuation byte, print original bytes as is
-					while (start <= (unsigned char*) s) {
-						fprintf(fp, "&#%d;", *start++);
-					}
-					s++;
-					i++;
-					break;
-				}
-				codepoint = (codepoint << 6) | (c & 0x3F);
-			}
-
-			if (remaining < 0) {
-				// Successfully decoded UTF-8 character, output as numeric reference
-				fprintf(fp, "&#%u;", codepoint);
-				s++;
-				i++;
-			}
-		}
-	}
 }
 
 void normalize_path(char* path) {
