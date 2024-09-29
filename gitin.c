@@ -18,6 +18,7 @@ static void usage(const char* argv0) {
 int main(int argc, char** argv) {
 	const char* self    = argv[0];
 	const char* destdir = ".";
+	int         update;
 
 	ARGBEGIN
 	switch (OPT) {
@@ -26,6 +27,9 @@ int main(int argc, char** argv) {
 			break;
 		case 'f':
 			force = 1;
+			break;
+		case 'u':
+			update = 1;
 			break;
 		default:
 			fprintf(stderr, "error: unknown option '-%c'\n", OPT);
@@ -48,7 +52,12 @@ int main(int argc, char** argv) {
 	/* do not require the git repository to be owned by the current user */
 	git_libgit2_opts(GIT_OPT_SET_OWNER_VALIDATION, 0);
 
-	writeindex(destdir, argv, argc);
+	if (!update) {
+		writeindex(destdir, argv, argc);
+	} else {
+		for (int i = 0; i < argc; i++)
+			writerepo(NULL, argv[i], destdir);
+	}
 
 	git_libgit2_shutdown();
 
