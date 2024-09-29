@@ -1,5 +1,4 @@
 #include "arg.h"
-#include "config.h"
 #include "parseconfig.h"
 #include "writer.h"
 

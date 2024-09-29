@@ -1,12 +1,11 @@
 #include "common.h"
 
-#include "compat.h"
-
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <ftw.h>
 #include <limits.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
 

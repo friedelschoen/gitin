@@ -21,24 +21,19 @@ DOCS = \
 
 HEADER = \
 	arg.h \
-	commit.h \
 	common.h \
-	compat.h \
 	config.h \
 	hprintf.h \
-	murmur3.h \
 	parseconfig.h \
 	writer.h
 
 OBJECTS = \
-	commit.o \
 	common.o \
-	compat.o \
 	config.o \
 	hprintf.o \
-	murmur3.o \
 	parseconfig.o \
 	writearchive.o \
+	writecommit.o \
 	writefiles.o \
 	writehtml.o \
 	writeindex.o \
