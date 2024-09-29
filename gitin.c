@@ -1,28 +1,102 @@
 #include "arg.h"
+#include "config.h"
 #include "parseconfig.h"
 #include "writer.h"
 
+#include <dirent.h>
+#include <limits.h>
 #include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+
 
 int force = 0;
 
-static void usage(const char* argv0) {
+static int checkrepo(const char* path) {
+	char        git_path[PATH_MAX];
+	struct stat statbuf;
+
+	// Check for bare repository (HEAD file directly in the directory)
+	snprintf(git_path, sizeof(git_path), "%s/HEAD", path);
+	if (stat(git_path, &statbuf) != 0 || !S_ISREG(statbuf.st_mode))
+		return 0;
+
+	// Check for config file in the git directory (non-bare repo)
+	snprintf(git_path, sizeof(git_path), "%s/%s", path, configfile);
+	if (stat(git_path, &statbuf) != 0 || !S_ISREG(statbuf.st_mode))
+		return 0;
+
+	return 1;
+}
+
+static void findrepos(const char* base_path, char*** repos, int* size) {
+	struct dirent* dp;
+	DIR*           dir = opendir(base_path);
+
+	// Unable to open directory
+	if (!dir)
+		return;
+
+	while ((dp = readdir(dir)) != NULL) {
+		char path[PATH_MAX];
+		if (base_path[0] == '.' && base_path[1] == '\0')
+			strncpy(path, dp->d_name, sizeof(path));
+		else
+			snprintf(path, sizeof(path), "%s/%s", base_path, dp->d_name);
+
+		// Skip "." and ".." directories
+		if (strcmp(dp->d_name, ".") == 0 || strcmp(dp->d_name, "..") == 0)
+			continue;
+
+		// Check if it's a directory
+		struct stat statbuf;
+		if (stat(path, &statbuf) != 0 || !S_ISDIR(statbuf.st_mode))
+			continue;
+
+		// Check if it's a Git repository (bare or non-bare)
+		if (checkrepo(path)) {
+			*repos = realloc(*repos, (*size + 1) * sizeof(char*));
+			if (!*repos) {
+				perror("Failed to realloc repo list");
+				exit(EXIT_FAILURE);
+			}
+
+			(*repos)[*size] = strdup(path);
+			if (!(*repos)[*size]) {
+				perror("Failed to add repo to list");
+				exit(EXIT_FAILURE);
+			}
+
+			(*size)++;
+		} else {
+			findrepos(path, repos, size);
+		}
+	}
+
+	closedir(dir);
+}
+
+static void usage(const char* argv0, int exitcode) {
 	fprintf(stderr,
-	        "usage: %s [-d destdir] [-c cachefile | -l commits] [-u baseurl] "
-	        "repodir\n",
-	        argv0);
-	exit(1);
+	        "usage: %s [-fu] [-d destdir] repos...\n"
+	        "   or: %s -r [-fu] [-d destdir] startdir\n",
+	        argv0, argv0);
+	exit(exitcode);
 }
 
 int main(int argc, char** argv) {
 	const char* self    = argv[0];
 	const char* destdir = ".";
-	int         update;
+	int         update = 0, recursive = 0;
+	char**      repos  = NULL;
+	int         nrepos = 0;
 
 	ARGBEGIN
 	switch (OPT) {
 		case 'd':
-			destdir = EARGF(usage(self));
+			destdir = EARGF(usage(self, 1));
 			break;
 		case 'f':
 			force = 1;
@@ -30,18 +104,37 @@ int main(int argc, char** argv) {
 		case 'u':
 			update = 1;
 			break;
+		case 'r':
+			recursive = 1;
+			break;
+		case 'h':
+			usage(self, 0);
 		default:
 			fprintf(stderr, "error: unknown option '-%c'\n", OPT);
 			return 1;
 	}
 	ARGEND
 
-	if (argc == 0)
-		usage(self);
-
 	signal(SIGPIPE, SIG_IGN);
 
 	setconfig();
+
+	if (recursive) {
+		if (argc == 0) {
+			findrepos(".", &repos, &nrepos);
+		} else if (argc == 1) {
+			findrepos(argv[0], &repos, &nrepos);
+		} else {
+			fprintf(stderr, "error: too many arguments\n");
+			return 1;
+		}
+	} else {
+		if (argc == 0)
+			usage(self, 1);
+
+		repos  = argv;
+		nrepos = argc;
+	}
 
 	/* do not search outside the git repository:
 	   GIT_CONFIG_LEVEL_APP is the highest level currently */
@@ -52,13 +145,20 @@ int main(int argc, char** argv) {
 	git_libgit2_opts(GIT_OPT_SET_OWNER_VALIDATION, 0);
 
 	if (!update) {
-		writeindex(destdir, argv, argc);
+		writeindex(destdir, repos, nrepos);
 	} else {
-		for (int i = 0; i < argc; i++)
-			writerepo(NULL, argv[i], destdir);
+		for (int i = 0; i < nrepos; i++)
+			writerepo(NULL, repos[i], destdir);
 	}
 
 	git_libgit2_shutdown();
+
+	if (recursive) {
+		for (int i = 0; i < nrepos; i++) {
+			free(repos[i]);
+		}
+		free(repos);
+	}
 
 	return 0;
 }
