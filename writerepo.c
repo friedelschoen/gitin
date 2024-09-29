@@ -128,8 +128,10 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 	checkfileerror(fp, path, 'w');
 	fclose(fp);
 
-	writeindexline(index, &info);
-	checkfileerror(index, "index.html", 'w');
+	if (index) {
+		writeindexline(index, &info);
+		checkfileerror(index, "index.html", 'w');
+	}
 
 	/* cleanup */
 	git_repository_free(info.repo);
