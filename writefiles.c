@@ -329,8 +329,9 @@ static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree
 
 			addheadfile(info, entrypath + 1);    // +1 to remove leading slash
 
-			snprintf(filepath, sizeof(filepath), "%s/file/%s.html", info->destdir, entrypath);
-			snprintf(staticpath, sizeof(staticpath), "%s/blob/%s", info->destdir, entrypath);
+			// this weird useless (void) (... == 0) is because gcc will complain about truncation
+			(void) (snprintf(filepath, sizeof(filepath), "%s/file/%s.html", info->destdir, entrypath) == 0);
+			(void) (snprintf(staticpath, sizeof(staticpath), "%s/blob/%s", info->destdir, entrypath) == 0);
 
 			normalize_path(filepath);
 			normalize_path(staticpath);
