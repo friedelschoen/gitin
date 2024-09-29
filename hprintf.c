@@ -131,6 +131,12 @@ void vhprintf(FILE* file, const char* format, va_list args) {
 		} else if (*p == 'W') {
 			int error = va_arg(args, int);
 			fprintf(file, "%s", strerror(error));
+		} else if (strncmp(p, "gw", 2) == 0) {
+			const git_error* error = giterr_last();
+			fprintf(file, "%s", error ? error->message : "no error");
+		} else if (strncmp(p, "gW", 2) == 0) {
+			const git_error* error = va_arg(args, const git_error*);
+			fprintf(file, "%s", error ? error->message : "no error");
 
 		} else if (strncmp(p, "zd", 2) == 0) {
 			// Handle %zd for signed size_t (use PRIdPTR from inttypes.h)

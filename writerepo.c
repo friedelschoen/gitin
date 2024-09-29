@@ -1,12 +1,11 @@
 #include "common.h"
 #include "config.h"
+#include "hprintf.h"
 #include "parseconfig.h"
 #include "writer.h"
 
-#include <err.h>
 #include <limits.h>
 #include <string.h>
-#include <sys/stat.h>
 
 
 void freeheadfiles(struct repoinfo* info) {
@@ -26,12 +25,11 @@ void freeheadfiles(struct repoinfo* info) {
 
 void writerepo(FILE* index, const char* repodir, const char* destination) {
 	struct repoinfo info;
-
-	git_object* obj = NULL;
-	FILE*       fp;
-	char        path[PATH_MAX];
-	int         i;
-	const char* start;
+	git_object*     obj = NULL;
+	FILE*           fp;
+	char            path[PATH_MAX];
+	int             i;
+	const char*     start;
 
 	memset(&info, 0, sizeof(info));
 	info.repodir = repodir;
@@ -43,24 +41,35 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 
 	snprintf(info.destdir, sizeof(info.destdir), "%s/%s", destination, info.repodir);
 	normalize_path(info.destdir);
-	if (mkdirp(info.destdir) == -1) {
-		err(1, "cannot create destdir: %s", info.destdir);
-		return;
+	if (mkdirp(info.destdir, 0777) == -1) {
+		hprintf(stderr, "error: unable to create destination directory: %w\n", info.destdir);
+		exit(100);
+	}
+	snprintf(path, sizeof(path), "%s/.gitin/files", info.destdir);
+	if (mkdirp(path, 0777) == -1) {
+		hprintf(stderr, "error: unable to create .gitin/files directory: %w\n", path);
+		exit(100);
+	}
+	snprintf(path, sizeof(path), "%s/.gitin/archive", info.destdir);
+	if (mkdirp(path, 0777) == -1) {
+		hprintf(stderr, "error: unable to create .gitin/archive directory: %w\n", path);
+		exit(100);
+	}
+	snprintf(path, sizeof(path), "%s/commit", info.destdir);
+	if (mkdirp(path, 0777) == -1) {
+		hprintf(stderr, "error: unable to create commit directory: %w\n", path);
+		exit(100);
 	}
 
-	snprintf(path, sizeof(path), "%s/.gitin/files", info.destdir);
-	mkdirp(path);
-	snprintf(path, sizeof(path), "%s/.gitin/archive", info.destdir);
-	mkdirp(path);
-
 	if (git_repository_open_ext(&info.repo, info.repodir, GIT_REPOSITORY_OPEN_NO_SEARCH, NULL) < 0) {
-		err(1, "cannot open repository");
-		return;
+		hprintf(stderr, "error: unable to open git repository '%s': %gw\n", info.repodir);
+		exit(100);
 	}
 
 	/* find HEAD */
-	if (!git_revparse_single(&obj, info.repo, "HEAD"))
+	if (!git_revparse_single(&obj, info.repo, "HEAD")) {
 		info.head = git_object_id(obj);
+	}
 	git_object_free(obj);
 
 	start = repodir;
@@ -83,7 +92,7 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 			else if (!strcmp(state.key, "url") || !strcmp(state.key, "cloneurl"))
 				strlcpy(info.cloneurl, state.value, sizeof(info.cloneurl));
 			else
-				fprintf(stderr, "warn: ignoring unknown config-key '%s'\n", state.key);
+				hprintf(stderr, "warn: ignoring unknown config-key '%s'\n", state.key);
 		}
 		fclose(fp);
 	}
@@ -104,11 +113,11 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 
 	/* log for HEAD */
 	snprintf(path, sizeof(path), "%s/index.html", info.destdir);
-	if (!(fp = fopen(path, "w")))
-		err(1, "fopen: '%s'", path);
+	if (!(fp = fopen(path, "w"))) {
+		hprintf(stderr, "error: unable to open file: %s: %w\n", path);
+		exit(100);
+	}
 	fprintf(stderr, "%s\n", path);
-	snprintf(path, sizeof(path), "%s/commit", info.destdir);
-	mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
 	writeheader(fp, &info, 0, info.name, "%y", info.description);
 	writerefs(fp, &info);
 	fputs("<h2>Commits</h2>\n<table id=\"log\"><thead>\n<tr><td><b>Date</b></td>"
@@ -123,13 +132,10 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 
 	fputs("</tbody></table>", fp);
 	writefooter(fp);
-	snprintf(path, sizeof(path), "%s/index.html", info.destdir);
-	checkfileerror(fp, path, 'w');
 	fclose(fp);
 
 	if (index) {
 		writeindexline(index, &info);
-		checkfileerror(index, "index.html", 'w');
 	}
 
 	/* cleanup */

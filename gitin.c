@@ -61,17 +61,11 @@ static void findrepos(const char* base_path, char*** repos, int* size) {
 		if (checkrepo(path)) {
 			*repos = realloc(*repos, (*size + 1) * sizeof(char*));
 			if (!*repos) {
-				perror("Failed to realloc repo list");
+				hprintf(stderr, "error: memory allocation: %w");
 				exit(EXIT_FAILURE);
 			}
 
-			(*repos)[*size] = strdup(path);
-			if (!(*repos)[*size]) {
-				perror("Failed to add repo to list");
-				exit(EXIT_FAILURE);
-			}
-
-			(*size)++;
+			(*repos)[(*size)++] = strdup(path);
 		} else {
 			findrepos(path, repos, size);
 		}

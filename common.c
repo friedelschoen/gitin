@@ -1,38 +1,22 @@
 #include "common.h"
 
 #include <ctype.h>
-#include <err.h>
 #include <errno.h>
 #include <ftw.h>
-#include <limits.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <unistd.h>
 
 
-/* Handle read or write errors for a FILE * stream */
-void checkfileerror(FILE* fp, const char* name, int mode) {
-	if (mode == 'r' && ferror(fp))
-		errx(1, "read error: %s", name);
-	else if (mode == 'w' && (fflush(fp) || ferror(fp)))
-		errx(1, "write error: %s", name);
-}
+int mkdirp(char* path, int mode) {
+	char* p;
 
-
-int mkdirp(const char* path) {
-	char tmp[PATH_MAX], *p;
-
-	if (strlcpy(tmp, path, sizeof(tmp)) >= sizeof(tmp))
-		errx(1, "path truncated: '%s'", path);
-	for (p = tmp + (tmp[0] == '/'); *p; p++) {
+	for (p = path + (path[0] == '/'); *p; p++) {
 		if (*p != '/')
 			continue;
 		*p = '\0';
-		if (mkdir(tmp, S_IRWXU | S_IRWXG | S_IRWXO) < 0 && errno != EEXIST)
+		if (mkdir(path, mode) < 0 && errno != EEXIST)
 			return -1;
 		*p = '/';
 	}
-	if (mkdir(tmp, S_IRWXU | S_IRWXG | S_IRWXO) < 0 && errno != EEXIST)
+	if (mkdir(path, mode) < 0 && errno != EEXIST)
 		return -1;
 	return 0;
 }

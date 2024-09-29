@@ -3,7 +3,6 @@
 #include "hprintf.h"
 #include "writer.h"
 
-#include <err.h>
 #include <libgen.h>
 #include <limits.h>
 #include <string.h>
@@ -12,7 +11,6 @@
 #include <unistd.h>
 
 #define MURMUR_SEED 0xCAFE5EED    // cafeseed
-
 
 #define fallthrough __attribute__((fallthrough));
 
@@ -168,8 +166,8 @@ static ssize_t highlight(FILE* fp, const struct repoinfo* info, const git_blob* 
 	pipe((int*) &outpipefd);
 
 	if ((process = fork()) == -1) {
-		perror("fork(highlight)");
-		exit(1);
+		hprintf(stderr, "error: unable to fork process: %w\n");
+		exit(100);    // Fatal error, exit with 100
 	} else if (process == 0) {
 		// Child
 		dup2(outpipefd.read, STDIN_FILENO);
@@ -184,23 +182,24 @@ static ssize_t highlight(FILE* fp, const struct repoinfo* info, const git_blob* 
 		setenv("type", type, 1);
 		execlp("sh", "sh", "-c", highlightcmd, NULL);
 
-		perror("exec(highlight)");
-		_exit(1);
+		hprintf(stderr, "error: unable to exec highlight: %w\n");
+		_exit(100);    // Fatal error inside child
 	}
 
 	close(outpipefd.read);
 	close(inpipefd.write);
 
 	if (write(outpipefd.write, s, len) == -1) {
-		perror("write(highlight)");
-		exit(1);
+		hprintf(stderr, "error: unable to write to pipe: %w\n");
+		exit(100);    // Fatal error, exit with 100
 		goto wait;
 	}
 
 	close(outpipefd.write);
 
-	if ((cache = fopen(cachepath, "w+")))
-		fprintf(stderr, "%s\n", cachepath);
+	if ((cache = fopen(cachepath, "w+"))) {
+		fprintf(stderr, "%s\n", cachepath);    // Keeping standard fprintf since it's just logging the path
+	}
 
 	n = 0;
 	while ((readlen = read(inpipefd.read, buffer, sizeof buffer)) > 0) {
@@ -227,56 +226,54 @@ static size_t writeblob(const struct repoinfo* info, int relpath, git_object* ob
 	size_t lc            = 0;
 	FILE*  fp;
 
-	if (strlcpy(tmp, fpath, sizeof(tmp)) >= sizeof(tmp))
-		errx(1, "path truncated: '%s'", fpath);
-	if (!(d = dirname(tmp)))
-		err(1, "dirname");
+	strlcpy(tmp, fpath, sizeof(tmp));
+	d = dirname(tmp);
 
-	if (mkdirp(d))
+	if (mkdirp(d, 0777)) {
+		hprintf(stderr, "error: unable to create directory: %w\n");
 		return -1;
+	}
 
-	if (!(fp = fopen(fpath, "w")))
-		err(1, "fopen: '%s'", fpath);
-	fprintf(stderr, "%s\n", fpath);
+	if (!(fp = fopen(fpath, "w"))) {
+		hprintf(stderr, "error: unable to open file: %s: %w\n", fpath);
+		return -1;
+	}
+	fprintf(stderr, "%s\n", fpath);    // Keeping fprintf for basic output log
 
 	writeheader(fp, info, relpath, info->name, "%y", filepath);
 	hprintf(fp, "<p> %y (%zuB) <a href='%rblob%h'>download</a></p><hr/>", filename, filesize, relpath, filepath);
 
-	if (git_blob_is_binary((git_blob*) obj))
+	if (git_blob_is_binary((git_blob*) obj)) {
 		fputs("<p>Binary file.</p>\n", fp);
-	else
+	} else {
 		lc = highlight(fp, info, (git_blob*) obj, filename);
+	}
 
 	writefooter(fp);
-	checkfileerror(fp, fpath, 'w');
 	fclose(fp);
 
 	return lc;
 }
 
 static void writefile(git_object* obj, const char* fpath, size_t filesize) {
-	char        tmp[PATH_MAX] = "", *d;
-	const char* p;
-	FILE*       fp;
+	char  tmp[PATH_MAX] = "", *d;
+	FILE* fp;
 
-	if (strlcpy(tmp, fpath, sizeof(tmp)) >= sizeof(tmp))
-		errx(1, "path truncated: '%s'", fpath);
-	if (!(d = dirname(tmp)))
-		err(1, "dirname");
-	if (mkdirp(d))
+	strlcpy(tmp, fpath, sizeof(tmp));
+	d = dirname(tmp);
+
+	if (mkdirp(d, 0777)) {
+		hprintf(stderr, "error: unable to create directory: %w\n");
 		return;
-
-	for (p = fpath, tmp[0] = '\0'; *p; p++) {
-		if (*p == '/' && strlcat(tmp, "../", sizeof(tmp)) >= sizeof(tmp))
-			errx(1, "path truncated: '../%s'", tmp);
 	}
 
-	if (!(fp = fopen(fpath, "w")))
-		err(1, "fopen: '%s'", fpath);
+	if (!(fp = fopen(fpath, "w"))) {
+		hprintf(stderr, "error: unable to open file: %s: %w\n", fpath);
+		return;
+	}
 	fprintf(stderr, "%s\n", fpath);
 
 	fwrite(git_blob_rawcontent((const git_blob*) obj), filesize, 1, fp);
-	checkfileerror(fp, fpath, 'w');
 	fclose(fp);
 }
 
@@ -286,18 +283,15 @@ static void addheadfile(struct repoinfo* info, const char* filename) {
 		int    new_alloc = info->headfilesalloc == 0 ? 4 : info->headfilesalloc * 2;
 		char** temp      = realloc(info->headfiles, new_alloc * sizeof(char*));
 		if (temp == NULL) {
-			perror("Failed to realloc");
-			return;
+			hprintf(stderr, "error: unable to realloc memory: %w\n");
+			exit(100);
 		}
 		info->headfiles      = temp;
 		info->headfilesalloc = new_alloc;
 	}
 
 	// Copy the string and store it in the list
-	if ((info->headfiles[info->headfileslen++] = strdup(filename)) == NULL) {
-		perror("Failed to strdup");
-		exit(1);
-	}
+	info->headfiles[info->headfileslen++] = strdup(filename);
 }
 
 static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree* tree, const char* path) {
@@ -396,8 +390,10 @@ int writefiles(struct repoinfo* info) {
 
 	/* files for HEAD, it must be before writelog, as it also populates headfiles! */
 	snprintf(path, sizeof(path), "%s/files.html", info->destdir);
-	if (!(fp = fopen(path, "w")))
-		err(1, "fopen: '%s'", path);
+	if (!(fp = fopen(path, "w"))) {
+		hprintf(stderr, "error: unable to open file: %s: %w\n", path);
+		exit(100);
+	}
 	fprintf(stderr, "%s\n", path);
 	writeheader(fp, info, 0, info->name, "%y", info->description);
 
@@ -415,7 +411,6 @@ int writefiles(struct repoinfo* info) {
 	fputs("</tbody></table>", fp);
 
 	writefooter(fp);
-	checkfileerror(fp, path, 'w');
 	fclose(fp);
 
 	snprintf(path, sizeof(path), "%s/.gitin/filetree", info->destdir);

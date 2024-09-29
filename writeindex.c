@@ -4,7 +4,6 @@
 #include "parseconfig.h"
 #include "writer.h"
 
-#include <err.h>
 #include <limits.h>
 #include <string.h>
 
@@ -18,10 +17,11 @@ int writeindexline(FILE* fp, const struct repoinfo* info) {
 
 	git_revwalk_new(&w, info->repo);
 	if (git_revwalk_push_head(w)) {
-		printf("unable to push head\n");
+		hprintf(stderr, "error: unable to push head: %gw\n");
 		return -1;
 	}
 	if (git_revwalk_next(&id, w) || git_commit_lookup(&commit, info->repo, &id)) {
+		hprintf(stderr, "error: unable to lookup commit: %gw\n");
 		ret = -1;
 		goto err;
 	}
@@ -56,7 +56,7 @@ static void writecategory(FILE* index, const char* name, int len) {
 			if (!strcmp(state.key, "description"))
 				description = state.value;
 			else
-				fprintf(stderr, "warn: ignoring unknown config-key '%s'\n", state.key);
+				hprintf(stderr, "warn: ignoring unknown config-key '%s'\n", state.key);
 		}
 		fclose(fp);
 	}
@@ -77,12 +77,18 @@ void writeindex(const char* destdir, char** repos, int nrepos) {
 	FILE* index;
 	char  path[PATH_MAX];
 
-	mkdirp(destdir);
+	strlcpy(path, destdir, sizeof(path));
+	if (mkdirp(path, 0777)) {
+		hprintf(stderr, "error: unable to create directory %s: %w\n", path);
+		exit(100);
+	}
 
 	snprintf(path, sizeof(path), "%s/index.html", destdir);
-	if (!(index = fopen(path, "w+")))
-		errx(1, "open %s", path);
-	fprintf(stderr, "%s\n", path);
+	if (!(index = fopen(path, "w+"))) {
+		hprintf(stderr, "error: unable to open file: %s: %w\n", path);
+		exit(100);
+	}
+	fprintf(stderr, "%s\n", path);    // Keeping this standard output for logging
 
 	writeheader(index, NULL, 0, sitename, "%y", sitedescription);
 	fputs("<table id=\"index\"><thead>\n"
@@ -106,6 +112,5 @@ void writeindex(const char* destdir, char** repos, int nrepos) {
 	}
 	fputs("</tbody>\n</table>", index);
 	writefooter(index);
-	checkfileerror(index, path, 'w');
 	fclose(index);
 }
