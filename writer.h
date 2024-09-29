@@ -28,7 +28,23 @@ struct repoinfo {
 	int    headfilesalloc;
 };
 
+struct deltainfo {
+	git_patch* patch;
+	size_t     addcount;
+	size_t     delcount;
+};
+
+struct commitstats {
+	size_t addcount;
+	size_t delcount;
+	size_t filecount;
+
+	struct deltainfo** deltas;
+	size_t             ndeltas;
+};
+
 int  writearchive(const struct repoinfo* info, const struct git_reference* ref);
+void writediff(FILE* fp, const struct repoinfo* info, git_commit* commit, struct commitstats* ci, int parentlink);
 void writefooter(FILE* fp);
 int  writefiles(struct repoinfo* info);
 void writeindex(const char* destdir, char** repos, int nrepos);

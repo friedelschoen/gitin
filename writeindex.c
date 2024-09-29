@@ -1,5 +1,4 @@
 #include "common.h"
-#include "compat.h"
 #include "config.h"
 #include "hprintf.h"
 #include "parseconfig.h"

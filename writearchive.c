@@ -4,11 +4,8 @@
 
 #include <archive.h>
 #include <archive_entry.h>
-#include <git2/deprecated.h>
-#include <git2/oid.h>
 #include <libgen.h>
 #include <limits.h>
-#include <stdio.h>
 #include <string.h>
 
 

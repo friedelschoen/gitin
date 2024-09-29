@@ -1,5 +1,4 @@
 #include "common.h"
-#include "compat.h"
 #include "config.h"
 #include "parseconfig.h"
 #include "writer.h"
