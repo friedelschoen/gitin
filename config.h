@@ -15,4 +15,4 @@ extern int         npinfiles;
 extern long long   maxcommits;
 extern long long   maxfilesize;
 
-extern int force, verbose;
+extern int force, verbose, columnate;
