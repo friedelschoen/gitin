@@ -3,6 +3,7 @@
 #include "common.h"
 
 #include <assert.h>
+#include <errno.h>
 #include <git2.h>
 #include <stdarg.h>
 #include <string.h>
@@ -125,6 +126,11 @@ void vhprintf(FILE* file, const char* format, va_list args) {
 		} else if (*p == 't') {
 			const git_time* time = va_arg(args, const git_time*);
 			printtimeshort(file, time);
+		} else if (*p == 'w') {
+			fprintf(file, "%s", strerror(errno));
+		} else if (*p == 'W') {
+			int error = va_arg(args, int);
+			fprintf(file, "%s", strerror(error));
 
 		} else if (strncmp(p, "zd", 2) == 0) {
 			// Handle %zd for signed size_t (use PRIdPTR from inttypes.h)
