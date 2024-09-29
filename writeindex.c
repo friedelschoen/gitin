@@ -83,14 +83,7 @@ void writeindex(const char* destdir, char** repos, int nrepos) {
 		exit(100);
 	}
 
-	snprintf(path, sizeof(path), "%s/index.html", destdir);
-	if (!(index = fopen(path, "w+"))) {
-		hprintf(stderr, "error: unable to open file: %s: %w\n", path);
-		exit(100);
-	}
-		if (verbose)
-	fprintf(stderr, "%s\n", path);    // Keeping this standard output for logging
-
+	index = xfopen("w+", "%s/index.html", destdir);
 	writeheader(index, NULL, 0, sitename, "%y", sitedescription);
 	fputs("<table id=\"index\"><thead>\n"
 	      "<tr><td><b>Name</b></td><td class=\"expand\"><b>Description</b></td><td><b>Last changes</b></td></tr>"

@@ -1,8 +1,14 @@
 #include "common.h"
 
+#include "config.h"
+#include "hprintf.h"
+
 #include <errno.h>
 #include <ftw.h>
+#include <limits.h>
+#include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 
 int mkdirp(char* path, int mode) {
@@ -72,4 +78,23 @@ void unhide_path(char* path) {
 		if (*chr == '.' && (chr == path || chr[-1] == '/') && chr[1] != '/')
 			*chr = '-';
 	}
+}
+
+FILE* xfopen(const char* mode, const char* format, ...) {
+	char    path[PATH_MAX];
+	FILE*   fp;
+	va_list list;
+
+	va_start(list, format);
+	vsnprintf(path, sizeof(path), format, list);
+	va_end(list);
+
+	if (!(fp = fopen(path, mode))) {
+		hprintf(stderr, "error: unable to open file: %s: %w\n", path);
+		exit(100);
+	}
+	if (verbose)
+		fprintf(stderr, "%s\n", path);
+
+	return fp;
 }

@@ -33,6 +33,7 @@ OBJECTS = \
 	hprintf.o \
 	parseconfig.o \
 	writearchive.o \
+	writeatom.o \
 	writecommit.o \
 	writefiles.o \
 	writehtml.o \

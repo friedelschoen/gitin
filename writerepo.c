@@ -118,15 +118,11 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 	writefiles(&info);
 
 	/* log for HEAD */
-	snprintf(path, sizeof(path), "%s/index.html", info.destdir);
-	if (!(fp = fopen(path, "w"))) {
-		hprintf(stderr, "error: unable to open file: %s: %w\n", path);
-		exit(100);
-	}
-	if (verbose)
-		fprintf(stderr, "%s\n", path);
+	fp = xfopen("w", "%s/index.html", info.destdir);
+
 	writeheader(fp, &info, 0, info.name, "%y", info.description);
 	writerefs(fp, &info);
+
 	fputs("<h2>Commits</h2>\n<table id=\"log\"><thead>\n<tr><td><b>Date</b></td>"
 	      "<td class=\"expand\"><b>Commit message</b></td>"
 	      "<td><b>Author</b></td><td class=\"num\" align=\"right\"><b>Files</b></td>"

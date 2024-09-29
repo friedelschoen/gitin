@@ -167,6 +167,10 @@ int writelog(FILE* fp, const struct repoinfo* info) {
 	ssize_t            ncommits = 0;
 	const char*        summary;
 	struct commitstats ci;
+	FILE*              atom;
+
+	atom = xfopen("w", "%s/commits.xml", info->destdir);
+	writeatomheader(atom, info);
 
 	// Create a revwalk to iterate through the commits
 	if (git_revwalk_new(&w, info->repo)) {
@@ -187,6 +191,8 @@ int writelog(FILE* fp, const struct repoinfo* info) {
 			continue;
 		}
 
+		writecommitatom(fp, commit, NULL);
+
 		if (getstats(&ci, commit, info->repo) == -1)
 			continue;
 
@@ -198,13 +204,7 @@ int writelog(FILE* fp, const struct repoinfo* info) {
 		if (force || access(path, F_OK)) {
 			summary = git_commit_summary(commit);
 
-			// Write the commit's diff to a file
-			if (!(fpfile = fopen(path, "w"))) {
-				hprintf(stderr, "error: unable to open file: %s: %w\n", path);
-				exit(100);
-			}
-			if (verbose)
-				fprintf(stderr, "%s\n", path);
+			fpfile = xfopen("w", "%s", path);
 			writeheader(fpfile, info, 1, info->name, "%y", summary);
 			fputs("<pre>", fpfile);
 			writediff(fpfile, info, commit, &ci, ncommits != maxcommits);
@@ -220,6 +220,9 @@ int writelog(FILE* fp, const struct repoinfo* info) {
 	}
 
 	git_revwalk_free(w);
+
+	writeatomfooter(atom);
+	fclose(atom);
 
 	if (maxcommits > 0 && ncommits > maxcommits) {
 		if (ncommits - maxcommits == 1)
