@@ -3,11 +3,9 @@
 #include "hprintf.h"
 #include "writer.h"
 
-#include <err.h>
 #include <limits.h>
 #include <string.h>
 #include <unistd.h>
-
 
 void freestats(struct commitstats* ci) {
 	size_t i;
@@ -46,8 +44,11 @@ static int getstats(struct commitstats* ci, git_commit* commit, git_repository* 
 
 	memset(ci, 0, sizeof(*ci));
 
-	if (git_tree_lookup(&commit_tree, repo, git_commit_tree_id(commit)))
+	if (git_tree_lookup(&commit_tree, repo, git_commit_tree_id(commit))) {
+		hprintf(stderr, "error: unable to look up commit tree: %gw\n");
 		goto err;
+	}
+
 	if (!git_commit_parent(&parent, commit, 0)) {
 		if (git_tree_lookup(&parent_tree, repo, git_commit_tree_id(parent))) {
 			parent      = NULL;
@@ -57,24 +58,34 @@ static int getstats(struct commitstats* ci, git_commit* commit, git_repository* 
 
 	git_diff_options_init(&opts, GIT_DIFF_OPTIONS_VERSION);
 	opts.flags |= GIT_DIFF_DISABLE_PATHSPEC_MATCH | GIT_DIFF_IGNORE_SUBMODULES | GIT_DIFF_INCLUDE_TYPECHANGE;
-	if (git_diff_tree_to_tree(&diff, repo, parent_tree, commit_tree, &opts))
+	if (git_diff_tree_to_tree(&diff, repo, parent_tree, commit_tree, &opts)) {
+		hprintf(stderr, "error: unable to generate diff: %gw\n");
 		goto err;
+	}
 
 	git_diff_find_options_init(&fopts, GIT_DIFF_FIND_OPTIONS_VERSION);
 	fopts.flags |= GIT_DIFF_FIND_RENAMES | GIT_DIFF_FIND_COPIES | GIT_DIFF_FIND_EXACT_MATCH_ONLY;
-	if (git_diff_find_similar(diff, &fopts))
+	if (git_diff_find_similar(diff, &fopts)) {
+		hprintf(stderr, "error: unable to find similar changes: %gw\n");
 		goto err;
+	}
 
 	ndeltas = git_diff_num_deltas(diff);
-	if (ndeltas && !(ci->deltas = calloc(ndeltas, sizeof(struct deltainfo*))))
-		err(1, "calloc");
+	if (ndeltas && !(ci->deltas = calloc(ndeltas, sizeof(struct deltainfo*)))) {
+		hprintf(stderr, "error: unable to allocate memory for deltas: %w\n");
+		exit(100);    // Fatal error
+	}
 
 	for (i = 0; i < ndeltas; i++) {
-		if (git_patch_from_diff(&patch, diff, i))
+		if (git_patch_from_diff(&patch, diff, i)) {
+			hprintf(stderr, "error: unable to create patch from diff: %gw\n");
 			goto err;
+		}
 
-		if (!(di = calloc(1, sizeof(struct deltainfo))))
-			err(1, "calloc");
+		if (!(di = calloc(1, sizeof(struct deltainfo)))) {
+			hprintf(stderr, "error: unable to allocate memory for deltainfo: %w\n");
+			exit(100);    // Fatal error
+		}
 		di->patch     = patch;
 		ci->deltas[i] = di;
 
@@ -85,8 +96,10 @@ static int getstats(struct commitstats* ci, git_commit* commit, git_repository* 
 
 		nhunks = git_patch_num_hunks(patch);
 		for (j = 0; j < nhunks; j++) {
-			if (git_patch_get_hunk(&hunk, &nhunklines, patch, j))
+			if (git_patch_get_hunk(&hunk, &nhunklines, patch, j)) {
+				hprintf(stderr, "error: unable to get hunk: %gw\n");
 				break;
+			}
 			for (k = 0;; k++) {
 				if (git_patch_get_line_in_hunk(&line, patch, j, k))
 					break;
@@ -157,7 +170,7 @@ int writelog(FILE* fp, const struct repoinfo* info) {
 
 	// Create a revwalk to iterate through the commits
 	if (git_revwalk_new(&w, info->repo)) {
-		fprintf(stderr, "Error initializing revwalk\n");
+		hprintf(stderr, "error: unable to initialize revwalk: %gw\n");
 		return -1;
 	}
 	git_revwalk_push_head(w);
@@ -170,7 +183,7 @@ int writelog(FILE* fp, const struct repoinfo* info) {
 
 		// Lookup the commit object
 		if (git_commit_lookup(&commit, info->repo, &id)) {
-			fprintf(stderr, "Error looking up commit\n");
+			hprintf(stderr, "error: unable to lookup commit: %gw\n");
 			continue;
 		}
 
@@ -187,7 +200,8 @@ int writelog(FILE* fp, const struct repoinfo* info) {
 
 			// Write the commit's diff to a file
 			if (!(fpfile = fopen(path, "w"))) {
-				err(1, "fopen: '%s'", path);
+				hprintf(stderr, "error: unable to open file: %s: %w\n", path);
+				exit(100);
 			}
 			fprintf(stderr, "%s\n", path);
 			writeheader(fpfile, info, 1, info->name, "%y", summary);
@@ -195,7 +209,6 @@ int writelog(FILE* fp, const struct repoinfo* info) {
 			writediff(fpfile, info, commit, &ci, ncommits != maxcommits);
 			fputs("</pre>\n", fpfile);
 			writefooter(fpfile);
-			checkfileerror(fpfile, path, 'w');
 			fclose(fpfile);
 		}
 

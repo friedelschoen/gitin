@@ -11,10 +11,8 @@ typedef struct {
 	int write;
 } pipe_t;
 
-/* Handle read or write errors for a FILE * stream */
-void checkfileerror(FILE* fp, const char* name, int mode);
-int  mkdirp(const char* path);
-int  removedir(char* path);
+int mkdirp(char* path, int mode);
+int removedir(char* path);
 
 /* Escape characters below as HTML 2.0 / XML 1.0, ignore printing '\r', '\n' */
 void xmlencodeline(FILE* fp, const char* s, size_t len);
