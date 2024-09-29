@@ -14,7 +14,7 @@
 #include <unistd.h>
 
 
-int force = 0, verbose = 0;
+int force = 0, verbose = 0, columnate = 0;
 
 static int checkrepo(const char* path) {
 	char        git_path[PATH_MAX];
@@ -104,6 +104,9 @@ int main(int argc, char** argv) {
 			usage(self, 0);
 		case 'r':
 			recursive = 1;
+			break;
+		case 's':
+			columnate = 1;
 			break;
 		case 'u':
 			update = 1;

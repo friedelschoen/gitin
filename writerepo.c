@@ -47,11 +47,13 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 	if (info.name[strlen(info.name) - 1] == '/')
 		info.name[strlen(info.name) - 1] = '\0';
 
-
 	snprintf(info.destdir, sizeof(info.destdir), "%s/%s", destination, info.repodir);
 	normalize_path(info.destdir);
 
-	printf("updating '%s' -> %s\n", info.name, info.destdir);
+	if (columnate)
+		printf("%s\t%s\t%s\n", info.name, info.repodir, info.destdir);
+	else
+		printf("updating '%s' (at %s) -> %s\n", info.name, info.repodir, info.destdir);
 
 	if (mkdirp(info.destdir, 0777) == -1) {
 		hprintf(stderr, "error: unable to create destination directory: %w\n", info.destdir);
