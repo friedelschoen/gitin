@@ -1,5 +1,6 @@
 #include "arg.h"
 #include "config.h"
+#include "hprintf.h"
 #include "parseconfig.h"
 #include "writer.h"
 
@@ -10,6 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 
 int force = 0;
@@ -88,32 +90,42 @@ static void usage(const char* argv0, int exitcode) {
 
 int main(int argc, char** argv) {
 	const char* self    = argv[0];
-	const char* destdir = ".";
+	const char *destdir = ".", *pwd = NULL;
 	int         update = 0, recursive = 0;
 	char**      repos  = NULL;
 	int         nrepos = 0;
 
 	ARGBEGIN
 	switch (OPT) {
+		case 'C':
+			pwd = EARGF(usage(self, 1));
+			break;
 		case 'd':
 			destdir = EARGF(usage(self, 1));
 			break;
 		case 'f':
 			force = 1;
 			break;
-		case 'u':
-			update = 1;
-			break;
+		case 'h':
+			usage(self, 0);
 		case 'r':
 			recursive = 1;
 			break;
-		case 'h':
-			usage(self, 0);
+		case 'u':
+			update = 1;
+			break;
 		default:
 			fprintf(stderr, "error: unknown option '-%c'\n", OPT);
 			return 1;
 	}
 	ARGEND
+
+	if (pwd) {
+		if (chdir(pwd)) {
+			hprintf(stderr, "error: unable to change directory: %w\n");
+			return 1;
+		}
+	}
 
 	signal(SIGPIPE, SIG_IGN);
 
