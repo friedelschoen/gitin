@@ -144,6 +144,7 @@ int writearchive(const struct repoinfo* info, const struct git_reference* ref) {
 
 	snprintf(path, sizeof(path), "%s/.gitin/archive/%s", info->destdir, git_reference_shorthand(ref));
 	if ((fp = fopen(path, "w"))) {
+		fprintf(stderr, "%s\n", path);
 		fwrite(oid, GIT_OID_HEXSZ, 1, fp);
 		fclose(fp);
 	} else {

@@ -1,6 +1,8 @@
+#include "common.h"
 #include "hprintf.h"
 #include "writer.h"
 
+#include <git2/refs.h>
 #include <string.h>
 
 
@@ -29,7 +31,7 @@ static int refs_cmp(const void* v1, const void* v2) {
 	return strcmp(git_reference_shorthand(r1->ref), git_reference_shorthand(r2->ref));
 }
 
-static int writeref(FILE* fp, const struct repoinfo* info, struct referenceinfo* refs, size_t nrefs,
+static int writeref(FILE* fp, FILE* atom, const struct repoinfo* info, struct referenceinfo* refs, size_t nrefs,
                     const char* title) {
 	const char*          name;
 	const git_signature* author;
@@ -45,6 +47,8 @@ static int writeref(FILE* fp, const struct repoinfo* info, struct referenceinfo*
 
 	for (size_t i = 0; i < nrefs; i++) {
 		writearchive(info, refs[i].ref);
+		writecommitatom(atom, refs[i].commit, git_reference_shorthand(refs[i].ref));
+
 		ishead = info->head && !git_oid_cmp(git_reference_target(refs[i].ref), info->head);
 
 		name   = git_reference_shorthand(refs[i].ref);
@@ -94,6 +98,7 @@ int writerefs(FILE* fp, const struct repoinfo* info) {
 	git_reference_iterator* iter   = NULL;
 	git_commit*             commit = NULL;
 	git_reference*          ref    = NULL;
+	FILE*                   atom;
 
 	if (git_reference_iterator_new(&iter, info->repo))
 		return -1;
@@ -125,11 +130,17 @@ int writerefs(FILE* fp, const struct repoinfo* info) {
 
 	fprintf(fp, "<div id=\"refcontainer\">\n");
 
+	atom = xfopen("w", "%s/tags.xml", info->destdir);
+	writeatomheader(atom, info);
+
 	if (nbranches)
-		writeref(fp, info, branches, nbranches, "Branches");
+		writeref(fp, atom, info, branches, nbranches, "Branches");
 
 	if (ntags)
-		writeref(fp, info, tags, ntags, "Tags");
+		writeref(fp, atom, info, tags, ntags, "Tags");
+
+	writeatomfooter(atom);
+	fclose(atom);
 
 	freeref(branches, nbranches);
 	freeref(tags, ntags);

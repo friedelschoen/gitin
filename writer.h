@@ -44,6 +44,9 @@ struct commitstats {
 };
 
 int  writearchive(const struct repoinfo* info, const struct git_reference* ref);
+void writeatomheader(FILE* fp, const struct repoinfo* info);
+void writeatomfooter(FILE* fp);
+void writecommitatom(FILE* fp, git_commit* commit, const char* tag);
 void writediff(FILE* fp, const struct repoinfo* info, git_commit* commit, struct commitstats* ci, int parentlink);
 void writefooter(FILE* fp);
 int  writefiles(struct repoinfo* info);

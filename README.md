@@ -85,8 +85,6 @@ gitin $gitin_opt -r .
 - Creates archives for each reference.
 - Detects README and LICENSE files from `HEAD` and links them as web pages.
 - Detects submodules (from `.gitmodules`) and links them as web pages.
-<!-- - Atom feed of the commit log (atom.xml).
-- Atom feed of the tags/refs (tags.xml). -->
 - Once pages are generated (which can be relatively slow), serving them is fast, simple, and resource-efficient, requiring only a basic HTTP file server.
 
 ## Limitations

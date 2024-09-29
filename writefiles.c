@@ -235,13 +235,7 @@ static size_t writeblob(const struct repoinfo* info, int relpath, git_object* ob
 		return -1;
 	}
 
-	if (!(fp = fopen(fpath, "w"))) {
-		hprintf(stderr, "error: unable to open file: %s: %w\n", fpath);
-		return -1;
-	}
-	if (verbose)
-		fprintf(stderr, "%s\n", fpath);    // Keeping fprintf for basic output log
-
+	fp = xfopen("w", "%s", fpath);
 	writeheader(fp, info, relpath, info->name, "%y", filepath);
 	hprintf(fp, "<p> %y (%zuB) <a href='%rblob%h'>download</a></p><hr/>", filename, filesize, relpath, filepath);
 
@@ -269,13 +263,7 @@ static void writefile(git_object* obj, const char* fpath, size_t filesize) {
 		return;
 	}
 
-	if (!(fp = fopen(fpath, "w"))) {
-		hprintf(stderr, "error: unable to open file: %s: %w\n", fpath);
-		return;
-	}
-	if (verbose)
-		fprintf(stderr, "%s\n", fpath);
-
+	fp = xfopen("w", "%s", fpath);
 	fwrite(git_blob_rawcontent((const git_blob*) obj), filesize, 1, fp);
 	fclose(fp);
 }
@@ -393,13 +381,7 @@ int writefiles(struct repoinfo* info) {
 	removedir(path);
 
 	/* files for HEAD, it must be before writelog, as it also populates headfiles! */
-	snprintf(path, sizeof(path), "%s/files.html", info->destdir);
-	if (!(fp = fopen(path, "w"))) {
-		hprintf(stderr, "error: unable to open file: %s: %w\n", path);
-		exit(100);
-	}
-	if (verbose)
-		fprintf(stderr, "%s\n", path);
+	fp = xfopen("w", "%s/files.html", info->destdir);
 	writeheader(fp, info, 0, info->name, "%y", info->description);
 
 	fputs("<table id=\"files\"><thead>\n<tr>"
