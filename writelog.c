@@ -7,6 +7,7 @@
 #include <string.h>
 #include <unistd.h>
 
+
 void freestats(struct commitstats* ci) {
 	size_t i;
 
@@ -191,7 +192,7 @@ int writelog(FILE* fp, const struct repoinfo* info) {
 			continue;
 		}
 
-		writecommitatom(fp, commit, NULL);
+		writecommitatom(atom, commit, NULL);
 
 		if (getstats(&ci, commit, info->repo) == -1)
 			continue;
