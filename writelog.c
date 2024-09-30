@@ -159,7 +159,7 @@ static void writelogline(FILE* fp, int relpath, git_commit* commit, const struct
 	fputs("</td></tr>\n", fp);
 }
 
-int writelog(FILE* fp, const struct repoinfo* info) {
+int writelog(FILE* fp, FILE* json, const struct repoinfo* info) {
 	git_commit*        commit = NULL;
 	git_revwalk*       w      = NULL;
 	git_oid            id;
@@ -169,6 +169,7 @@ int writelog(FILE* fp, const struct repoinfo* info) {
 	const char*        summary;
 	struct commitstats ci;
 	FILE*              atom;
+	int                first;
 
 	atom = xfopen("w", "%s/commits.xml", info->destdir);
 	writeatomheader(atom, info);
@@ -182,6 +183,7 @@ int writelog(FILE* fp, const struct repoinfo* info) {
 
 	// Iterate through the commits
 	while (!git_revwalk_next(&id, w)) {
+		first = ncommits == 0;
 		ncommits++;
 		if (maxcommits > 0 && ncommits > maxcommits)
 			continue;
@@ -192,12 +194,18 @@ int writelog(FILE* fp, const struct repoinfo* info) {
 			continue;
 		}
 
+		git_oid_tostr(oidstr, sizeof(oidstr), &id);
+
 		writecommitatom(atom, commit, NULL);
+		if (!first) {
+			fprintf(json, ",");
+		}
+		fprintf(json, "\"%s\":", oidstr);
+		writejsoncommit(json, commit);
 
 		if (getstats(&ci, commit, info->repo) == -1)
 			continue;
 
-		git_oid_tostr(oidstr, sizeof(oidstr), &id);
 		snprintf(path, sizeof(path), "%s/commit/%s.html", info->destdir, oidstr);
 		normalize_path(path);
 

@@ -3,6 +3,7 @@
 #include "writer.h"
 
 #include <git2/refs.h>
+#include <git2/types.h>
 #include <string.h>
 
 
@@ -31,8 +32,8 @@ static int refs_cmp(const void* v1, const void* v2) {
 	return strcmp(git_reference_shorthand(r1->ref), git_reference_shorthand(r2->ref));
 }
 
-static int writeref(FILE* fp, FILE* atom, const struct repoinfo* info, struct referenceinfo* refs, size_t nrefs,
-                    const char* title) {
+static int writeref(FILE* fp, FILE* atom, FILE* json, const struct repoinfo* info, struct referenceinfo* refs,
+                    size_t nrefs, const char* title) {
 	const char*          name;
 	const git_signature* author;
 	int                  ishead;
@@ -48,6 +49,10 @@ static int writeref(FILE* fp, FILE* atom, const struct repoinfo* info, struct re
 	for (size_t i = 0; i < nrefs; i++) {
 		writearchive(info, refs[i].ref);
 		writecommitatom(atom, refs[i].commit, git_reference_shorthand(refs[i].ref));
+
+		if (i > 0)
+			fprintf(json, ",\n");
+		writejsonref(json, info, refs[i].ref, refs[i].commit);
 
 		ishead = info->head && !git_oid_cmp(git_reference_target(refs[i].ref), info->head);
 
@@ -91,7 +96,7 @@ static void freeref(struct referenceinfo* refs, size_t nrefs) {
 	free(refs);
 }
 
-int writerefs(FILE* fp, const struct repoinfo* info) {
+int writerefs(FILE* fp, FILE* json, const struct repoinfo* info) {
 	struct referenceinfo*   branches  = NULL;
 	struct referenceinfo*   tags      = NULL;
 	size_t                  nbranches = 0, ntags = 0;
@@ -133,11 +138,17 @@ int writerefs(FILE* fp, const struct repoinfo* info) {
 	atom = xfopen("w", "%s/tags.xml", info->destdir);
 	writeatomheader(atom, info);
 
+	fprintf(json, "\"branches\":[");
+
 	if (nbranches)
-		writeref(fp, atom, info, branches, nbranches, "Branches");
+		writeref(fp, atom, json, info, branches, nbranches, "Branches");
+
+	fprintf(json, "],\"tags\":[");
 
 	if (ntags)
-		writeref(fp, atom, info, tags, ntags, "Tags");
+		writeref(fp, atom, json, info, tags, ntags, "Tags");
+
+	fprintf(json, "]");
 
 	writeatomfooter(atom);
 	fclose(atom);
