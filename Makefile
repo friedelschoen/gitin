@@ -38,6 +38,7 @@ OBJECTS = \
 	writefiles.o \
 	writehtml.o \
 	writeindex.o \
+	writejson.o \
 	writelog.o \
 	writerefs.o \
 	writerepo.o

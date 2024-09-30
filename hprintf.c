@@ -83,6 +83,51 @@ static void xmlencode(FILE* fp, const char* s) {
 	}
 }
 
+/* Escape characters below as HTML 2.0 / XML 1.0. */
+static void jsonencode(FILE* fp, const char* s) {
+	while (*s) {
+		// \"
+		// \\
+    // \/
+		// \b
+		// \f
+		// \n
+		// \r
+		// \t
+		// \u followed by four-hex-digits
+
+		switch (*s) {
+			case '"':
+				fputs("\\\"", fp);
+				break;
+			case '\\':
+				fputs("\\\\", fp);
+				break;
+			case '/':
+				fputs("\\/", fp);
+				break;
+			case '\b':
+				fputs("\\b", fp);
+				break;
+			case '\f':
+				fputs("\\f", fp);
+				break;
+			case '\n':
+				fputs("\\n", fp);
+				break;
+			case '\r':
+				fputs("\\r", fp);
+				break;
+			case '\t':
+				fputs("\\t", fp);
+				break;
+			default:
+				putc(*s, fp);
+		}
+		s++;
+	}
+}
+
 void hprintf(FILE* file, const char* format, ...) {
 	va_list args;
 	va_start(args, format);
@@ -137,6 +182,9 @@ void vhprintf(FILE* file, const char* format, va_list args) {
 		} else if (strncmp(p, "gW", 2) == 0) {
 			const git_error* error = va_arg(args, const git_error*);
 			fprintf(file, "%s", error ? error->message : "no error");
+		} else if (*p == 'j') {
+			const char* text = va_arg(args, const char*);
+			jsonencode(file, text);
 
 		} else if (strncmp(p, "zd", 2) == 0) {
 			// Handle %zd for signed size_t (use PRIdPTR from inttypes.h)
