@@ -87,9 +87,21 @@ static struct {
 	const char*  name;
 	const char** target;
 } configs[] = {
-	{ "name", &sitename },         { "description", &sitedescription }, { "footer", &footertext },
-	{ "favicon", &favicon },       { "favicontype", &favicontype },     { "logoicon", &logoicon },
-	{ "stylesheet", &stylesheet }, { "highlightcmd", &highlightcmd },   { "colorscheme", &colorscheme },
+	{ "name", &sitename },
+	{ "description", &sitedescription },
+	{ "footer", &footertext },
+	{ "favicon", &favicon },
+	{ "favicontype", &favicontype },
+	{ "logoicon", &logoicon },
+	{ "stylesheet", &stylesheet },
+	{ "highlightcmd", &highlightcmd },
+	{ "colorscheme", &colorscheme },
+	{ "files/index", &indexfile },
+	{ "files/log", &logfile },
+	{ "files/files", &treefile },
+	{ "files/json", &jsonfile },
+	{ "files/commit-atom", &commitatomfile },
+	{ "files/tag-atom", &tagatomfile },
 };
 
 static int setconfigarray(const char* key, const char* value) {

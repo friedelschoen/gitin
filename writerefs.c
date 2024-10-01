@@ -1,4 +1,5 @@
 #include "common.h"
+#include "config.h"
 #include "hprintf.h"
 #include "writer.h"
 
@@ -135,7 +136,7 @@ int writerefs(FILE* fp, FILE* json, const struct repoinfo* info) {
 
 	fprintf(fp, "<div id=\"refcontainer\">\n");
 
-	atom = xfopen("w", "%s/tags.xml", info->destdir);
+	atom = xfopen("w", "%s/%s", info->destdir, tagatomfile);
 	writeatomheader(atom, info);
 
 	fprintf(json, "\"branches\":[");

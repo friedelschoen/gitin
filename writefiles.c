@@ -381,7 +381,7 @@ int writefiles(struct repoinfo* info) {
 	removedir(path);
 
 	/* files for HEAD, it must be before writelog, as it also populates headfiles! */
-	fp = xfopen("w", "%s/files.html", info->destdir);
+	fp = xfopen("w", "%s/%s", info->destdir, treefile);
 	writeheader(fp, info, 0, info->name, "%y", info->description);
 
 	fputs("<table id=\"files\"><thead>\n<tr>"

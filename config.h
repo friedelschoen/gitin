@@ -1,7 +1,6 @@
 #pragma once
 
 extern const char* colorscheme;
-extern const char* configfile;
 extern const char* favicon;
 extern const char* favicontype;
 extern const char* footertext;
@@ -14,5 +13,13 @@ extern const char* stylesheet;
 extern int         npinfiles;
 extern long long   maxcommits;
 extern long long   maxfilesize;
+
+extern const char* configfile;
+extern const char* logfile;
+extern const char* treefile;
+extern const char* jsonfile;
+extern const char* commitatomfile;
+extern const char* tagatomfile;
+extern const char* indexfile;
 
 extern int force, verbose, columnate;

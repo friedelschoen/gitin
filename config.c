@@ -33,9 +33,6 @@ const char* highlightcmd = "chroma --html --html-only --html-lines --html-inline
 /* Color scheme to use for syntax highlighting in the HTML output. */
 const char* colorscheme = "pastie";
 
-/* Configuration file to use for additional settings. */
-const char* configfile = "gitin.conf";
-
 /* Pin file settings */
 
 /* List of files (by name) that will be pinned in the header of the HTML page, typically important files like licenses
@@ -57,3 +54,26 @@ long long maxcommits = -1;
 /* Maximum file size (in bytes) that will be highlighted or processed. Files larger than this size (1MB) will be
  * skipped. */
 long long maxfilesize = 1e+6;    // 1MB
+
+/* File names */
+
+/* Name of configuration file */
+const char* configfile = "gitin.conf";
+
+/* Name of root index file */
+const char* indexfile = "index.html";
+
+/* Name of commit and branch/tag-log */
+const char* logfile = "log.html";
+
+/* Name of filetree */
+const char* treefile = "tree.html";
+
+/* Name of JSON-file for commits */
+const char* jsonfile = "commits.json";
+
+/* Name of commit Atom */
+const char* commitatomfile = "atom.xml";
+
+/* Name of tag/branch Atom */
+const char* tagatomfile = "tags.xml";

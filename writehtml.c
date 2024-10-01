@@ -34,8 +34,8 @@ void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char*
 	}
 	fputs("<tr><td></td><td class=\"expand\">\n", fp);
 	if (info) {
-		hprintf(fp, "<a href=\"%rindex.html\">Log</a>", relpath);
-		hprintf(fp, " | <a href=\"%rfiles.html\">Files</a> ", relpath);
+		hprintf(fp, "<a href=\"%r%s\">Log</a>", relpath, logfile);
+		hprintf(fp, " | <a href=\"%r%s\">Files</a> ", relpath, treefile);
 		if (info->submodules)
 			hprintf(fp, " | <a href=\"%rfile/%s.html\">Submodules</a>", relpath, info->submodules);
 		for (int i = 0; i < info->pinfileslen; i++)

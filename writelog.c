@@ -171,7 +171,7 @@ int writelog(FILE* fp, FILE* json, const struct repoinfo* info) {
 	FILE*              atom;
 	int                first;
 
-	atom = xfopen("w", "%s/commits.xml", info->destdir);
+	atom = xfopen("w", "%s/%s", info->destdir, commitatomfile);
 	writeatomheader(atom, info);
 
 	// Create a revwalk to iterate through the commits
