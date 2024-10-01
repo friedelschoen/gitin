@@ -118,8 +118,8 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 	writefiles(&info);
 
 	/* log for HEAD */
-	fp   = xfopen("w", "%s/index.html", info.destdir);
-	json = xfopen("w", "%s/commits.json", info.destdir);
+	fp   = xfopen("w", "%s/%s", info.destdir, logfile);
+	json = xfopen("w", "%s/%s", info.destdir, jsonfile);
 
 	writeheader(fp, &info, 0, info.name, "%y", info.description);
 	fprintf(json, "{");

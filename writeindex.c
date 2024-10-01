@@ -28,7 +28,7 @@ int writeindexline(FILE* fp, const struct repoinfo* info) {
 
 	author = git_commit_author(commit);
 
-	hprintf(fp, "<tr><td><a href=\"%s/index.html\">%y</a></td><td>%y</td><td>", info->repodir, info->name,
+	hprintf(fp, "<tr><td><a href=\"%s/%s\">%y</a></td><td>%y</td><td>", info->repodir, logfile, info->name,
 	        info->description);
 	if (author)
 		hprintf(fp, "%t", &author->when);
@@ -83,7 +83,7 @@ void writeindex(const char* destdir, char** repos, int nrepos) {
 		exit(100);
 	}
 
-	index = xfopen("w+", "%s/index.html", destdir);
+	index = xfopen("w+", "%s/%s", destdir, indexfile);
 	writeheader(index, NULL, 0, sitename, "%y", sitedescription);
 	fputs("<table id=\"index\"><thead>\n"
 	      "<tr><td><b>Name</b></td><td class=\"expand\"><b>Description</b></td><td><b>Last changes</b></td></tr>"
