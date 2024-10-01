@@ -102,6 +102,9 @@ static struct {
 	{ "files/json", &jsonfile },
 	{ "files/commit-atom", &commitatomfile },
 	{ "files/tag-atom", &tagatomfile },
+	{ "link/stylesheet", &linkstylesheet },
+	{ "link/favicon", &linkfavicon },
+	{ "link/logoicon", &linklogoicon },
 };
 
 static int setconfigarray(const char* key, const char* value) {

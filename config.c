@@ -77,3 +77,7 @@ const char* commitatomfile = "atom.xml";
 
 /* Name of tag/branch Atom */
 const char* tagatomfile = "tags.xml";
+
+const char* linkstylesheet = NULL;
+const char* linkfavicon    = NULL;
+const char* linklogoicon   = NULL;
