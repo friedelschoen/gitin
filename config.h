@@ -22,4 +22,8 @@ extern const char* commitatomfile;
 extern const char* tagatomfile;
 extern const char* indexfile;
 
+extern const char* linkstylesheet;
+extern const char* linkfavicon;
+extern const char* linklogoicon;
+
 extern int force, verbose, columnate;

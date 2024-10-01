@@ -4,8 +4,11 @@
 #include "parseconfig.h"
 #include "writer.h"
 
+#include <errno.h>
 #include <limits.h>
+#include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 
 int writeindexline(FILE* fp, const struct repoinfo* info) {
@@ -73,6 +76,16 @@ static int sortpath(const void* leftp, const void* rightp) {
 	return strcmp(left, right);
 }
 
+static void symlinkfile(const char* destdir, const char* src, const char* dest) {
+	char path[PATH_MAX];
+
+	snprintf(path, sizeof(path), "%s/%s", destdir, src);
+	if (symlink(dest, path) && errno != EEXIST) {
+		hprintf(stderr, "error: unable to create link at %s (pointing to %s): %w\n", path, dest);
+		exit(100);
+	}
+}
+
 void writeindex(const char* destdir, char** repos, int nrepos) {
 	FILE* index;
 	char  path[PATH_MAX];
@@ -82,6 +95,16 @@ void writeindex(const char* destdir, char** repos, int nrepos) {
 		hprintf(stderr, "error: unable to create directory %s: %w\n", path);
 		exit(100);
 	}
+
+	if (linkfavicon)
+		symlinkfile(destdir, favicon, linkfavicon);
+
+	if (linklogoicon)
+		symlinkfile(destdir, logoicon, linklogoicon);
+
+	if (linkstylesheet)
+		symlinkfile(destdir, stylesheet, linkstylesheet);
+
 
 	index = xfopen("w+", "%s/%s", destdir, indexfile);
 	writeheader(index, NULL, 0, sitename, "%y", sitedescription);
