@@ -14,9 +14,9 @@ struct repoinfo {
 	char        destdir[1024];
 	int         relpath;
 
-	char name[100];
-	char description[255];
-	char cloneurl[255];
+	char        name[100];
+	const char* description;
+	const char* cloneurl;
 
 	const char* submodules;
 

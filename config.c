@@ -1,6 +1,32 @@
 #include "config.h"
 
-#include "common.h"
+#include "writer.h"
+
+
+struct config config_keys[] = {
+	{ "name", ConfigString, &sitename },
+	{ "description", ConfigString, &sitedescription },
+	{ "footer", ConfigString, &footertext },
+	{ "favicon", ConfigString, &favicon },
+	{ "favicontype", ConfigString, &favicontype },
+	{ "logoicon", ConfigString, &logoicon },
+	{ "stylesheet", ConfigString, &stylesheet },
+	{ "highlightcmd", ConfigString, &highlightcmd },
+	{ "colorscheme", ConfigString, &colorscheme },
+	{ "pinfiles", ConfigString, &pinfilesstr },
+	{ "limit/commits", ConfigInteger, &maxcommits },
+	{ "limit/filesize", ConfigInteger, &maxfilesize },
+	{ "files/index", ConfigString, &indexfile },
+	{ "files/log", ConfigString, &logfile },
+	{ "files/files", ConfigString, &treefile },
+	{ "files/json", ConfigString, &jsonfile },
+	{ "files/commit-atom", ConfigString, &commitatomfile },
+	{ "files/tag-atom", ConfigString, &tagatomfile },
+	{ "copy/stylesheet", ConfigString, &copystylesheet },
+	{ "copy/favicon", ConfigString, &copyfavicon },
+	{ "copy/logoicon", ConfigString, &copylogoicon },
+	{ 0 },
+};
 
 /* Site information */
 
@@ -37,12 +63,10 @@ const char* colorscheme = "pastie";
 
 /* List of files (by name) that will be pinned in the header of the HTML page, typically important files like licenses
  * or README files. */
-const char* pinfiles[] = {
-	"LICENSE", "LICENSE.md", "COPYING", "README", "README.md",
-};
+const char* pinfilesstr = "LICENSE LICENSE.md COPYING README README.md";
 
-/* Number of files specified in the pinfiles array. */
-int npinfiles = LEN(pinfiles);
+const char* pinfiles[MAXPINS];
+int         npinfiles;
 
 /* Commit and log settings */
 
@@ -78,6 +102,6 @@ const char* commitatomfile = "atom.xml";
 /* Name of tag/branch Atom */
 const char* tagatomfile = "tags.xml";
 
-const char* linkstylesheet = NULL;
-const char* linkfavicon    = NULL;
-const char* linklogoicon   = NULL;
+const char* copystylesheet = NULL;
+const char* copyfavicon    = NULL;
+const char* copylogoicon   = NULL;
