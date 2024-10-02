@@ -1,135 +1,123 @@
 #include "parseconfig.h"
 
-#include "common.h"
-#include "config.h"
-
 #include <ctype.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 
 static char* strip(char* str) {
 	char* end;
 
-	while (isspace(*str))
+	while (isspace((unsigned char) *str))    // Cast to unsigned char for isspace
 		str++;
 
 	end = strchr(str, '\0') - 1;
-	while (end > str && isspace(*end))
+	while (end > str && isspace((unsigned char) *end))
 		*end-- = '\0';
 
 	return str;
 }
 
-static int read_file_to_buffer(struct configstate* state, FILE* fp) {
+static char* read_file_to_buffer(FILE* fp, size_t* pbuflen) {
+	size_t buflen;
+	char*  buffer;
 	fseek(fp, 0, SEEK_END);
-	state->buflen = ftell(fp);
+	buflen = ftell(fp);
 	rewind(fp);
 
-	state->buffer = malloc(state->buflen + 1);    // +1 for null terminator
-	if (!state->buffer)
-		return -1;
+	if (!(buffer = malloc(buflen + 1)))    // +1 for null terminator
+		return NULL;
 
-	if (fread(state->buffer, 1, state->buflen, fp) != state->buflen) {
-		free(state->buffer);
-		return -1;
+	if (fread(buffer, 1, buflen, fp) != buflen) {
+		free(buffer);
+		return NULL;
 	}
 
-	state->buffer[state->buflen] = '\0';    // Null-terminate the buffer
-	state->current               = state->buffer;
-	return 0;
-}
-
-int parseconfig(struct configstate* state, FILE* file) {
-	char *line, *comment;
-
-	if (!state->buffer)
-		read_file_to_buffer(state, file);
-
-	for (;;) {
-		if (!(line = strsep(&state->current, "\n")))
-			return -1;    // End of buffer
-
-		// Skip empty lines
-		if (*line == '\0')
-			continue;
-
-		// Handle comments
-		comment = strchr(line, '#');
-		if (comment)
-			*comment = '\0';
-
-		comment = strchr(line, ';');
-		if (comment)
-			*comment = '\0';
-
-		state->value = strchr(line, '=');
-		if (state->value) {
-			*state->value++ = '\0';    // Split key and value
-			state->key      = strip(line);
-			state->value    = strip(state->value);
-		} else {
-			// keep state->key
-			state->value = strip(line);    // Current line is the value
+	for (size_t i = 0; i < buflen; i++) {
+		if (!buffer[i]) {
+			errno = EINVAL;
+			free(buffer);
+			return NULL;
 		}
-
-		if (*state->value && *state->key)
-			return 0;    // Successfully parsed a key-value pair
 	}
+
+	buffer[buflen] = '\0';    // Null-terminate the buffer
+	if (pbuflen)
+		*pbuflen = buflen;
+	return buffer;
 }
 
-void parseconfig_free(struct configstate* state) {
-	if (state->buffer)
-		free(state->buffer);
+static int boolstr(const char* str) {
+	if (!strcmp(str, "true") || !strcmp(str, "yes"))
+		return 1;
+	else if (!strcmp(str, "false") || !strcmp(str, "no"))
+		return 0;
+	else
+		return -1;
 }
 
-
-static struct {
-	const char*  name;
-	const char** target;
-} configs[] = {
-	{ "name", &sitename },
-	{ "description", &sitedescription },
-	{ "footer", &footertext },
-	{ "favicon", &favicon },
-	{ "favicontype", &favicontype },
-	{ "logoicon", &logoicon },
-	{ "stylesheet", &stylesheet },
-	{ "highlightcmd", &highlightcmd },
-	{ "colorscheme", &colorscheme },
-	{ "files/index", &indexfile },
-	{ "files/log", &logfile },
-	{ "files/files", &treefile },
-	{ "files/json", &jsonfile },
-	{ "files/commit-atom", &commitatomfile },
-	{ "files/tag-atom", &tagatomfile },
-	{ "link/stylesheet", &linkstylesheet },
-	{ "link/favicon", &linkfavicon },
-	{ "link/logoicon", &linklogoicon },
-};
-
-static int setconfigarray(const char* key, const char* value) {
-	for (int i = 0; i < (int) LEN(configs); i++) {
-		if (!strcmp(key, configs[i].name)) {
-			*configs[i].target = value;
+static int handle(struct config* keys, char* key, char* value) {
+	for (struct config* p = keys; p->name; p++) {
+		if (!strcmp(p->name, key)) {
+			switch (p->type) {
+				case ConfigString:
+					*(char**) p->target = value;
+					break;
+				case ConfigInteger:
+					*(int*) p->target = atoi(value);
+					break;
+				case ConfigBoolean:
+					if (boolstr(value) == -1) {
+						fprintf(stderr, "warn: '%s' is not a boolean value, leaving '%s' untouched.\n", value, key);
+					} else {
+						*(unsigned char*) p->target = boolstr(value);
+					}
+					break;
+			}
 			return 1;
 		}
 	}
 	return 0;
 }
 
-void setconfig(void) {
-	struct configstate state = { 0 };
-	FILE*              fp;
+char* parseconfig(FILE* file, struct config* keys) {
+	char *buffer, *line, *current, *value, *key;
 
-	if ((fp = fopen(configfile, "r"))) {
-		while (!parseconfig(&state, fp)) {
-			if (!strcmp(state.key, "maxcommits"))
-				maxcommits = atoi(state.value);
-			else if (!strcmp(state.key, "maxfilesize"))
-				maxfilesize = atoi(state.value);
-			else if (!setconfigarray(state.key, state.value))
-				fprintf(stderr, "warn: ignoring unknown config-key '%s'\n", state.key);
+	if (!(buffer = read_file_to_buffer(file, NULL)))
+		return NULL;
+
+	current = buffer;
+	while ((line = strsep(&current, "\n"))) {
+		// Skip empty lines
+		if (*line == '\0')
+			continue;
+
+		// Handle comments
+		value = strchr(line, '#');
+		if (value)
+			*value = '\0';
+
+		value = strchr(line, ';');
+		if (value)
+			*value = '\0';
+
+		value = strchr(line, '=');
+		if (!value)
+			continue;
+
+		*value++ = '\0';    // Split key and value
+		key      = strip(line);
+		value    = strip(value);
+
+		// Skip lines without a valid key-value pair
+		if (*key == '\0' || *value == '\0')
+			continue;
+
+		// Handle the key-value pair
+		if (!handle(keys, key, value)) {
+			fprintf(stderr, "warn: ignoring unknown key '%s'\n", key);
 		}
-		fclose(fp);
 	}
+
+	return buffer;
 }

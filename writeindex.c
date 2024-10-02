@@ -4,7 +4,6 @@
 #include "parseconfig.h"
 #include "writer.h"
 
-#include <errno.h>
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
@@ -45,28 +44,30 @@ err:
 }
 
 static void writecategory(FILE* index, const char* name, int len) {
-	char               category[PATH_MAX], configpath[PATH_MAX];
-	char*              description = "";
-	struct configstate state       = { 0 };
-	FILE*              fp;
+	char  category[PATH_MAX], configpath[PATH_MAX];
+	char* description = "";
+	char* confbuffer  = NULL;
+	FILE* fp;
 
 	memcpy(category, name, len);
 	category[len] = '\0';
 
 	snprintf(configpath, sizeof(configpath), "%s/%s", category, configfile);
 	if ((fp = fopen(configpath, "r"))) {
-		while (!parseconfig(&state, fp)) {
-			if (!strcmp(state.key, "description"))
-				description = state.value;
-			else
-				hprintf(stderr, "warn: ignoring unknown config-key '%s'\n", state.key);
-		}
+		struct config keys[] = {
+			{ "description", ConfigString, &description },
+			{ 0 },
+		};
+
+		if (!(confbuffer = parseconfig(fp, keys)))
+			fprintf(stderr, "error: unable to parse config at %s\n", configpath);
+
 		fclose(fp);
 	}
 
 	hprintf(index, "<tr class=\"category\"><td>%y</td><td>%y</td><td></td></tr>\n", category, description);
 
-	parseconfig_free(&state);
+	free(confbuffer);
 }
 
 static int sortpath(const void* leftp, const void* rightp) {
@@ -76,14 +77,45 @@ static int sortpath(const void* leftp, const void* rightp) {
 	return strcmp(left, right);
 }
 
-static void symlinkfile(const char* destdir, const char* src, const char* dest) {
-	char path[PATH_MAX];
+static void copyfile(const char* destdir, const char* dest, const char* srcpath) {
+	char   destpath[PATH_MAX];
+	FILE * srcfile, *destfile;
+	char   buffer[4096];    // Buffer size for copying file content
+	size_t n;
 
-	snprintf(path, sizeof(path), "%s/%s", destdir, src);
-	if (symlink(dest, path) && errno != EEXIST) {
-		hprintf(stderr, "error: unable to create link at %s (pointing to %s): %w\n", path, dest);
+	// Construct the source and destination file paths
+	snprintf(destpath, sizeof(destpath), "%s/%s", destdir, dest);
+
+	// Open the source file for reading
+	srcfile = fopen(srcpath, "rb");
+	if (!srcfile) {
+		hprintf(stderr, "error: unable to open source file %s: %w\n", srcpath);
 		exit(100);
 	}
+
+	// Open the destination file for writing
+	destfile = fopen(destpath, "wb");
+	if (!destfile) {
+		hprintf(stderr, "error: unable to create destination file %s: %w\n", destpath);
+		fclose(srcfile);
+		exit(100);
+	}
+
+	// Copy the file contents
+	while ((n = fread(buffer, 1, sizeof(buffer), srcfile)) > 0) {
+		if (fwrite(buffer, 1, n, destfile) != n) {
+			hprintf(stderr, "error: unable to write to destination file %s: %w\n", destpath);
+			fclose(srcfile);
+			fclose(destfile);
+			exit(100);
+		}
+	}
+
+	if (ferror(srcfile))
+		hprintf(stderr, "error: unable to read from source file %s: %w\n", srcpath);
+
+	fclose(srcfile);
+	fclose(destfile);
 }
 
 void writeindex(const char* destdir, char** repos, int nrepos) {
@@ -96,14 +128,14 @@ void writeindex(const char* destdir, char** repos, int nrepos) {
 		exit(100);
 	}
 
-	if (linkfavicon)
-		symlinkfile(destdir, favicon, linkfavicon);
+	if (copyfavicon)
+		copyfile(destdir, favicon, copyfavicon);
 
-	if (linklogoicon)
-		symlinkfile(destdir, logoicon, linklogoicon);
+	if (copylogoicon)
+		copyfile(destdir, logoicon, copylogoicon);
 
-	if (linkstylesheet)
-		symlinkfile(destdir, stylesheet, linkstylesheet);
+	if (copystylesheet)
+		copyfile(destdir, stylesheet, copystylesheet);
 
 
 	index = xfopen("w+", "%s/%s", destdir, indexfile);

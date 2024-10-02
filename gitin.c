@@ -86,8 +86,10 @@ int main(int argc, char** argv) {
 	const char* self    = argv[0];
 	const char *destdir = ".", *pwd = NULL;
 	int         update = 0, recursive = 0;
-	char**      repos  = NULL;
-	int         nrepos = 0;
+	char**      repos        = NULL;
+	int         nrepos       = 0;
+	char*       configbuffer = NULL;
+	FILE*       config;
 
 	ARGBEGIN
 	switch (OPT) {
@@ -132,7 +134,10 @@ int main(int argc, char** argv) {
 
 	signal(SIGPIPE, SIG_IGN);
 
-	setconfig();
+	if ((config = fopen(configfile, "r"))) {
+		configbuffer = parseconfig(config, config_keys);
+		fclose(config);
+	}
 
 	if (recursive) {
 		if (argc == 0) {
@@ -175,6 +180,9 @@ int main(int argc, char** argv) {
 		}
 		free(repos);
 	}
+
+	if (configbuffer)
+		free(configbuffer);
 
 	return 0;
 }

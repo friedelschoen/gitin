@@ -30,9 +30,12 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 	char            path[PATH_MAX];
 	int             i;
 	const char*     start;
+	char*           confbuffer;
 
 	memset(&info, 0, sizeof(info));
-	info.repodir = repodir;
+	info.repodir     = repodir;
+	info.description = "";
+	info.cloneurl    = "";
 
 	info.relpath = 1;
 	for (const char* p = repodir + 1; p[1]; p++)
@@ -86,20 +89,20 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 	}
 	git_object_free(obj);
 
-	struct configstate state;
-	memset(&state, 0, sizeof(state));
 	snprintf(path, sizeof(path), "%s/%s", repodir, configfile);
 	normalize_path(path);
 
 	if ((fp = fopen(path, "r"))) {
-		while (!parseconfig(&state, fp)) {
-			if (!strcmp(state.key, "description"))
-				strlcpy(info.description, state.value, sizeof(info.description));
-			else if (!strcmp(state.key, "url") || !strcmp(state.key, "cloneurl"))
-				strlcpy(info.cloneurl, state.value, sizeof(info.cloneurl));
-			else
-				hprintf(stderr, "warn: ignoring unknown config-key '%s'\n", state.key);
-		}
+		struct config keys[] = {
+			{ "description", ConfigString, &info.description },
+			{ "url", ConfigString, &info.description },
+			{ "cloneurl", ConfigString, &info.description },
+			{ 0 },
+		};
+
+		if (!(confbuffer = parseconfig(fp, keys)))
+			fprintf(stderr, "error: unable to parse config at %s\n", path);
+
 		fclose(fp);
 	}
 
@@ -143,11 +146,11 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 	writefooter(fp);
 	fclose(fp);
 
-	if (index) {
+	if (index)
 		writeindexline(index, &info);
-	}
 
 	/* cleanup */
 	git_repository_free(info.repo);
+	free(confbuffer);
 	freeheadfiles(&info);
 }
