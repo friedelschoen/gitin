@@ -44,6 +44,11 @@ table {
     margin: 1em 0;
 }
 
+table tr.category {
+	background-color: #eee;
+	border-top: 1px solid #000;
+}
+
 #content table {
 	border: 1px solid #333;
 }
