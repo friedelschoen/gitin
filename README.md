@@ -1,12 +1,12 @@
 # `gitin` - Static Git Page Generator
 
-`gitin` generates static HTML pages for a git repository.
+`gitin` generates static HTML pages for a Git repository.
 
 ## Usage
 
 ### `gitin`
 
-`gitin` is used to generate static pages for a git repository.
+`gitin` is used to generate static pages for a Git repository.
 
 ```bash
 gitin [-fhsuvV] [-C workdir] [-d destdir] repos...
@@ -26,7 +26,7 @@ gitin [-fhsuvV] [-C workdir] [-d destdir] -r [startdir]
 
 ### `findrepos`
 
-`findrepos` searches for git repositories, useful for scripts or automation.
+`findrepos` searches for Git repositories, useful for scripts or automation.
 
 ```bash
 findrepos [startdir]
@@ -37,9 +37,9 @@ findrepos [startdir]
 - [GNU Make](https://www.gnu.org/software/make/) - current build system
 - [C compiler](https://gcc.gnu.org/) - compiling code
 - [pkg-config](https://www.freedesktop.org/wiki/Software/pkg-config/) - getting requirements of libraries
-- [libgit2](https://libgit2.org/) - git support
+- [libgit2](https://libgit2.org/) - Git support
 - [libarchive](https://libarchive.org/) - archive support
-- [chroma](https://github.com/alecthomas/chroma) - highlight support
+- [chroma](https://github.com/alecthomas/chroma) - syntax highlighting support
 
 ## Build
 
@@ -56,9 +56,9 @@ For detailed usage, see the man pages: `gitin(1)` and `findrepos(1)`.
 
 ## Configuration
 
-`gitin` uses a simple key-value configuration per directory. 
+`gitin` uses a simple key-value configuration per directory.
 
-In the root of you repositories, you can configure the generation. Following options are available:
+In the root of your repositories, you can configure the generation with the following options:
 
 | **Option**          | **Description**                                                                                  | **Default Value**                                                                           |
 | ------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
@@ -84,14 +84,14 @@ In the root of you repositories, you can configure the generation. Following opt
 | `copy/favicon`      | Optional path to copy the favicon.                                                               | `<no action>`                                                                               |
 | `copy/logoicon`     | Optional path to copy the logo icon.                                                             | `<no action>`                                                                               |
 
-Repositories have following options:
+Repositories have the following options:
 
 | **Option**          | **Description**                                                               | **Default Value** |
 | ------------------- | ----------------------------------------------------------------------------- | ----------------- |
 | `description`       | A short description of the repository.                                        | `<empty>`         |
 | `url` or `cloneurl` | URL to clone the repository. Will be shown in the header as `git clone <url>` | `<empty>`         |
 
-Categories have following options:
+Categories have the following options:
 
 | **Option**    | **Description**                  | **Default Value** |
 | ------------- | -------------------------------- | ----------------- |
@@ -133,18 +133,18 @@ gitin $gitin_opt -r .
 - Detects submodules (from `.gitmodules`) and links them as web pages.
 - Atom feed of the commit log (`commits.xml`).
 - Atom feed of the tags/refs (`tags.xml`).
-- Generation of json-data, containing all commits and references (`commits.json`).
+- Generation of JSON data, containing all commits and references (`commits.json`).
 - Once pages are generated (which can be relatively slow), serving them is fast, simple, and resource-efficient, requiring only a basic HTTP file server.
 
 ## Limitations
 
-- **Not ideal for large repositories** (2000+ commits), as generating diffstats is resource-intensive.
-- **Not suitable for repositories with many files**, as directory browsing is not supported yet.
-- **Assumes a linear history** from `HEAD`, making it unsuitable for repositories with many branches.
+- Not ideal for large histories (2000+ commits), as generating diffstats is resource-intensive.
+- Not suitable for repositories with many files, as directory browsing is not supported yet.
+- Assumes a linear history from `HEAD`, making it unsuitable for repositories with many branches.
 
   For large repositories or those with complex histories, consider using `cgit` or modifying `gitin` to run as a CGI program.
 
-- **Initial generation can be slow**, though incremental updates are faster due to caching.
+- Initial generation can be slow, though incremental updates are faster due to caching.
 - Does not support some dynamic features of `cgit`, such as:
   - Snapshot tarballs for each commit.
   - File tree per commit.
