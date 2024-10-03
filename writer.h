@@ -47,7 +47,8 @@ int  writearchive(const struct repoinfo* info, const struct git_reference* ref);
 void writeatomheader(FILE* fp, const struct repoinfo* info);
 void writeatomfooter(FILE* fp);
 void writecommitatom(FILE* fp, git_commit* commit, const char* tag);
-void writediff(FILE* fp, const struct repoinfo* info, git_commit* commit, struct commitstats* ci, int parentlink);
+void writediff(FILE* fp, const struct repoinfo* info, git_commit* commit, struct commitstats* ci,
+               int parentlink);
 void writefooter(FILE* fp);
 int  writefiles(struct repoinfo* info);
 void writeindex(const char* destdir, char** repos, int nrepos);
@@ -55,6 +56,7 @@ int  writeindexline(FILE* fp, const struct repoinfo* info);
 void writejsoncommit(FILE* fp, git_commit* commit);
 void writejsonref(FILE* fp, const struct repoinfo* info, git_reference* ref, git_commit* commit);
 int  writelog(FILE* fp, FILE* json, const struct repoinfo* info);
-void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char* name, const char* description, ...);
+void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char* name,
+                 const char* description, ...);
 int  writerefs(FILE* fp, FILE* json, const struct repoinfo* info);
 void writerepo(FILE* index, const char* repodir, const char* destination);

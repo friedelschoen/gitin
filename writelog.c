@@ -58,7 +58,8 @@ static int getstats(struct commitstats* ci, git_commit* commit, git_repository* 
 	}
 
 	git_diff_options_init(&opts, GIT_DIFF_OPTIONS_VERSION);
-	opts.flags |= GIT_DIFF_DISABLE_PATHSPEC_MATCH | GIT_DIFF_IGNORE_SUBMODULES | GIT_DIFF_INCLUDE_TYPECHANGE;
+	opts.flags |=
+	    GIT_DIFF_DISABLE_PATHSPEC_MATCH | GIT_DIFF_IGNORE_SUBMODULES | GIT_DIFF_INCLUDE_TYPECHANGE;
 	if (git_diff_tree_to_tree(&diff, repo, parent_tree, commit_tree, &opts)) {
 		hprintf(stderr, "error: unable to generate diff: %gw\n");
 		goto err;
@@ -237,7 +238,8 @@ int writelog(FILE* fp, FILE* json, const struct repoinfo* info) {
 		if (ncommits - maxcommits == 1)
 			fprintf(fp, "<tr><td></td><td colspan=\"5\">1 commit left out...</td></tr>\n");
 		else
-			fprintf(fp, "<tr><td></td><td colspan=\"5\">%lld commits left out...</td></tr>\n", ncommits - maxcommits);
+			fprintf(fp, "<tr><td></td><td colspan=\"5\">%lld commits left out...</td></tr>\n",
+			        ncommits - maxcommits);
 	}
 
 	return 0;

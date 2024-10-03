@@ -5,7 +5,8 @@
 #include <stdarg.h>
 
 
-void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char* name, const char* description, ...) {
+void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char* name,
+                 const char* description, ...) {
 	va_list desc_args;
 	int     indexrelpath = relpath + (info ? info->relpath : 0);
 
@@ -15,11 +16,13 @@ void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char*
 	      "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />",
 	      fp);
 	hprintf(fp, "<title>%y - %y</title>\n", name, sitename);
-	hprintf(fp, "<link rel=\"icon\" type=\"%s\" href=\"%r%s\" />\n", favicontype, indexrelpath, favicon);
-	hprintf(fp, "<link rel=\"stylesheet\" type=\"text/css\" href=\"%r%s\" />\n", indexrelpath, stylesheet);
+	hprintf(fp, "<link rel=\"icon\" type=\"%s\" href=\"%r%s\" />\n", favicontype, indexrelpath,
+	        favicon);
+	hprintf(fp, "<link rel=\"stylesheet\" type=\"text/css\" href=\"%r%s\" />\n", indexrelpath,
+	        stylesheet);
 	fputs("</head>\n<body>\n<table><tr><td>", fp);
-	hprintf(fp, "<a href=\"%r\"><img src=\"%r%s\" alt=\"\" width=\"50\" height=\"50\" /></a>", indexrelpath,
-	        indexrelpath, logoicon);
+	hprintf(fp, "<a href=\"%r\"><img src=\"%r%s\" alt=\"\" width=\"50\" height=\"50\" /></a>",
+	        indexrelpath, indexrelpath, logoicon);
 	hprintf(fp, "</td><td class=\"expand\"><h1>%y</h1>\n<span class=\"desc\">", name);
 
 	va_start(desc_args, description);
@@ -39,7 +42,8 @@ void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char*
 		if (info->submodules)
 			hprintf(fp, " | <a href=\"%rfile/%s.html\">Submodules</a>", relpath, info->submodules);
 		for (int i = 0; i < info->pinfileslen; i++)
-			hprintf(fp, " | <a href=\"%rfile/%s.html\">%s</a>", relpath, info->pinfiles[i], info->pinfiles[i]);
+			hprintf(fp, " | <a href=\"%rfile/%s.html\">%s</a>", relpath, info->pinfiles[i],
+			        info->pinfiles[i]);
 	} else {
 		fputs("</td><td>", fp);
 	}

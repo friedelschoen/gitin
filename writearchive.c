@@ -10,7 +10,8 @@
 #include <string.h>
 
 // Function to write a blob (file) from the repository to the archive
-static int write_blob_to_archive(git_blob* blob, const char* path, const git_tree_entry* gitentry, struct archive* a) {
+static int write_blob_to_archive(git_blob* blob, const char* path, const git_tree_entry* gitentry,
+                                 struct archive* a) {
 	struct archive_entry* entry;
 	entry = archive_entry_new();
 	archive_entry_set_pathname(entry, path);
@@ -18,7 +19,8 @@ static int write_blob_to_archive(git_blob* blob, const char* path, const git_tre
 	archive_entry_set_mode(entry, git_tree_entry_filemode(gitentry));
 
 	if (archive_write_header(a, entry) != ARCHIVE_OK) {
-		fprintf(stderr, "error: unable to write header for %s: %s\n", path, archive_error_string(a));
+		fprintf(stderr, "error: unable to write header for %s: %s\n", path,
+		        archive_error_string(a));
 		archive_entry_free(entry);
 		return -1;
 	}
@@ -26,7 +28,8 @@ static int write_blob_to_archive(git_blob* blob, const char* path, const git_tre
 	const void* blob_content = git_blob_rawcontent(blob);
 	if (blob_content && git_blob_rawsize(blob) > 0) {
 		if (archive_write_data(a, blob_content, git_blob_rawsize(blob)) < 0) {
-			fprintf(stderr, "error: unable to write data for %s: %s\n", path, archive_error_string(a));
+			fprintf(stderr, "error: unable to write data for %s: %s\n", path,
+			        archive_error_string(a));
 			archive_entry_free(entry);
 			return -1;
 		}
@@ -37,7 +40,8 @@ static int write_blob_to_archive(git_blob* blob, const char* path, const git_tre
 }
 
 // Recursively process the tree to archive files
-static int process_tree(git_repository* repo, git_tree* tree, const char* base_path, struct archive* a) {
+static int process_tree(git_repository* repo, git_tree* tree, const char* base_path,
+                        struct archive* a) {
 	size_t count = git_tree_entrycount(tree);
 	for (size_t i = 0; i < count; ++i) {
 		const git_tree_entry* entry = git_tree_entry_byindex(tree, i);
@@ -89,7 +93,8 @@ int writearchive(const struct repoinfo* info, const struct git_reference* ref) {
 	git_oid_tostr(oid, sizeof(oid), git_commit_id(commit));
 
 	if (!force) {
-		snprintf(path, sizeof(path), "%s/.gitin/archive/%s", info->destdir, git_reference_shorthand(ref));
+		snprintf(path, sizeof(path), "%s/.gitin/archive/%s", info->destdir,
+		         git_reference_shorthand(ref));
 		if ((fp = fopen(path, "r"))) {
 			fread(configoid, GIT_OID_HEXSZ, 1, fp);
 			configoid[GIT_OID_HEXSZ] = '\0';
@@ -110,7 +115,8 @@ int writearchive(const struct repoinfo* info, const struct git_reference* ref) {
 		return -1;
 	}
 
-	snprintf(path, sizeof(path), "%s/archive/%s.tar.gz", info->destdir, git_reference_shorthand(ref));
+	snprintf(path, sizeof(path), "%s/archive/%s.tar.gz", info->destdir,
+	         git_reference_shorthand(ref));
 	dir = dirname(path);
 	if (mkdirp(dir, 0777) != 0) {
 		hprintf(stderr, "error: unable to create directory: %w\n");
@@ -119,7 +125,8 @@ int writearchive(const struct repoinfo* info, const struct git_reference* ref) {
 		return -1;
 	}
 
-	snprintf(path, sizeof(path), "%s/archive/%s.tar.gz", info->destdir, git_reference_shorthand(ref));
+	snprintf(path, sizeof(path), "%s/archive/%s.tar.gz", info->destdir,
+	         git_reference_shorthand(ref));
 
 	struct archive* a;
 	a = archive_write_new();
@@ -142,7 +149,8 @@ int writearchive(const struct repoinfo* info, const struct git_reference* ref) {
 		return -1;
 	}
 
-	snprintf(path, sizeof(path), "%s/.gitin/archive/%s", info->destdir, git_reference_shorthand(ref));
+	snprintf(path, sizeof(path), "%s/.gitin/archive/%s", info->destdir,
+	         git_reference_shorthand(ref));
 	if ((fp = fopen(path, "w"))) {
 		if (verbose)
 			fprintf(stderr, "%s\n", path);

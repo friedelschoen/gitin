@@ -33,8 +33,8 @@ static int refs_cmp(const void* v1, const void* v2) {
 	return strcmp(git_reference_shorthand(r1->ref), git_reference_shorthand(r2->ref));
 }
 
-static int writeref(FILE* fp, FILE* atom, FILE* json, const struct repoinfo* info, struct referenceinfo* refs,
-                    size_t nrefs, const char* title) {
+static int writeref(FILE* fp, FILE* atom, FILE* json, const struct repoinfo* info,
+                    struct referenceinfo* refs, size_t nrefs, const char* title) {
 	const char*          name;
 	const git_signature* author;
 	int                  ishead;

@@ -37,7 +37,8 @@ void writecommitatom(FILE* fp, git_commit* commit, const char* tag) {
 	fprintf(fp, "<link rel=\"alternate\" type=\"text/html\" href=\"commit/%s.html\" />\n", oid);
 
 	if (author) {
-		hprintf(fp, "<author>\n<name>%y</name>\n<email>%y</email>\n</author>\n", author->name, author->email);
+		hprintf(fp, "<author>\n<name>%y</name>\n<email>%y</email>\n</author>\n", author->name,
+		        author->email);
 	}
 
 	fputs("<content>", fp);
@@ -58,7 +59,8 @@ void writeatomheader(FILE* fp, const struct repoinfo* info) {
 	fputs("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
 	      "<feed xmlns=\"http://www.w3.org/2005/Atom\">\n",
 	      fp);
-	hprintf(fp, "<title>%y, branch HEAD</title>\n<subtitle>%y</subtitle>\n", info->name, info->description);
+	hprintf(fp, "<title>%y, branch HEAD</title>\n<subtitle>%y</subtitle>\n", info->name,
+	        info->description);
 }
 
 void writeatomfooter(FILE* fp) {
