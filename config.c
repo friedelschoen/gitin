@@ -1,7 +1,5 @@
 #include "config.h"
 
-#include "writer.h"
-
 /* Configuration keys for the configuration parser. */
 struct config config_keys[] = {
 	/* Site information settings */
@@ -16,7 +14,7 @@ struct config config_keys[] = {
 	{ "stylesheet", ConfigString, &stylesheet },
 	{ "highlightcmd", ConfigString, &highlightcmd },
 	{ "colorscheme", ConfigString, &colorscheme },
-	{ "pinfiles", ConfigString, &pinfilesstr },
+	{ "pinfiles", ConfigString, &extrapinfiles },
 
 	/* Limits for commits and file sizes */
 	{ "limit/commits", ConfigInteger, &maxcommits },
@@ -66,18 +64,23 @@ const char* logoicon = "logo.svg";
 /* Path to the stylesheet (CSS file) used for styling the generated HTML. */
 const char* stylesheet = "style.css";
 
-/* Command to execute for highlighting syntax in files within the HTML output. The colorscheme will be substituted
- * into this command. */
-const char* highlightcmd = "chroma --html --html-only --html-lines --html-inline-styles --style=$scheme --lexer=$type";
+/* Command to execute for highlighting syntax in files within the HTML output. The colorscheme will
+ * be substituted into this command. */
+const char* highlightcmd =
+    "chroma --html --html-only --html-lines --html-inline-styles --style=$scheme --lexer=$type";
 
 /* Color scheme to use for syntax highlighting in the HTML output. */
 const char* colorscheme = "pastie";
 
-/* List of files (by name) that will be pinned in the header of the HTML page, such as LICENSE or README files. */
-const char* pinfilesstr = "LICENSE LICENSE.md COPYING README README.md";
+const char* pinfiles[] = {
+	"README",          "README.md",       "CONTRIBUTING",
+	"CONTRIBUTING.md", "CHANGELOG",       "CHANGELOG.md",
+	"LICENSE",         "LICENSE.md",      "COPYING",
+	"COPYING.md",      "CODE_OF_CONDUCT", "CODE_OF_CONDUCT.md",
+	"SECURITY",        "SECURITY.md",     NULL,
+};
 
-const char* pinfiles[MAXPINS];
-int         npinfiles;
+const char* extrapinfiles = NULL;
 
 /* --- Commit and log settings --- */
 
@@ -86,8 +89,8 @@ long long maxcommits = -1;
 
 /* --- File size settings --- */
 
-/* Maximum file size (in bytes) that will be processed for syntax highlighting. Files larger than this size (1MB)
- * will be skipped. */
+/* Maximum file size (in bytes) that will be processed for syntax highlighting. Files larger than
+ * this size (1MB) will be skipped. */
 long long maxfilesize = 1e+6;    // 1MB
 
 /* --- Output file names --- */

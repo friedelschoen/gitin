@@ -23,14 +23,23 @@ void freeheadfiles(struct repoinfo* info) {
 	info->headfilesalloc = 0;
 }
 
+void addpinfile(struct repoinfo* info, const char* pinfile) {
+	char        path[PATH_MAX];
+	git_object* obj;
+
+	snprintf(path, sizeof(path), "HEAD:%s", pinfile);
+	if (!git_revparse_single(&obj, info->repo, path) && git_object_type(obj) == GIT_OBJ_BLOB)
+		info->pinfiles[info->pinfileslen++] = pinfile;
+	git_object_free(obj);
+}
+
 void writerepo(FILE* index, const char* repodir, const char* destination) {
 	struct repoinfo info;
 	git_object*     obj = NULL;
 	FILE *          fp, *json;
 	char            path[PATH_MAX];
-	int             i;
 	const char*     start;
-	char*           confbuffer;
+	char *          confbuffer, *end;
 
 	memset(&info, 0, sizeof(info));
 	info.repodir     = repodir;
@@ -78,7 +87,8 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 		exit(100);
 	}
 
-	if (git_repository_open_ext(&info.repo, info.repodir, GIT_REPOSITORY_OPEN_NO_SEARCH, NULL) < 0) {
+	if (git_repository_open_ext(&info.repo, info.repodir, GIT_REPOSITORY_OPEN_NO_SEARCH, NULL) <
+	    0) {
 		hprintf(stderr, "error: unable to open git repository '%s': %gw\n", info.repodir);
 		exit(100);
 	}
@@ -107,14 +117,25 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 	}
 
 	/* check pinfiles */
-	for (i = 0; i < npinfiles && info.pinfileslen < MAXPINS; i++) {
-		snprintf(path, sizeof(path), "HEAD:%s", pinfiles[i]);
-		if (!git_revparse_single(&obj, info.repo, path) && git_object_type(obj) == GIT_OBJ_BLOB)
-			info.pinfiles[info.pinfileslen++] = pinfiles[i];
-		git_object_free(obj);
+	for (int i = 0; pinfiles[i] && info.pinfileslen < MAXPINS; i++) {
+		addpinfile(&info, pinfiles[i]);
 	}
 
-	if (!git_revparse_single(&obj, info.repo, "HEAD:.gitmodules") && git_object_type(obj) == GIT_OBJ_BLOB)
+	if (extrapinfiles) {
+		start = extrapinfiles;
+
+		// Loop through the string, finding each space and treating it as a delimiter
+		while (info.pinfileslen < MAXPINS && (end = strchr(start, ' ')) != NULL) {
+			*end = '\0';    // Replace the space with a null terminator to isolate the token
+			addpinfile(&info, start);
+			start = end + 1;
+		}
+
+		addpinfile(&info, start);
+	}
+
+	if (!git_revparse_single(&obj, info.repo, "HEAD:.gitmodules") &&
+	    git_object_type(obj) == GIT_OBJ_BLOB)
 		info.submodules = ".gitmodules";
 	git_object_free(obj);
 
