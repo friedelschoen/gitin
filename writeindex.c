@@ -30,8 +30,8 @@ int writeindexline(FILE* fp, const struct repoinfo* info) {
 
 	author = git_commit_author(commit);
 
-	hprintf(fp, "<tr><td><a href=\"%s/%s\">%y</a></td><td>%y</td><td>", info->repodir, logfile, info->name,
-	        info->description);
+	hprintf(fp, "<tr><td><a href=\"%s/%s\">%y</a></td><td>%y</td><td>", info->repodir, logfile,
+	        info->name, info->description);
 	if (author)
 		hprintf(fp, "%t", &author->when);
 	fputs("</td></tr>", fp);
@@ -65,7 +65,8 @@ static void writecategory(FILE* index, const char* name, int len) {
 		fclose(fp);
 	}
 
-	hprintf(index, "<tr class=\"category\"><td>%y</td><td>%y</td><td></td></tr>\n", category, description);
+	hprintf(index, "<tr class=\"category\"><td>%y</td><td>%y</td><td></td></tr>\n", category,
+	        description);
 
 	free(confbuffer);
 }
@@ -140,10 +141,11 @@ void writeindex(const char* destdir, char** repos, int nrepos) {
 
 	index = xfopen("w+", "%s/%s", destdir, indexfile);
 	writeheader(index, NULL, 0, sitename, "%y", sitedescription);
-	fputs("<table id=\"index\"><thead>\n"
-	      "<tr><td><b>Name</b></td><td class=\"expand\"><b>Description</b></td><td><b>Last changes</b></td></tr>"
-	      "</thead><tbody>\n",
-	      index);
+	fputs(
+	    "<table id=\"index\"><thead>\n"
+	    "<tr><td><b>Name</b></td><td class=\"expand\"><b>Description</b></td><td><b>Last changes</b></td></tr>"
+	    "</thead><tbody>\n",
+	    index);
 
 	qsort(repos, nrepos, sizeof(char*), sortpath);
 

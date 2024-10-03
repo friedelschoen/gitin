@@ -68,7 +68,9 @@ static int handle(struct config* keys, char* key, char* value) {
 					break;
 				case ConfigBoolean:
 					if (boolstr(value) == -1) {
-						fprintf(stderr, "warn: '%s' is not a boolean value, leaving '%s' untouched.\n", value, key);
+						fprintf(stderr,
+						        "warn: '%s' is not a boolean value, leaving '%s' untouched.\n",
+						        value, key);
 					} else {
 						*(unsigned char*) p->target = boolstr(value);
 					}

@@ -119,7 +119,8 @@ static const char* filemode(git_filemode_t m) {
 	return mode;
 }
 
-static ssize_t highlight(FILE* fp, const struct repoinfo* info, const git_blob* blob, const char* filename) {
+static ssize_t highlight(FILE* fp, const struct repoinfo* info, const git_blob* blob,
+                         const char* filename) {
 	static unsigned char buffer[512];
 	static char          cachepath[PATH_MAX];
 	ssize_t              n = 0, len;
@@ -199,7 +200,8 @@ static ssize_t highlight(FILE* fp, const struct repoinfo* info, const git_blob* 
 
 	if ((cache = fopen(cachepath, "w+"))) {
 		if (verbose)
-			fprintf(stderr, "%s\n", cachepath);    // Keeping standard fprintf since it's just logging the path
+			fprintf(stderr, "%s\n",
+			        cachepath);    // Keeping standard fprintf since it's just logging the path
 	}
 
 	n = 0;
@@ -220,8 +222,9 @@ wait:
 	return WEXITSTATUS(status) ? -1 : n;
 }
 
-static size_t writeblob(const struct repoinfo* info, int relpath, git_object* obj, const char* fpath,
-                        const char* filename, const char* filepath, size_t filesize) {
+static size_t writeblob(const struct repoinfo* info, int relpath, git_object* obj,
+                        const char* fpath, const char* filename, const char* filepath,
+                        size_t filesize) {
 
 	char   tmp[PATH_MAX] = "", *d;
 	size_t lc            = 0;
@@ -237,7 +240,8 @@ static size_t writeblob(const struct repoinfo* info, int relpath, git_object* ob
 
 	fp = xfopen("w", "%s", fpath);
 	writeheader(fp, info, relpath, info->name, "%y", filepath);
-	hprintf(fp, "<p> %y (%zuB) <a href='%rblob%h'>download</a></p><hr/>", filename, filesize, relpath, filepath);
+	hprintf(fp, "<p> %y (%zuB) <a href='%rblob%h'>download</a></p><hr/>", filename, filesize,
+	        relpath, filepath);
 
 	if (git_blob_is_binary((git_blob*) obj)) {
 		fputs("<p>Binary file.</p>\n", fp);
@@ -285,7 +289,8 @@ static void addheadfile(struct repoinfo* info, const char* filename) {
 	info->headfiles[info->headfileslen++] = strdup(filename);
 }
 
-static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree* tree, const char* path) {
+static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree* tree,
+                          const char* path) {
 	const git_tree_entry* entry = NULL;
 	git_object*           obj   = NULL;
 	const char*           entryname;
@@ -318,8 +323,10 @@ static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree
 			addheadfile(info, entrypath + 1);    // +1 to remove leading slash
 
 			// this weird useless (void) (... == 0) is because gcc will complain about truncation
-			(void) (snprintf(filepath, sizeof(filepath), "%s/file/%s.html", info->destdir, entrypath) == 0);
-			(void) (snprintf(staticpath, sizeof(staticpath), "%s/blob/%s", info->destdir, entrypath) == 0);
+			(void) (snprintf(filepath, sizeof(filepath), "%s/file/%s.html", info->destdir,
+			                 entrypath) == 0);
+			(void) (snprintf(staticpath, sizeof(staticpath), "%s/blob/%s", info->destdir,
+			                 entrypath) == 0);
 
 			normalize_path(filepath);
 			normalize_path(staticpath);
@@ -343,7 +350,8 @@ static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree
 		} else if (git_tree_entry_type(entry) == GIT_OBJ_COMMIT) {
 			/* commit object in tree is a submodule */
 			git_oid_tostr(oid, sizeof(oid), git_tree_entry_id(entry));
-			hprintf(fp, "<tr><td>m---------</td><td><a href=\"file/-gitmodules.html\">%y</a>", entrypath);
+			hprintf(fp, "<tr><td>m---------</td><td><a href=\"file/-gitmodules.html\">%y</a>",
+			        entrypath);
 			hprintf(fp, " @ %y</td><td class=\"num\" align=\"right\"></td></tr>\n", oid);
 		}
 	}
@@ -390,7 +398,8 @@ int writefiles(struct repoinfo* info) {
 	      "</tr>\n</thead><tbody>\n",
 	      fp);
 
-	if (info->head && !git_commit_lookup(&commit, info->repo, info->head) && !git_commit_tree(&tree, commit))
+	if (info->head && !git_commit_lookup(&commit, info->repo, info->head) &&
+	    !git_commit_tree(&tree, commit))
 		ret = writefilestree(fp, info, 1, tree, "");
 
 	git_tree_free(tree);

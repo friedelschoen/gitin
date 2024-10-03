@@ -112,7 +112,8 @@ static int hasheadfile(const struct repoinfo* info, const char* filename) {
 	return 0;
 }
 
-void writediff(FILE* fp, const struct repoinfo* info, git_commit* commit, struct commitstats* ci, int parentlink) {
+void writediff(FILE* fp, const struct repoinfo* info, git_commit* commit, struct commitstats* ci,
+               int parentlink) {
 	const git_diff_delta* delta;
 	const git_diff_hunk*  hunk;
 	const git_diff_line*  line;
@@ -136,8 +137,8 @@ void writediff(FILE* fp, const struct repoinfo* info, git_commit* commit, struct
 			hprintf(fp, "<b>parent</b> %s\n", parentoid);
 	}
 	if (author)
-		hprintf(fp, "<b>Author:</b> %y &lt;<a href=\"mailto:%y\">%y</a>&gt;\n<b>Date:</b>   %T\n", author->name,
-		        author->email, author->email, &author->when);
+		hprintf(fp, "<b>Author:</b> %y &lt;<a href=\"mailto:%y\">%y</a>&gt;\n<b>Date:</b>   %T\n",
+		        author->name, author->email, author->email, &author->when);
 
 	if (msg)
 		hprintf(fp, "\n%y\n", msg);
@@ -145,7 +146,8 @@ void writediff(FILE* fp, const struct repoinfo* info, git_commit* commit, struct
 	if (!ci->deltas)
 		return;
 
-	if (ci->filecount > 1000 || ci->ndeltas > 1000 || ci->addcount > 100000 || ci->delcount > 100000) {
+	if (ci->filecount > 1000 || ci->ndeltas > 1000 || ci->addcount > 100000 ||
+	    ci->delcount > 100000) {
 		fputs("Diff is too large, output suppressed.\n", fp);
 		return;
 	}
@@ -207,9 +209,9 @@ void writediff(FILE* fp, const struct repoinfo* info, git_commit* commit, struct
 		fwrite(&linestr[add], 1, del, fp);
 		fputs("</span></td></tr>\n", fp);
 	}
-	fprintf(fp, "</table></pre><pre>%zu file%s changed, %zu insertion%s(+), %zu deletion%s(-)\n", ci->filecount,
-	        ci->filecount == 1 ? "" : "s", ci->addcount, ci->addcount == 1 ? "" : "s", ci->delcount,
-	        ci->delcount == 1 ? "" : "s");
+	fprintf(fp, "</table></pre><pre>%zu file%s changed, %zu insertion%s(+), %zu deletion%s(-)\n",
+	        ci->filecount, ci->filecount == 1 ? "" : "s", ci->addcount,
+	        ci->addcount == 1 ? "" : "s", ci->delcount, ci->delcount == 1 ? "" : "s");
 
 	fputs("<hr/>", fp);
 
@@ -218,13 +220,14 @@ void writediff(FILE* fp, const struct repoinfo* info, git_commit* commit, struct
 		delta = git_patch_get_delta(patch);
 
 		if (hasheadfile(info, delta->old_file.path))
-			hprintf(fp, "<b>diff --git a/<a id=\"h%zu\" href=\"../file/%h.html\">%y</a> ", i, delta->old_file.path,
-			        delta->old_file.path);
+			hprintf(fp, "<b>diff --git a/<a id=\"h%zu\" href=\"../file/%h.html\">%y</a> ", i,
+			        delta->old_file.path, delta->old_file.path);
 		else
 			hprintf(fp, "<b>diff --git a/%y ", delta->old_file.path);
 
 		if (hasheadfile(info, delta->new_file.path))
-			hprintf(fp, "b/<a href=\"../file/%h.html\">%y</a></b>\n", delta->new_file.path, delta->new_file.path);
+			hprintf(fp, "b/<a href=\"../file/%h.html\">%y</a></b>\n", delta->new_file.path,
+			        delta->new_file.path);
 		else
 			hprintf(fp, "b/%y</b>\n", delta->new_file.path);
 
@@ -238,15 +241,18 @@ void writediff(FILE* fp, const struct repoinfo* info, git_commit* commit, struct
 			if (git_patch_get_hunk(&hunk, &nhunklines, patch, j))
 				break;
 
-			hprintf(fp, "<a href=\"#h%zu-%zu\" id=\"h%zu-%zu\" class=\"h\">%y</a>\n", i, j, i, j, hunk->header);
+			hprintf(fp, "<a href=\"#h%zu-%zu\" id=\"h%zu-%zu\" class=\"h\">%y</a>\n", i, j, i, j,
+			        hunk->header);
 
 			for (k = 0;; k++) {
 				if (git_patch_get_line_in_hunk(&line, patch, j, k))
 					break;
 				if (line->old_lineno == -1)
-					fprintf(fp, "<a href=\"#h%zu-%zu-%zu\" id=\"h%zu-%zu-%zu\" class=\"i\">+", i, j, k, i, j, k);
+					fprintf(fp, "<a href=\"#h%zu-%zu-%zu\" id=\"h%zu-%zu-%zu\" class=\"i\">+", i, j,
+					        k, i, j, k);
 				else if (line->new_lineno == -1)
-					fprintf(fp, "<a href=\"#h%zu-%zu-%zu\" id=\"h%zu-%zu-%zu\" class=\"d\">-", i, j, k, i, j, k);
+					fprintf(fp, "<a href=\"#h%zu-%zu-%zu\" id=\"h%zu-%zu-%zu\" class=\"d\">-", i, j,
+					        k, i, j, k);
 				else
 					putc(' ', fp);
 				xmlencodeline(fp, line->content, line->content_len);
