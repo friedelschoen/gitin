@@ -60,32 +60,17 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 		info.name[strlen(info.name) - 1] = '\0';
 
 	snprintf(info.destdir, sizeof(info.destdir), "%s/%s", destination, info.repodir);
-	normalize_path(info.destdir);
 
 	if (columnate)
 		printf("%s\t%s\t%s\n", info.name, info.repodir, info.destdir);
 	else
 		printf("updating '%s' (at %s) -> %s\n", info.name, info.repodir, info.destdir);
 
-	if (mkdirp(info.destdir, 0777) == -1) {
-		hprintf(stderr, "error: unable to create destination directory: %w\n", info.destdir);
-		exit(100);
-	}
-	snprintf(path, sizeof(path), "%s/.gitin/files", info.destdir);
-	if (mkdirp(path, 0777) == -1) {
-		hprintf(stderr, "error: unable to create .gitin/files directory: %w\n", path);
-		exit(100);
-	}
-	snprintf(path, sizeof(path), "%s/.gitin/archive", info.destdir);
-	if (mkdirp(path, 0777) == -1) {
-		hprintf(stderr, "error: unable to create .gitin/archive directory: %w\n", path);
-		exit(100);
-	}
-	snprintf(path, sizeof(path), "%s/commit", info.destdir);
-	if (mkdirp(path, 0777) == -1) {
-		hprintf(stderr, "error: unable to create commit directory: %w\n", path);
-		exit(100);
-	}
+	xmkdirf(0777, "%s", info.destdir);
+	xmkdirf(0777, "!%s/.gitin/archive", info.destdir);
+	xmkdirf(0777, "!%s/.gitin/files", info.destdir);
+	xmkdirf(0777, "%s/archive", info.destdir);
+	xmkdirf(0777, "%s/commit", info.destdir);
 
 	if (git_repository_open_ext(&info.repo, info.repodir, GIT_REPOSITORY_OPEN_NO_SEARCH, NULL) <
 	    0) {
@@ -100,7 +85,6 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 	git_object_free(obj);
 
 	snprintf(path, sizeof(path), "%s/%s", repodir, configfile);
-	normalize_path(path);
 
 	if ((fp = fopen(path, "r"))) {
 		struct config keys[] = {
@@ -142,7 +126,7 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 	writefiles(&info);
 
 	/* log for HEAD */
-	fp   = xfopen("w", "%s/%s", info.destdir, logfile);
+	fp   = xfopen("w", "%s/index.html", info.destdir);
 	json = xfopen("w", "%s/%s", info.destdir, jsonfile);
 
 	writeheader(fp, &info, 0, info.name, "%y", info.description);

@@ -10,8 +10,8 @@ typedef struct {
 	int write;
 } pipe_t;
 
-int   mkdirp(char* path, int mode);
+FILE* xfopen(const char* mode, const char* format, ...) __attribute__((format(printf, 2, 3)));
+void  xmkdirf(int mode, const char* format, ...) __attribute__((format(printf, 2, 3)));
 int   removedir(char* path);
 void  normalize_path(char* path);
 void  unhide_path(char* path);
-FILE* xfopen(const char* mode, const char* format, ...) __attribute__((format(printf, 2, 3)));

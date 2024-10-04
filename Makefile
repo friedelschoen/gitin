@@ -23,6 +23,7 @@ HEADER = \
 	arg.h \
 	common.h \
 	config.h \
+	filetypes.h \
 	hprintf.h \
 	parseconfig.h \
 	writer.h
@@ -71,10 +72,15 @@ compile_flags.txt: LIBS = libgit2 libarchive
 compile_flags.txt: Makefile
 	echo $(CFLAGS) $(CPPFLAGS) | tr ' ' '\n' > $@
 
+filetypes.h: filetypes.txt
+	@echo "static const char* filetypes[][2] = {" > $@
+	sed -E 's/([a-z]+) (.*)/{ "\2", "\1" },/' $< >> $@
+	@echo "{0} };" >> $@
+
 # pseudo targets
 
 clean:
-	rm -f $(BINS) $(BINS:=.o) $(OBJECTS) $(MAN1) compile_flags.txt
+	rm -f $(BINS) $(BINS:=.o) $(OBJECTS) $(MAN1) compile_flags.txt filetypes.h
 
 install: $(BINS) $(MAN1)
 	install -d $(PREFIX)/bin

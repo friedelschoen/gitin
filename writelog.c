@@ -208,7 +208,6 @@ int writelog(FILE* fp, FILE* json, const struct repoinfo* info) {
 			continue;
 
 		snprintf(path, sizeof(path), "%s/commit/%s.html", info->destdir, oidstr);
-		normalize_path(path);
 
 		// if it does not exist yet
 		if (force || access(path, F_OK)) {

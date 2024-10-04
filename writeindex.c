@@ -30,8 +30,8 @@ int writeindexline(FILE* fp, const struct repoinfo* info) {
 
 	author = git_commit_author(commit);
 
-	hprintf(fp, "<tr><td><a href=\"%s/%s\">%y</a></td><td>%y</td><td>", info->repodir, logfile,
-	        info->name, info->description);
+	hprintf(fp, "<tr><td><a href=\"%s/\">%y</a></td><td>%y</td><td>", info->repodir, info->name,
+	        info->description);
 	if (author)
 		hprintf(fp, "%t", &author->when);
 	fputs("</td></tr>", fp);
@@ -52,8 +52,7 @@ static void writecategory(FILE* index, const char* name, int len) {
 	memcpy(category, name, len);
 	category[len] = '\0';
 
-	snprintf(configpath, sizeof(configpath), "%s/%s", category, configfile);
-	if ((fp = fopen(configpath, "r"))) {
+	if ((fp = xfopen("!r", "%s/%s", category, configfile))) {
 		struct config keys[] = {
 			{ "description", ConfigString, &description },
 			{ 0 },
@@ -121,13 +120,8 @@ static void copyfile(const char* destdir, const char* dest, const char* srcpath)
 
 void writeindex(const char* destdir, char** repos, int nrepos) {
 	FILE* index;
-	char  path[PATH_MAX];
 
-	strlcpy(path, destdir, sizeof(path));
-	if (mkdirp(path, 0777)) {
-		hprintf(stderr, "error: unable to create directory %s: %w\n", path);
-		exit(100);
-	}
+	xmkdirf(0777, "%s", destdir);
 
 	if (copyfavicon)
 		copyfile(destdir, favicon, copyfavicon);
@@ -138,8 +132,7 @@ void writeindex(const char* destdir, char** repos, int nrepos) {
 	if (copystylesheet)
 		copyfile(destdir, stylesheet, copystylesheet);
 
-
-	index = xfopen("w+", "%s/%s", destdir, indexfile);
+	index = xfopen("w+", "%s/index.html", destdir);
 	writeheader(index, NULL, 0, sitename, "%y", sitedescription);
 	fputs(
 	    "<table id=\"index\"><thead>\n"

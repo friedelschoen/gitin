@@ -1,5 +1,6 @@
 #include "common.h"
 #include "config.h"
+#include "filetypes.h"
 #include "hprintf.h"
 #include "writer.h"
 
@@ -119,12 +120,10 @@ static const char* filemode(git_filemode_t m) {
 	return mode;
 }
 
-static ssize_t highlight(FILE* fp, const struct repoinfo* info, const git_blob* blob,
-                         const char* filename) {
+static ssize_t highlight(FILE* fp, const struct repoinfo* info, const char* filename, const char* s,
+                         ssize_t len) {
 	static unsigned char buffer[512];
-	static char          cachepath[PATH_MAX];
-	ssize_t              n = 0, len;
-	const char*          s = git_blob_rawcontent(blob);
+	ssize_t              n = 0;
 	FILE*                cache;
 	pipe_t               inpipefd;
 	pipe_t               outpipefd;
@@ -134,10 +133,6 @@ static ssize_t highlight(FILE* fp, const struct repoinfo* info, const git_blob* 
 	uint32_t             contenthash;
 	char*                type;
 
-	len = git_blob_rawsize(blob);
-	if (len == 0)
-		return 0;
-
 	if (maxfilesize != -1 && len >= maxfilesize) {
 		fputs("<p>File too big.</p>\n", fp);
 		return 0;
@@ -146,10 +141,8 @@ static ssize_t highlight(FILE* fp, const struct repoinfo* info, const git_blob* 
 	fflush(stdout);
 
 	contenthash = murmurhash3(s, len, MURMUR_SEED);
-	snprintf(cachepath, sizeof(cachepath), "%s/.gitin/files/%x", info->destdir, contenthash);
-	normalize_path(cachepath);
 
-	if (!force && (cache = fopen(cachepath, "r"))) {
+	if (!force && (cache = xfopen(".!r", "%s/.gitin/files/%x", info->destdir, contenthash))) {
 		n = 0;
 		while ((readlen = fread(buffer, 1, sizeof(buffer), cache)) > 0) {
 			fwrite(buffer, 1, readlen, fp);
@@ -162,6 +155,8 @@ static ssize_t highlight(FILE* fp, const struct repoinfo* info, const git_blob* 
 
 	if ((type = strrchr(filename, '.')) != NULL)
 		type++;
+	else
+		type = "txt";
 
 	pipe((int*) &inpipefd);
 	pipe((int*) &outpipefd);
@@ -198,11 +193,7 @@ static ssize_t highlight(FILE* fp, const struct repoinfo* info, const git_blob* 
 
 	close(outpipefd.write);
 
-	if ((cache = fopen(cachepath, "w+"))) {
-		if (verbose)
-			fprintf(stderr, "%s\n",
-			        cachepath);    // Keeping standard fprintf since it's just logging the path
-	}
+	cache = xfopen(".!w+", "%s/.gitin/files/%x", info->destdir, contenthash);
 
 	n = 0;
 	while ((readlen = read(inpipefd.read, buffer, sizeof buffer)) > 0) {
@@ -222,54 +213,31 @@ wait:
 	return WEXITSTATUS(status) ? -1 : n;
 }
 
-static size_t writeblob(const struct repoinfo* info, int relpath, git_object* obj,
-                        const char* fpath, const char* filename, const char* filepath,
-                        size_t filesize) {
+static size_t writeblob(const struct repoinfo* info, int relpath, git_blob* obj,
+                        const char* filename, const char* filepath, size_t filesize) {
+	size_t      lc = 0;
+	FILE*       fp;
+	const void* content = git_blob_rawcontent(obj);
 
-	char   tmp[PATH_MAX] = "", *d;
-	size_t lc            = 0;
-	FILE*  fp;
+	fp = xfopen("w", "%s/blob/%s", info->destdir, filepath);
+	fwrite(content, filesize, 1, fp);
+	fclose(fp);
 
-	strlcpy(tmp, fpath, sizeof(tmp));
-	d = dirname(tmp);
-
-	if (mkdirp(d, 0777)) {
-		hprintf(stderr, "error: unable to create directory: %w\n");
-		return -1;
-	}
-
-	fp = xfopen("w", "%s", fpath);
+	fp = xfopen("w", "%s/file/%s.html", info->destdir, filepath);
 	writeheader(fp, info, relpath, info->name, "%y", filepath);
-	hprintf(fp, "<p> %y (%zuB) <a href='%rblob%h'>download</a></p><hr/>", filename, filesize,
+	hprintf(fp, "<p> %y (%zuB) <a href='%rblob/%h'>download</a></p><hr/>", filename, filesize,
 	        relpath, filepath);
 
-	if (git_blob_is_binary((git_blob*) obj)) {
+	if (git_blob_is_binary(obj)) {
 		fputs("<p>Binary file.</p>\n", fp);
-	} else {
-		lc = highlight(fp, info, (git_blob*) obj, filename);
+	} else if (filesize > 0) {
+		lc = highlight(fp, info, filename, content, filesize);
 	}
 
 	writefooter(fp);
 	fclose(fp);
 
 	return lc;
-}
-
-static void writefile(git_object* obj, const char* fpath, size_t filesize) {
-	char  tmp[PATH_MAX] = "", *d;
-	FILE* fp;
-
-	strlcpy(tmp, fpath, sizeof(tmp));
-	d = dirname(tmp);
-
-	if (mkdirp(d, 0777)) {
-		hprintf(stderr, "error: unable to create directory: %w\n");
-		return;
-	}
-
-	fp = xfopen("w", "%s", fpath);
-	fwrite(git_blob_rawcontent((const git_blob*) obj), filesize, 1, fp);
-	fclose(fp);
 }
 
 static void addheadfile(struct repoinfo* info, const char* filename) {
@@ -297,38 +265,33 @@ static int endswith(const char* str, const char* suffix) {
 	return strncmp(str + lenstr - lensuffix, suffix, lensuffix) == 0;
 }
 
-// List of known file extensions and their types
-static const char* file_types[][2] = {
-	{ ".png", "image" },  { ".jpg", "image" },    { ".jpeg", "image" },      { ".gif", "image" },
-	{ ".bin", "blob" },   { ".exe", "blob" },     { ".o", "blob" },          { ".c", "source" },
-	{ ".cpp", "source" }, { ".h", "source" },     { ".py", "source" },       { ".txt", "text" },
-	{ ".md", "text" },    { "README", "readme" }, { "README.md", "readme" }, { NULL, NULL },
-};
+static const char* geticon(const git_blob* blob, const char* filename) {
+	if (strstr(filename, "README"))
+		return "readme";
 
-static const char* geticon(const char* filename) {
-	// Iterate over the list of file types
-	for (int i = 0; file_types[i][0] != NULL; i++) {
-		if (endswith(filename, file_types[i][0])) {
-			return file_types[i][1];
+	for (int i = 0; filetypes[i][0] != NULL; i++) {
+		if (endswith(filename, filetypes[i][0])) {
+			return filetypes[i][1];
 		}
 	}
-	return "other";
+
+	return git_blob_is_binary(blob) ? "binary" : "other";
 }
 
 static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree* tree,
-                          const char* path) {
+                          const char* basepath) {
 	const git_tree_entry* entry = NULL;
 	git_object*           obj   = NULL;
 	const char*           entryname;
-	char                  filepath[PATH_MAX], entrypath[PATH_MAX], staticpath[PATH_MAX], oid[8];
+	char                  entrypath[PATH_MAX], oid[8];
 	size_t                count, i, lc, filesize;
 
-	if (filesperdirectory) {
-		snprintf(entrypath, sizeof(entrypath), "%s/file/%s", info->destdir, path);
-		mkdir(entrypath, 0777);
+	xmkdirf(0777, "%s/file/%s", info->destdir, basepath);
+	xmkdirf(0777, "%s/blob/%s", info->destdir, basepath);
 
-		fp = xfopen("w+", "%s/file/%s/index.html", info->destdir, path);
-		writeheader(fp, info, relpath, info->name, "%s", path);
+	if (filesperdirectory || !*basepath) {
+		fp = xfopen("w", "%s/file/%s/index.html", info->destdir, basepath);
+		writeheader(fp, info, relpath, info->name, "%s", basepath);
 
 		fputs("<table id=\"files\"><thead>\n<tr>"
 		      "<td></td><td><b>Mode</b></td><td class=\"expand\"><b>Name</b></td>"
@@ -341,55 +304,43 @@ static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree
 	for (i = 0; i < count; i++) {
 		if (!(entry = git_tree_entry_byindex(tree, i)) || !(entryname = git_tree_entry_name(entry)))
 			return -1;
-		snprintf(entrypath, sizeof(entrypath), "%s/%s", path, entryname);
+		if (*basepath)
+			snprintf(entrypath, sizeof(entrypath), "%s/%s", basepath, entryname);
+		else
+			strlcpy(entrypath, entryname, sizeof(entrypath));
 
 		if (!git_tree_entry_to_object(&obj, info->repo, entry)) {
-			addheadfile(info, entrypath + 1);    // +1 to remove leading slash
-
-			// this weird useless (void) (... == 0) is because gcc will complain about truncation
-			(void) (snprintf(filepath, sizeof(filepath), "%s/file/%s.html", info->destdir,
-			                 entrypath) == 0);
-			(void) (snprintf(staticpath, sizeof(staticpath), "%s/blob/%s", info->destdir,
-			                 entrypath) == 0);
-
-			normalize_path(filepath);
-			normalize_path(staticpath);
-			unhide_path(filepath);
-			unhide_path(staticpath);
+			addheadfile(info, entrypath);
 
 			if (git_object_type(obj) == GIT_OBJ_BLOB) {
 				hprintf(fp, "<tr><td><img src=\"%ricons/%s.svg\" /></td><td>%s</td>\n",
-				        info->relpath + relpath, geticon(entryname),
+				        info->relpath + relpath, geticon((git_blob*) obj, entryname),
 				        filemode(git_tree_entry_filemode(entry)));
 				filesize = git_blob_rawsize((git_blob*) obj);
-				lc       = writeblob(info, relpath, obj, filepath, entryname, entrypath, filesize);
+				lc = writeblob(info, relpath, (git_blob*) obj, entryname, entrypath, filesize);
 
-				writefile(obj, staticpath, filesize);
-
-				hprintf(fp, "<td><a href=\"%rfile%h.html\">%y</a></td>", relpath, entrypath,
-				        entrypath + 1);
+				if (filesperdirectory)
+					hprintf(fp, "<td><a href=\"%h.html\">%y</a></td>", entryname, entryname);
+				else
+					hprintf(fp, "<td><a href=\"%h.html\">%y</a></td>", entrypath, entrypath);
 				fputs("<td class=\"num\" align=\"right\">", fp);
 				if (lc > 0)
 					fprintf(fp, "%zuL", lc);
 				else
 					fprintf(fp, "%zuB", filesize);
-			} else {
+				fputs("</td></tr>\n", fp);
+			} else if (git_object_type(obj) == GIT_OBJ_TREE) {
 				if (filesperdirectory) {
 					hprintf(
 					    fp,
-					    "<tr><td><img src=\"%ricons/directory.svg\" /></td><td>d---------</td><td colspan=2><a href=\"%h/\">%y</a></td>\n",
-					    info->relpath + relpath, entrypath + 1, entrypath + 1);
-					writefilestree(NULL, info, relpath + 1, (git_tree*) obj, entrypath);
-				} else {
-					writefilestree(fp, info, relpath + 1, (git_tree*) obj, entrypath);
+					    "<tr><td><img src=\"%ricons/directory.svg\" /></td><td>d---------</td><td colspan=\"2\"><a href=\"%h/\">%y</a></td><tr>\n",
+					    info->relpath + relpath, entrypath, entrypath);
 				}
-				// error?
+				writefilestree(fp, info, relpath + !!filesperdirectory, (git_tree*) obj, entrypath);
 			}
-			fputs("</td></tr>\n", fp);
 
 			git_object_free(obj);
 		} else if (git_tree_entry_type(entry) == GIT_OBJ_COMMIT) {
-			/* commit object in tree is a submodule */
 			git_oid_tostr(oid, sizeof(oid), git_tree_entry_id(entry));
 			hprintf(fp,
 			        "<tr><td></td><td>m---------</td><td><a href=\"file/-gitmodules.html\">%y</a>",
@@ -398,7 +349,7 @@ static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree
 		}
 	}
 
-	if (filesperdirectory) {
+	if (filesperdirectory || !*basepath) {
 		fputs("</tbody></table>", fp);
 		writefooter(fp);
 		fclose(fp);
@@ -412,14 +363,13 @@ int writefiles(struct repoinfo* info) {
 	git_commit* commit = NULL;
 	int         ret    = -1;
 	char        path[PATH_MAX];
-	FILE *      cache, *fp = NULL;
+	FILE*       cache;
 	char        headoid[GIT_OID_HEXSZ + 1], oid[GIT_OID_HEXSZ + 1];
 
 	if (!force && info->head) {
 		git_oid_tostr(headoid, sizeof(headoid), info->head);
 
-		snprintf(path, sizeof(path), "%s/.gitin/filetree", info->destdir);
-		if ((cache = fopen(path, "r"))) {
+		if ((cache = xfopen(".!r", "%s/.gitin/filetree", info->destdir))) {
 			fread(oid, GIT_OID_HEXSZ, 1, cache);
 			oid[GIT_OID_HEXSZ] = '\0';
 			fclose(cache);
@@ -430,40 +380,23 @@ int writefiles(struct repoinfo* info) {
 		}
 	}
 
-	// clean /file and /blob because they're rewritten nontheless
+	// Clean /file and /blob directories since they will be rewritten
 	snprintf(path, sizeof(path), "%s/file", info->destdir);
 	removedir(path);
 	snprintf(path, sizeof(path), "%s/blob", info->destdir);
 	removedir(path);
 
-	if (!filesperdirectory) {
-		/* files for HEAD, it must be before writelog, as it also populates headfiles! */
-		fp = xfopen("w", "%s/%s", info->destdir, treefile);
-		writeheader(fp, info, 0, info->name, "%y", info->description);
-
-		fputs("<table id=\"files\"><thead>\n<tr>"
-		      "<td></td><td><b>Mode</b></td><td class=\"expand\"><b>Name</b></td>"
-		      "<td class=\"num\" align=\"right\"><b>Size</b></td>"
-		      "</tr>\n</thead><tbody>\n",
-		      fp);
-	}
+	xmkdirf(0777, "%s/file", info->destdir);
+	xmkdirf(0777, "%s/blob", info->destdir);
 
 	if (info->head && !git_commit_lookup(&commit, info->repo, info->head) &&
-	    !git_commit_tree(&tree, commit))
-		ret = writefilestree(fp, info, 1, tree, "");
+	    !git_commit_tree(&tree, commit)) {
+		ret = writefilestree(NULL, info, 1, tree, "");
+	}
 
 	git_tree_free(tree);
 
-	if (!filesperdirectory) {
-		fputs("</tbody></table>", fp);
-		writefooter(fp);
-		fclose(fp);
-	}
-
-	snprintf(path, sizeof(path), "%s/.gitin/filetree", info->destdir);
-	if ((cache = fopen(path, "w"))) {
-		if (verbose)
-			fprintf(stderr, "%s\n", path);
+	if ((cache = xfopen(".!w", "%s/.gitin/filetree", info->destdir))) {
 		fwrite(headoid, GIT_OID_HEXSZ, 1, cache);
 		fclose(cache);
 	}
