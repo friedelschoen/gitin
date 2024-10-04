@@ -77,60 +77,10 @@ static int sortpath(const void* leftp, const void* rightp) {
 	return strcmp(left, right);
 }
 
-static void copyfile(const char* destdir, const char* dest, const char* srcpath) {
-	char   destpath[PATH_MAX];
-	FILE * srcfile, *destfile;
-	char   buffer[4096];    // Buffer size for copying file content
-	size_t n;
-
-	// Construct the source and destination file paths
-	snprintf(destpath, sizeof(destpath), "%s/%s", destdir, dest);
-
-	// Open the source file for reading
-	srcfile = fopen(srcpath, "rb");
-	if (!srcfile) {
-		hprintf(stderr, "error: unable to open source file %s: %w\n", srcpath);
-		exit(100);
-	}
-
-	// Open the destination file for writing
-	destfile = fopen(destpath, "wb");
-	if (!destfile) {
-		hprintf(stderr, "error: unable to create destination file %s: %w\n", destpath);
-		fclose(srcfile);
-		exit(100);
-	}
-
-	// Copy the file contents
-	while ((n = fread(buffer, 1, sizeof(buffer), srcfile)) > 0) {
-		if (fwrite(buffer, 1, n, destfile) != n) {
-			hprintf(stderr, "error: unable to write to destination file %s: %w\n", destpath);
-			fclose(srcfile);
-			fclose(destfile);
-			exit(100);
-		}
-	}
-
-	if (ferror(srcfile))
-		hprintf(stderr, "error: unable to read from source file %s: %w\n", srcpath);
-
-	fclose(srcfile);
-	fclose(destfile);
-}
-
 void writeindex(const char* destdir, char** repos, int nrepos) {
 	FILE* index;
 
 	xmkdirf(0777, "%s", destdir);
-
-	if (copyfavicon)
-		copyfile(destdir, favicon, copyfavicon);
-
-	if (copylogoicon)
-		copyfile(destdir, logoicon, copylogoicon);
-
-	if (copystylesheet)
-		copyfile(destdir, stylesheet, copystylesheet);
 
 	index = xfopen("w+", "%s/index.html", destdir);
 	writeheader(index, NULL, 0, sitename, "%y", sitedescription);

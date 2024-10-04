@@ -28,12 +28,7 @@ struct config config_keys[] = {
 	{ "files/commit-atom", ConfigString, &commitatomfile },
 	{ "files/tag-atom", ConfigString, &tagatomfile },
 
-	/* Copy settings */
-	{ "copy/stylesheet", ConfigString, &copystylesheet },
-	{ "copy/favicon", ConfigString, &copyfavicon },
-	{ "copy/logoicon", ConfigString, &copylogoicon },
-
-	{ 0 }, /* Terminating the list */
+	{ 0 },
 };
 
 /* --- Site information settings --- */
@@ -107,14 +102,3 @@ const char* commitatomfile = "atom.xml";
 
 /* Name of the file used for Atom feeds of tags or branches. */
 const char* tagatomfile = "tags.xml";
-
-/* --- Copy settings --- */
-
-/* Optional path to copy the stylesheet (CSS file) used for the site. */
-const char* copystylesheet = NULL;
-
-/* Optional path to copy the favicon. */
-const char* copyfavicon = NULL;
-
-/* Optional path to copy the logo icon. */
-const char* copylogoicon = NULL;

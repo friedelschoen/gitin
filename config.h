@@ -24,8 +24,4 @@ extern const char* jsonfile;
 extern const char* commitatomfile;
 extern const char* tagatomfile;
 
-extern const char* copystylesheet;
-extern const char* copyfavicon;
-extern const char* copylogoicon;
-
 extern int force, verbose, columnate;
