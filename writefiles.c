@@ -15,11 +15,11 @@
 
 #define fallthrough __attribute__((fallthrough));
 
-/* a simple and fast hashing function */
-static uint32_t murmurhash3(const void* key, int len, uint32_t seed) {
+/* hash file using murmur3 */
+static uint32_t filehash(const void* key, int len) {
 	const uint8_t* data    = (const uint8_t*) key;
 	const int      nblocks = len / 4;
-	uint32_t       h1      = seed;
+	uint32_t       h1      = MURMUR_SEED;
 
 	const uint32_t c1 = 0xcc9e2d51;
 	const uint32_t c2 = 0x1b873593;
@@ -133,14 +133,7 @@ static ssize_t highlight(FILE* fp, const struct repoinfo* info, const char* file
 	uint32_t             contenthash;
 	char*                type;
 
-	if (maxfilesize != -1 && len >= maxfilesize) {
-		fputs("<p>File too big.</p>\n", fp);
-		return 0;
-	}
-
-	fflush(stdout);
-
-	contenthash = murmurhash3(s, len, MURMUR_SEED);
+	contenthash = filehash(s, len);
 
 	if (!force && (cache = xfopen(".!r", "%s/.gitin/files/%x", info->destdir, contenthash))) {
 		n = 0;
@@ -214,7 +207,7 @@ wait:
 }
 
 static size_t writeblob(const struct repoinfo* info, int relpath, git_blob* obj,
-                        const char* filename, const char* filepath, size_t filesize) {
+                        const char* filename, const char* filepath, ssize_t filesize) {
 	size_t      lc = 0;
 	FILE*       fp;
 	const void* content = git_blob_rawcontent(obj);
@@ -230,6 +223,8 @@ static size_t writeblob(const struct repoinfo* info, int relpath, git_blob* obj,
 
 	if (git_blob_is_binary(obj)) {
 		fputs("<p>Binary file.</p>\n", fp);
+	} else if (maxfilesize != -1 && filesize >= maxfilesize) {
+		fputs("<p>File too big.</p>\n", fp);
 	} else if (filesize > 0) {
 		lc = highlight(fp, info, filename, content, filesize);
 	}
