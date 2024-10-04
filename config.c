@@ -1,5 +1,7 @@
 #include "config.h"
 
+#include "parseconfig.h"
+
 /* Configuration keys for the configuration parser. */
 struct config config_keys[] = {
 	/* Site information settings */
@@ -15,6 +17,7 @@ struct config config_keys[] = {
 	{ "highlightcmd", ConfigString, &highlightcmd },
 	{ "colorscheme", ConfigString, &colorscheme },
 	{ "pinfiles", ConfigString, &extrapinfiles },
+	{ "splitdirectories", ConfigBoolean, &splitdirectories },
 
 	/* Limits for commits and file sizes */
 	{ "limit/commits", ConfigInteger, &maxcommits },
@@ -69,7 +72,9 @@ const char* highlightcmd =
 /* Color scheme to use for syntax highlighting in the HTML output. */
 const char* colorscheme = "pastie";
 
-int filesperdirectory = 0;
+/* Controls whether files are separated and written into individual directories or with each
+ * directory having its own HTML index. */
+int splitdirectories = 0;
 
 const char* pinfiles[] = {
 	"README",          "README.md",       "CONTRIBUTING",

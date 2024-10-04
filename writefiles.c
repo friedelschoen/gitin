@@ -289,7 +289,7 @@ static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree
 	xmkdirf(0777, "%s/file/%s", info->destdir, basepath);
 	xmkdirf(0777, "%s/blob/%s", info->destdir, basepath);
 
-	if (filesperdirectory || !*basepath) {
+	if (splitdirectories || !*basepath) {
 		fp = xfopen("w", "%s/file/%s/index.html", info->destdir, basepath);
 		writeheader(fp, info, relpath, info->name, "%s", basepath);
 
@@ -319,7 +319,7 @@ static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree
 				filesize = git_blob_rawsize((git_blob*) obj);
 				lc = writeblob(info, relpath, (git_blob*) obj, entryname, entrypath, filesize);
 
-				if (filesperdirectory)
+				if (splitdirectories)
 					hprintf(fp, "<td><a href=\"%h.html\">%y</a></td>", entryname, entryname);
 				else
 					hprintf(fp, "<td><a href=\"%h.html\">%y</a></td>", entrypath, entrypath);
@@ -330,13 +330,13 @@ static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree
 					fprintf(fp, "%zuB", filesize);
 				fputs("</td></tr>\n", fp);
 			} else if (git_object_type(obj) == GIT_OBJ_TREE) {
-				if (filesperdirectory) {
+				if (splitdirectories) {
 					hprintf(
 					    fp,
 					    "<tr><td><img src=\"%ricons/directory.svg\" /></td><td>d---------</td><td colspan=\"2\"><a href=\"%h/\">%y</a></td><tr>\n",
 					    info->relpath + relpath, entrypath, entrypath);
 				}
-				writefilestree(fp, info, relpath + !!filesperdirectory, (git_tree*) obj, entrypath);
+				writefilestree(fp, info, relpath + !!splitdirectories, (git_tree*) obj, entrypath);
 			}
 
 			git_object_free(obj);
@@ -349,7 +349,7 @@ static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree
 		}
 	}
 
-	if (filesperdirectory || !*basepath) {
+	if (splitdirectories || !*basepath) {
 		fputs("</tbody></table>", fp);
 		writefooter(fp);
 		fclose(fp);
