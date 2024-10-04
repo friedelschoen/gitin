@@ -323,6 +323,20 @@ static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree
 	char                  filepath[PATH_MAX], entrypath[PATH_MAX], staticpath[PATH_MAX], oid[8];
 	size_t                count, i, lc, filesize;
 
+	if (filesperdirectory) {
+		snprintf(entrypath, sizeof(entrypath), "%s/file/%s", info->destdir, path);
+		mkdir(entrypath, 0777);
+
+		fp = xfopen("w+", "%s/file/%s/index.html", info->destdir, path);
+		writeheader(fp, info, relpath, info->name, "%s", path);
+
+		fputs("<table id=\"files\"><thead>\n<tr>"
+		      "<td></td><td><b>Mode</b></td><td class=\"expand\"><b>Name</b></td>"
+		      "<td class=\"num\" align=\"right\"><b>Size</b></td>"
+		      "</tr>\n</thead><tbody>\n",
+		      fp);
+	}
+
 	count = git_tree_entrycount(tree);
 	for (i = 0; i < count; i++) {
 		if (!(entry = git_tree_entry_byindex(tree, i)) || !(entryname = git_tree_entry_name(entry)))
@@ -330,15 +344,6 @@ static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree
 		snprintf(entrypath, sizeof(entrypath), "%s/%s", path, entryname);
 
 		if (!git_tree_entry_to_object(&obj, info->repo, entry)) {
-			switch (git_object_type(obj)) {
-				case GIT_OBJ_BLOB:
-				case GIT_OBJ_TREE:
-					break;
-				default:
-					git_object_free(obj);
-					continue;
-			}
-
 			addheadfile(info, entrypath + 1);    // +1 to remove leading slash
 
 			// this weird useless (void) (... == 0) is because gcc will complain about truncation
@@ -354,25 +359,30 @@ static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree
 
 			if (git_object_type(obj) == GIT_OBJ_BLOB) {
 				hprintf(fp, "<tr><td><img src=\"%ricons/%s.svg\" /></td><td>%s</td>\n",
-				        info->relpath, geticon(entryname),
+				        info->relpath + relpath, geticon(entryname),
 				        filemode(git_tree_entry_filemode(entry)));
 				filesize = git_blob_rawsize((git_blob*) obj);
 				lc       = writeblob(info, relpath, obj, filepath, entryname, entrypath, filesize);
 
 				writefile(obj, staticpath, filesize);
 
-				hprintf(fp, "<td><a href=\"file%h.html\">%y</a></td>", entrypath, entrypath + 1);
+				hprintf(fp, "<td><a href=\"%rfile%h.html\">%y</a></td>", relpath, entrypath,
+				        entrypath + 1);
 				fputs("<td class=\"num\" align=\"right\">", fp);
 				if (lc > 0)
 					fprintf(fp, "%zuL", lc);
 				else
 					fprintf(fp, "%zuB", filesize);
 			} else {
-				hprintf(
-				    fp,
-				    "<tr><td><img src=\"%ricons/directory.svg\" /></td><td>d---------</td><td colspan=2>%y</td>\n",
-				    info->relpath, entrypath + 1);
-				writefilestree(fp, info, relpath + 1, (git_tree*) obj, entrypath);
+				if (filesperdirectory) {
+					hprintf(
+					    fp,
+					    "<tr><td><img src=\"%ricons/directory.svg\" /></td><td>d---------</td><td colspan=2><a href=\"%h/\">%y</a></td>\n",
+					    info->relpath + relpath, entrypath + 1, entrypath + 1);
+					writefilestree(NULL, info, relpath + 1, (git_tree*) obj, entrypath);
+				} else {
+					writefilestree(fp, info, relpath + 1, (git_tree*) obj, entrypath);
+				}
 				// error?
 			}
 			fputs("</td></tr>\n", fp);
@@ -388,6 +398,12 @@ static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree
 		}
 	}
 
+	if (filesperdirectory) {
+		fputs("</tbody></table>", fp);
+		writefooter(fp);
+		fclose(fp);
+	}
+
 	return 0;
 }
 
@@ -396,7 +412,7 @@ int writefiles(struct repoinfo* info) {
 	git_commit* commit = NULL;
 	int         ret    = -1;
 	char        path[PATH_MAX];
-	FILE *      cache, *fp;
+	FILE *      cache, *fp = NULL;
 	char        headoid[GIT_OID_HEXSZ + 1], oid[GIT_OID_HEXSZ + 1];
 
 	if (!force && info->head) {
@@ -420,15 +436,17 @@ int writefiles(struct repoinfo* info) {
 	snprintf(path, sizeof(path), "%s/blob", info->destdir);
 	removedir(path);
 
-	/* files for HEAD, it must be before writelog, as it also populates headfiles! */
-	fp = xfopen("w", "%s/%s", info->destdir, treefile);
-	writeheader(fp, info, 0, info->name, "%y", info->description);
+	if (!filesperdirectory) {
+		/* files for HEAD, it must be before writelog, as it also populates headfiles! */
+		fp = xfopen("w", "%s/%s", info->destdir, treefile);
+		writeheader(fp, info, 0, info->name, "%y", info->description);
 
-	fputs("<table id=\"files\"><thead>\n<tr>"
-	      "<td></td><td><b>Mode</b></td><td class=\"expand\"><b>Name</b></td>"
-	      "<td class=\"num\" align=\"right\"><b>Size</b></td>"
-	      "</tr>\n</thead><tbody>\n",
-	      fp);
+		fputs("<table id=\"files\"><thead>\n<tr>"
+		      "<td></td><td><b>Mode</b></td><td class=\"expand\"><b>Name</b></td>"
+		      "<td class=\"num\" align=\"right\"><b>Size</b></td>"
+		      "</tr>\n</thead><tbody>\n",
+		      fp);
+	}
 
 	if (info->head && !git_commit_lookup(&commit, info->repo, info->head) &&
 	    !git_commit_tree(&tree, commit))
@@ -436,10 +454,11 @@ int writefiles(struct repoinfo* info) {
 
 	git_tree_free(tree);
 
-	fputs("</tbody></table>", fp);
-
-	writefooter(fp);
-	fclose(fp);
+	if (!filesperdirectory) {
+		fputs("</tbody></table>", fp);
+		writefooter(fp);
+		fclose(fp);
+	}
 
 	snprintf(path, sizeof(path), "%s/.gitin/filetree", info->destdir);
 	if ((cache = fopen(path, "w"))) {

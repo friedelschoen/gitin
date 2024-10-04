@@ -72,6 +72,8 @@ const char* highlightcmd =
 /* Color scheme to use for syntax highlighting in the HTML output. */
 const char* colorscheme = "pastie";
 
+int filesperdirectory = 1;
+
 const char* pinfiles[] = {
 	"README",          "README.md",       "CONTRIBUTING",
 	"CONTRIBUTING.md", "CHANGELOG",       "CHANGELOG.md",
