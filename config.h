@@ -20,12 +20,9 @@ extern long long   maxfilesize;
 extern int         filesperdirectory;
 
 extern const char* configfile;
-extern const char* logfile;
-extern const char* treefile;
 extern const char* jsonfile;
 extern const char* commitatomfile;
 extern const char* tagatomfile;
-extern const char* indexfile;
 
 extern const char* copystylesheet;
 extern const char* copyfavicon;

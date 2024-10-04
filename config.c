@@ -21,9 +21,6 @@ struct config config_keys[] = {
 	{ "limit/filesize", ConfigInteger, &maxfilesize },
 
 	/* Files and output configurations */
-	{ "files/index", ConfigString, &indexfile },
-	{ "files/log", ConfigString, &logfile },
-	{ "files/files", ConfigString, &treefile },
 	{ "files/json", ConfigString, &jsonfile },
 	{ "files/commit-atom", ConfigString, &commitatomfile },
 	{ "files/tag-atom", ConfigString, &tagatomfile },
@@ -72,7 +69,7 @@ const char* highlightcmd =
 /* Color scheme to use for syntax highlighting in the HTML output. */
 const char* colorscheme = "pastie";
 
-int filesperdirectory = 1;
+int filesperdirectory = 0;
 
 const char* pinfiles[] = {
 	"README",          "README.md",       "CONTRIBUTING",
@@ -96,15 +93,6 @@ long long maxcommits = -1;
 long long maxfilesize = 1e+6;    // 1MB
 
 /* --- Output file names --- */
-
-/* Name of the root index file, typically the home page of the generated site. */
-const char* indexfile = "index.html";
-
-/* Name of the file containing the commit and branch/tag log. */
-const char* logfile = "log.html";
-
-/* Name of the file that will display the file tree. */
-const char* treefile = "tree.html";
 
 /* Name of the JSON file containing commit data. */
 const char* jsonfile = "commits.json";

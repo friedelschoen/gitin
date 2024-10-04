@@ -79,9 +79,9 @@ int writearchive(const struct repoinfo* info, const struct git_reference* ref) {
 	git_tree*   tree   = NULL;
 	int         error  = 0;
 	char        path[PATH_MAX];
-	char*       dir;
 	FILE*       fp;
 	char        oid[GIT_OID_HEXSZ + 1], configoid[GIT_OID_HEXSZ + 1];
+	char        escapename[NAME_MAX];
 
 	// Get the commit the reference points to
 	error = git_reference_peel((git_object**) &commit, ref, GIT_OBJECT_COMMIT);
@@ -92,10 +92,13 @@ int writearchive(const struct repoinfo* info, const struct git_reference* ref) {
 
 	git_oid_tostr(oid, sizeof(oid), git_commit_id(commit));
 
+	strlcpy(escapename, git_reference_shorthand(ref), sizeof(escapename));
+	for (char* p = escapename; *p; p++)
+		if (*p == '/')
+			*p = '-';
+
 	if (!force) {
-		snprintf(path, sizeof(path), "%s/.gitin/archive/%s", info->destdir,
-		         git_reference_shorthand(ref));
-		if ((fp = fopen(path, "r"))) {
+		if ((fp = xfopen(".!r", "%s/.gitin/archive/%s", info->destdir, escapename))) {
 			fread(configoid, GIT_OID_HEXSZ, 1, fp);
 			configoid[GIT_OID_HEXSZ] = '\0';
 			fclose(fp);
@@ -115,18 +118,7 @@ int writearchive(const struct repoinfo* info, const struct git_reference* ref) {
 		return -1;
 	}
 
-	snprintf(path, sizeof(path), "%s/archive/%s.tar.gz", info->destdir,
-	         git_reference_shorthand(ref));
-	dir = dirname(path);
-	if (mkdirp(dir, 0777) != 0) {
-		hprintf(stderr, "error: unable to create directory: %w\n");
-		git_tree_free(tree);
-		git_commit_free(commit);
-		return -1;
-	}
-
-	snprintf(path, sizeof(path), "%s/archive/%s.tar.gz", info->destdir,
-	         git_reference_shorthand(ref));
+	snprintf(path, sizeof(path), "%s/archive/%s.tar.gz", info->destdir, escapename);
 
 	struct archive* a;
 	a = archive_write_new();
@@ -149,9 +141,7 @@ int writearchive(const struct repoinfo* info, const struct git_reference* ref) {
 		return -1;
 	}
 
-	snprintf(path, sizeof(path), "%s/.gitin/archive/%s", info->destdir,
-	         git_reference_shorthand(ref));
-	if ((fp = fopen(path, "w"))) {
+	if ((fp = xfopen(".!w+", "%s/.gitin/archive/%s", info->destdir, escapename))) {
 		if (verbose)
 			fprintf(stderr, "%s\n", path);
 		fwrite(oid, GIT_OID_HEXSZ, 1, fp);
