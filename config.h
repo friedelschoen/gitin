@@ -17,7 +17,7 @@ extern const char* sitename;
 extern const char* stylesheet;
 extern long long   maxcommits;
 extern long long   maxfilesize;
-extern int         filesperdirectory;
+extern int         splitdirectories;
 
 extern const char* configfile;
 extern const char* jsonfile;
