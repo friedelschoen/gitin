@@ -289,6 +289,32 @@ static void addheadfile(struct repoinfo* info, const char* filename) {
 	info->headfiles[info->headfileslen++] = strdup(filename);
 }
 
+static int endswith(const char* str, const char* suffix) {
+	size_t lenstr    = strlen(str);
+	size_t lensuffix = strlen(suffix);
+	if (lensuffix > lenstr)
+		return 0;
+	return strncmp(str + lenstr - lensuffix, suffix, lensuffix) == 0;
+}
+
+// List of known file extensions and their types
+static const char* file_types[][2] = {
+	{ ".png", "image" },  { ".jpg", "image" },    { ".jpeg", "image" },      { ".gif", "image" },
+	{ ".bin", "blob" },   { ".exe", "blob" },     { ".o", "blob" },          { ".c", "source" },
+	{ ".cpp", "source" }, { ".h", "source" },     { ".py", "source" },       { ".txt", "text" },
+	{ ".md", "text" },    { "README", "readme" }, { "README.md", "readme" }, { NULL, NULL },
+};
+
+static const char* geticon(const char* filename) {
+	// Iterate over the list of file types
+	for (int i = 0; file_types[i][0] != NULL; i++) {
+		if (endswith(filename, file_types[i][0])) {
+			return file_types[i][1];
+		}
+	}
+	return "other";
+}
+
 static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree* tree,
                           const char* path) {
 	const git_tree_entry* entry = NULL;
@@ -296,7 +322,6 @@ static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree
 	const char*           entryname;
 	char                  filepath[PATH_MAX], entrypath[PATH_MAX], staticpath[PATH_MAX], oid[8];
 	size_t                count, i, lc, filesize;
-	int                   ret;
 
 	count = git_tree_entrycount(tree);
 	for (i = 0; i < count; i++) {
@@ -307,14 +332,8 @@ static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree
 		if (!git_tree_entry_to_object(&obj, info->repo, entry)) {
 			switch (git_object_type(obj)) {
 				case GIT_OBJ_BLOB:
-					break;
 				case GIT_OBJ_TREE:
-					/* NOTE: recurses */
-					ret = writefilestree(fp, info, relpath + 1, (git_tree*) obj, entrypath);
-					git_object_free(obj);
-					if (ret)
-						return ret;
-					continue;
+					break;
 				default:
 					git_object_free(obj);
 					continue;
@@ -333,24 +352,37 @@ static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree
 			unhide_path(filepath);
 			unhide_path(staticpath);
 
-			filesize = git_blob_rawsize((git_blob*) obj);
-			lc       = writeblob(info, relpath, obj, filepath, entryname, entrypath, filesize);
+			if (git_object_type(obj) == GIT_OBJ_BLOB) {
+				hprintf(fp, "<tr><td><img src=\"%ricons/%s.svg\" /></td><td>%s</td>\n",
+				        info->relpath, geticon(entryname),
+				        filemode(git_tree_entry_filemode(entry)));
+				filesize = git_blob_rawsize((git_blob*) obj);
+				lc       = writeblob(info, relpath, obj, filepath, entryname, entrypath, filesize);
 
-			writefile(obj, staticpath, filesize);
+				writefile(obj, staticpath, filesize);
 
-			fprintf(fp, "<tr><td>%s</td>\n", filemode(git_tree_entry_filemode(entry)));
-			hprintf(fp, "<td><a href=\"file%h.html\">%y</a></td>", entrypath, entrypath + 1);
-			fputs("<td class=\"num\" align=\"right\">", fp);
-			if (lc > 0)
-				fprintf(fp, "%zuL", lc);
-			else
-				fprintf(fp, "%zuB", filesize);
+				hprintf(fp, "<td><a href=\"file%h.html\">%y</a></td>", entrypath, entrypath + 1);
+				fputs("<td class=\"num\" align=\"right\">", fp);
+				if (lc > 0)
+					fprintf(fp, "%zuL", lc);
+				else
+					fprintf(fp, "%zuB", filesize);
+			} else {
+				hprintf(
+				    fp,
+				    "<tr><td><img src=\"%ricons/directory.svg\" /></td><td>d---------</td><td colspan=2>%y</td>\n",
+				    info->relpath, entrypath + 1);
+				writefilestree(fp, info, relpath + 1, (git_tree*) obj, entrypath);
+				// error?
+			}
 			fputs("</td></tr>\n", fp);
+
 			git_object_free(obj);
 		} else if (git_tree_entry_type(entry) == GIT_OBJ_COMMIT) {
 			/* commit object in tree is a submodule */
 			git_oid_tostr(oid, sizeof(oid), git_tree_entry_id(entry));
-			hprintf(fp, "<tr><td>m---------</td><td><a href=\"file/-gitmodules.html\">%y</a>",
+			hprintf(fp,
+			        "<tr><td></td><td>m---------</td><td><a href=\"file/-gitmodules.html\">%y</a>",
 			        entrypath);
 			hprintf(fp, " @ %y</td><td class=\"num\" align=\"right\"></td></tr>\n", oid);
 		}
@@ -393,7 +425,7 @@ int writefiles(struct repoinfo* info) {
 	writeheader(fp, info, 0, info->name, "%y", info->description);
 
 	fputs("<table id=\"files\"><thead>\n<tr>"
-	      "<td><b>Mode</b></td><td class=\"expand\"><b>Name</b></td>"
+	      "<td></td><td><b>Mode</b></td><td class=\"expand\"><b>Name</b></td>"
 	      "<td class=\"num\" align=\"right\"><b>Size</b></td>"
 	      "</tr>\n</thead><tbody>\n",
 	      fp);
