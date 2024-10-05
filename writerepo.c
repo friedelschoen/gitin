@@ -67,8 +67,8 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 		printf("updating '%s' (at %s) -> %s\n", info.name, info.repodir, info.destdir);
 
 	xmkdirf(0777, "%s", info.destdir);
-	xmkdirf(0777, "!%s/.gitin/archive", info.destdir);
-	xmkdirf(0777, "!%s/.gitin/files", info.destdir);
+	xmkdirf(0777, "!%s/.cache/archive", info.destdir);
+	xmkdirf(0777, "!%s/.cache/files", info.destdir);
 	xmkdirf(0777, "%s/archive", info.destdir);
 	xmkdirf(0777, "%s/commit", info.destdir);
 
