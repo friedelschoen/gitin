@@ -134,7 +134,7 @@ err:
 	return -1;
 }
 
-static void writelogline(FILE* fp, int relpath, git_commit* commit, const struct commitstats* ci) {
+static void writelogline(FILE* fp, git_commit* commit, const struct commitstats* ci) {
 	char                 oid[GIT_OID_HEXSZ + 1];
 	const git_signature* author  = git_commit_author(commit);
 	const char*          summary = git_commit_summary(commit);
@@ -146,7 +146,7 @@ static void writelogline(FILE* fp, int relpath, git_commit* commit, const struct
 		hprintf(fp, "%t", &author->when);
 	fputs("</td><td>", fp);
 	if (summary) {
-		hprintf(fp, "<a href=\"%rcommit/%s.html\">%y</a>", relpath, oid, summary);
+		hprintf(fp, "<a href=\"commit/%s.html\">%y</a>", oid, summary);
 	}
 	fputs("</td><td>", fp);
 	if (author)
@@ -160,14 +160,35 @@ static void writelogline(FILE* fp, int relpath, git_commit* commit, const struct
 	fputs("</td></tr>\n", fp);
 }
 
+static void writecommit(const struct repoinfo* info, const char* oidstr, git_commit* commit,
+                        const struct commitstats* ci, int parentlink) {
+	char        path[PATH_MAX];
+	FILE*       fp;
+	const char* summary;
+
+	snprintf(path, sizeof(path), "%s/commit/%s.html", info->destdir, oidstr);
+
+	// if it does not exist yet
+	if (!force && !access(path, F_OK))
+		return;
+
+	summary = git_commit_summary(commit);
+
+	fp = xfopen("w", "%s", path);
+	writeheader(fp, info, 1, info->name, "%y", summary);
+	fputs("<pre>", fp);
+	writediff(fp, info, commit, ci, parentlink);
+	fputs("</pre>\n", fp);
+	writefooter(fp);
+	fclose(fp);
+}
+
 int writelog(FILE* fp, FILE* json, const struct repoinfo* info) {
 	git_commit*        commit = NULL;
 	git_revwalk*       w      = NULL;
 	git_oid            id;
-	char               path[PATH_MAX], oidstr[GIT_OID_HEXSZ + 1];
-	FILE*              fpfile;
+	char               oidstr[GIT_OID_HEXSZ + 1];
 	ssize_t            ncommits = 0;
-	const char*        summary;
 	struct commitstats ci;
 	FILE*              atom;
 	int                first;
@@ -197,32 +218,14 @@ int writelog(FILE* fp, FILE* json, const struct repoinfo* info) {
 
 		git_oid_tostr(oidstr, sizeof(oidstr), &id);
 
-		writecommitatom(atom, commit, NULL);
-		if (!first) {
-			fprintf(json, ",");
-		}
-		fprintf(json, "\"%s\":", oidstr);
-		writejsoncommit(json, commit);
-
 		if (getstats(&ci, commit, info->repo) == -1)
 			continue;
 
-		snprintf(path, sizeof(path), "%s/commit/%s.html", info->destdir, oidstr);
+		writecommit(info, oidstr, commit, &ci, ncommits != maxcommits);
 
-		// if it does not exist yet
-		if (force || access(path, F_OK)) {
-			summary = git_commit_summary(commit);
-
-			fpfile = xfopen("w", "%s", path);
-			writeheader(fpfile, info, 1, info->name, "%y", summary);
-			fputs("<pre>", fpfile);
-			writediff(fpfile, info, commit, &ci, ncommits != maxcommits);
-			fputs("</pre>\n", fpfile);
-			writefooter(fpfile);
-			fclose(fpfile);
-		}
-
-		writelogline(fp, 0, commit, &ci);
+		writelogline(fp, commit, &ci);
+		writecommitatom(atom, commit, NULL);
+		writejsoncommit(json, commit, first);
 
 		freestats(&ci);
 		git_commit_free(commit);
