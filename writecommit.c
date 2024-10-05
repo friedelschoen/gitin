@@ -112,8 +112,8 @@ static int hasheadfile(const struct repoinfo* info, const char* filename) {
 	return 0;
 }
 
-void writediff(FILE* fp, const struct repoinfo* info, git_commit* commit, struct commitstats* ci,
-               int parentlink) {
+void writediff(FILE* fp, const struct repoinfo* info, git_commit* commit,
+               const struct commitstats* ci, int parentlink) {
 	const git_diff_delta* delta;
 	const git_diff_hunk*  hunk;
 	const git_diff_line*  line;

@@ -11,7 +11,7 @@ static void writesignature(FILE* fp, const git_signature* sig) {
 	fprintf(fp, "}");
 }
 
-void writejsoncommit(FILE* fp, git_commit* commit) {
+void writejsoncommit(FILE* fp, git_commit* commit, int first) {
 	char                 oid[GIT_OID_HEXSZ + 1], parentoid[GIT_OID_HEXSZ + 1];
 	const git_signature* author    = git_commit_author(commit);
 	const git_signature* committer = git_commit_committer(commit);
@@ -20,6 +20,10 @@ void writejsoncommit(FILE* fp, git_commit* commit) {
 
 	git_oid_tostr(oid, sizeof(oid), git_commit_id(commit));
 	git_oid_tostr(parentoid, sizeof(parentoid), git_commit_parent_id(commit, 0));
+
+	if (!first)
+		fprintf(fp, ",");
+	fprintf(fp, "\"%s\":", oid);
 
 	fprintf(fp, "{");
 	fprintf(fp, "\"id\":\"%s\",", oid);
@@ -59,6 +63,6 @@ void writejsonref(FILE* fp, const struct repoinfo* info, git_reference* ref, git
 	hprintf(fp, "\"name\":\"%j\",", git_reference_shorthand(ref));
 	hprintf(fp, "\"head\":%j,", ishead ? "true" : "false");
 	fprintf(fp, "\"commit\":");
-	writejsoncommit(fp, commit);
+	writejsoncommit(fp, commit, 0);
 	fprintf(fp, "}");
 }
