@@ -212,9 +212,7 @@ static size_t writeblob(const struct repoinfo* info, int relpath, git_blob* obj,
 	FILE*       fp;
 	const void* content = git_blob_rawcontent(obj);
 
-	fp = xfopen("w", "%s/blob/%s", info->destdir, filepath);
-	fwrite(content, filesize, 1, fp);
-	fclose(fp);
+	bufferwrite(content, filesize, "%s/blob/%s", info->destdir, filepath);
 
 	fp = xfopen("w", "%s/file/%s.html", info->destdir, filepath);
 	writeheader(fp, info, relpath, info->name, "%y", filepath);
@@ -358,20 +356,15 @@ int writefiles(struct repoinfo* info) {
 	git_commit* commit = NULL;
 	int         ret    = -1;
 	char        path[PATH_MAX];
-	FILE*       cache;
 	char        headoid[GIT_OID_HEXSZ + 1], oid[GIT_OID_HEXSZ + 1];
 
 	if (!force && info->head) {
 		git_oid_tostr(headoid, sizeof(headoid), info->head);
 
-		if ((cache = xfopen(".!r", "%s/.gitin/filetree", info->destdir))) {
-			fread(oid, GIT_OID_HEXSZ, 1, cache);
+		if (!bufferread(oid, GIT_OID_HEXSZ, "%s/.gitin/filetree", info->destdir)) {
 			oid[GIT_OID_HEXSZ] = '\0';
-			fclose(cache);
-
-			if (!strcmp(oid, headoid)) {
+			if (!strcmp(oid, headoid))
 				return 0;
-			}
 		}
 	}
 
@@ -391,10 +384,7 @@ int writefiles(struct repoinfo* info) {
 
 	git_tree_free(tree);
 
-	if ((cache = xfopen(".!w", "%s/.gitin/filetree", info->destdir))) {
-		fwrite(headoid, GIT_OID_HEXSZ, 1, cache);
-		fclose(cache);
-	}
+	bufferwrite(headoid, GIT_OID_HEXSZ, "%s/.gitin/filetree", info->destdir);
 
 	git_commit_free(commit);
 

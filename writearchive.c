@@ -5,6 +5,7 @@
 
 #include <archive.h>
 #include <archive_entry.h>
+#include <git2/deprecated.h>
 #include <libgen.h>
 #include <limits.h>
 #include <string.h>
@@ -79,7 +80,6 @@ int writearchive(const struct repoinfo* info, const struct git_reference* ref) {
 	git_tree*   tree   = NULL;
 	int         error  = 0;
 	char        path[PATH_MAX];
-	FILE*       fp;
 	char        oid[GIT_OID_HEXSZ + 1], configoid[GIT_OID_HEXSZ + 1];
 	char        escapename[NAME_MAX];
 
@@ -97,17 +97,11 @@ int writearchive(const struct repoinfo* info, const struct git_reference* ref) {
 		if (*p == '/')
 			*p = '-';
 
-	if (!force) {
-		if ((fp = xfopen(".!r", "%s/.gitin/archive/%s", info->destdir, escapename))) {
-			fread(configoid, GIT_OID_HEXSZ, 1, fp);
-			configoid[GIT_OID_HEXSZ] = '\0';
-			fclose(fp);
-
-			if (!strcmp(oid, configoid)) {
-				git_commit_free(commit);
-				return 0;
-			}
-		}
+	if (!force &&
+	    !bufferread(configoid, GIT_OID_HEXSZ, "%s/.gitin/archive/%s", info->destdir, escapename)) {
+		configoid[GIT_OID_HEXSZ] = '\0';
+		if (!strcmp(configoid, oid))
+			return 0;
 	}
 
 	// Get the tree associated with the commit
@@ -141,19 +135,7 @@ int writearchive(const struct repoinfo* info, const struct git_reference* ref) {
 		return -1;
 	}
 
-	if ((fp = xfopen(".!w+", "%s/.gitin/archive/%s", info->destdir, escapename))) {
-		if (verbose)
-			fprintf(stderr, "%s\n", path);
-		fwrite(oid, GIT_OID_HEXSZ, 1, fp);
-		fclose(fp);
-	} else {
-		hprintf(stderr, "error: unable to write oid to file: %w\n");
-		git_tree_free(tree);
-		git_commit_free(commit);
-		archive_write_close(a);
-		archive_write_free(a);
-		return -1;
-	}
+	bufferwrite(oid, GIT_OID_HEXSZ, "%s/.gitin/archive/%s", info->destdir, escapename);
 
 	git_tree_free(tree);
 	git_commit_free(commit);
