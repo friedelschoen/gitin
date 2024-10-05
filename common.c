@@ -5,6 +5,7 @@
 
 #include <errno.h>
 #include <ftw.h>
+#include <git2/deprecated.h>
 #include <limits.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -131,4 +132,40 @@ void unhide_path(char* path) {
 		if (*chr == '.' && (chr == path || chr[-1] == '/') && chr[1] != '/')
 			*chr = '-';
 	}
+}
+
+int bufferwrite(const char* buffer, size_t len, const char* format, ...) {
+	char    path[PATH_MAX];
+	FILE*   fp;
+	va_list list;
+
+	va_start(list, format);
+	vsnprintf(path, sizeof(path), format, list);
+	va_end(list);
+
+	if (!(fp = fopen(path, "w+")))
+		return -1;
+
+	fwrite(buffer, len, 1, fp);
+	fclose(fp);
+
+	return 0;
+}
+
+int bufferread(char* buffer, size_t len, const char* format, ...) {
+	char    path[PATH_MAX];
+	FILE*   fp;
+	va_list list;
+
+	va_start(list, format);
+	vsnprintf(path, sizeof(path), format, list);
+	va_end(list);
+
+	if (!(fp = fopen(path, "r")))
+		return -1;
+
+	fread(buffer, len, 1, fp);
+	fclose(fp);
+
+	return 0;
 }

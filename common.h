@@ -15,3 +15,8 @@ void  xmkdirf(int mode, const char* format, ...) __attribute__((format(printf, 2
 int   removedir(char* path);
 void  normalize_path(char* path);
 void  unhide_path(char* path);
+
+int bufferwrite(const char* buffer, size_t len, const char* format, ...)
+    __attribute__((format(printf, 3, 4)));
+int bufferread(char* buffer, size_t len, const char* format, ...)
+    __attribute__((format(printf, 3, 4)));
