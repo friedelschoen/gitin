@@ -135,7 +135,7 @@ static ssize_t highlight(FILE* fp, const struct repoinfo* info, const char* file
 
 	contenthash = filehash(s, len);
 
-	if (!force && (cache = xfopen(".!r", "%s/.gitin/files/%x", info->destdir, contenthash))) {
+	if (!force && (cache = xfopen(".!r", "%s/.cache/files/%x", info->destdir, contenthash))) {
 		n = 0;
 		while ((readlen = fread(buffer, 1, sizeof(buffer), cache)) > 0) {
 			fwrite(buffer, 1, readlen, fp);
@@ -186,7 +186,7 @@ static ssize_t highlight(FILE* fp, const struct repoinfo* info, const char* file
 
 	close(outpipefd.write);
 
-	cache = xfopen(".!w+", "%s/.gitin/files/%x", info->destdir, contenthash);
+	cache = xfopen(".!w+", "%s/.cache/files/%x", info->destdir, contenthash);
 
 	n = 0;
 	while ((readlen = read(inpipefd.read, buffer, sizeof buffer)) > 0) {
@@ -361,7 +361,7 @@ int writefiles(struct repoinfo* info) {
 	if (!force && info->head) {
 		git_oid_tostr(headoid, sizeof(headoid), info->head);
 
-		if (!bufferread(oid, GIT_OID_HEXSZ, "%s/.gitin/filetree", info->destdir)) {
+		if (!bufferread(oid, GIT_OID_HEXSZ, "%s/.cache/filetree", info->destdir)) {
 			oid[GIT_OID_HEXSZ] = '\0';
 			if (!strcmp(oid, headoid))
 				return 0;
@@ -384,7 +384,7 @@ int writefiles(struct repoinfo* info) {
 
 	git_tree_free(tree);
 
-	bufferwrite(headoid, GIT_OID_HEXSZ, "%s/.gitin/filetree", info->destdir);
+	bufferwrite(headoid, GIT_OID_HEXSZ, "%s/.cache/filetree", info->destdir);
 
 	git_commit_free(commit);
 
