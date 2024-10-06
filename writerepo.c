@@ -36,7 +36,7 @@ void addpinfile(struct repoinfo* info, const char* pinfile) {
 void writerepo(FILE* index, const char* repodir, const char* destination) {
 	struct repoinfo info;
 	git_object*     obj = NULL;
-	FILE *          fp, *json;
+	FILE*           fp;
 	char            path[PATH_MAX];
 	const char*     start;
 	char *          confbuffer, *end;
@@ -125,31 +125,8 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 
 	writefiles(&info);
 
-	/* log for HEAD */
-	fp   = xfopen("w", "%s/index.html", info.destdir);
-	json = xfopen("w", "%s/%s", info.destdir, jsonfile);
-
-	writeheader(fp, &info, 0, info.name, "%y", info.description);
-	fprintf(json, "{");
-	writerefs(fp, json, &info);
-
-	fputs("<h2>Commits</h2>\n<table id=\"log\"><thead>\n<tr><td><b>Date</b></td>"
-	      "<td class=\"expand\"><b>Commit message</b></td>"
-	      "<td><b>Author</b></td><td class=\"num\" align=\"right\"><b>Files</b></td>"
-	      "<td class=\"num\" align=\"right\"><b>+</b></td>"
-	      "<td class=\"num\" align=\"right\"><b>-</b></td></tr>\n</thead><tbody>\n",
-	      fp);
-
-	fprintf(json, ",\"commits\":{");
 	if (info.head)
-		writelog(fp, json, &info);
-
-	fprintf(json, "}}");
-	fclose(json);
-
-	fputs("</tbody></table>", fp);
-	writefooter(fp);
-	fclose(fp);
+		writelog(&info);
 
 	if (index)
 		writeindexline(index, &info);
