@@ -1,6 +1,7 @@
 #include "hprintf.h"
 #include "writer.h"
 
+#include <git2/commit.h>
 #include <stdio.h>
 
 static void writesignature(FILE* fp, const git_signature* sig) {
@@ -12,7 +13,7 @@ static void writesignature(FILE* fp, const git_signature* sig) {
 }
 
 void writejsoncommit(FILE* fp, git_commit* commit, int first) {
-	char                 oid[GIT_OID_HEXSZ + 1], parentoid[GIT_OID_HEXSZ + 1];
+	char                 oid[GIT_OID_SHA1_HEXSIZE + 1], parentoid[GIT_OID_SHA1_HEXSIZE + 1];
 	const git_signature* author    = git_commit_author(commit);
 	const git_signature* committer = git_commit_committer(commit);
 	const char*          summary   = git_commit_summary(commit);

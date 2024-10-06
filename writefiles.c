@@ -4,6 +4,9 @@
 #include "hprintf.h"
 #include "writer.h"
 
+#include <git2/blob.h>
+#include <git2/commit.h>
+#include <git2/types.h>
 #include <libgen.h>
 #include <limits.h>
 #include <string.h>
@@ -305,7 +308,7 @@ static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree
 		if (!git_tree_entry_to_object(&obj, info->repo, entry)) {
 			addheadfile(info, entrypath);
 
-			if (git_object_type(obj) == GIT_OBJ_BLOB) {
+			if (git_object_type(obj) == GIT_OBJECT_BLOB) {
 				hprintf(fp, "<tr><td><img src=\"%ricons/%s.svg\" /></td><td>%s</td>\n",
 				        info->relpath + relpath, geticon((git_blob*) obj, entryname),
 				        filemode(git_tree_entry_filemode(entry)));
@@ -322,7 +325,7 @@ static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree
 				else
 					fprintf(fp, "%zuB", filesize);
 				fputs("</td></tr>\n", fp);
-			} else if (git_object_type(obj) == GIT_OBJ_TREE) {
+			} else if (git_object_type(obj) == GIT_OBJECT_TREE) {
 				if (splitdirectories) {
 					hprintf(
 					    fp,
@@ -333,7 +336,7 @@ static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree
 			}
 
 			git_object_free(obj);
-		} else if (git_tree_entry_type(entry) == GIT_OBJ_COMMIT) {
+		} else if (git_tree_entry_type(entry) == GIT_OBJECT_COMMIT) {
 			git_oid_tostr(oid, sizeof(oid), git_tree_entry_id(entry));
 			hprintf(fp,
 			        "<tr><td></td><td>m---------</td><td><a href=\"file/-gitmodules.html\">%y</a>",
@@ -356,13 +359,13 @@ int writefiles(struct repoinfo* info) {
 	git_commit* commit = NULL;
 	int         ret    = -1;
 	char        path[PATH_MAX];
-	char        headoid[GIT_OID_HEXSZ + 1], oid[GIT_OID_HEXSZ + 1];
+	char        headoid[GIT_OID_SHA1_HEXSIZE + 1], oid[GIT_OID_SHA1_HEXSIZE + 1];
 
 	if (!force && info->head) {
 		git_oid_tostr(headoid, sizeof(headoid), info->head);
 
-		if (!bufferread(oid, GIT_OID_HEXSZ, "%s/.cache/filetree", info->destdir)) {
-			oid[GIT_OID_HEXSZ] = '\0';
+		if (!bufferread(oid, GIT_OID_SHA1_HEXSIZE, "%s/.cache/filetree", info->destdir)) {
+			oid[GIT_OID_SHA1_HEXSIZE] = '\0';
 			if (!strcmp(oid, headoid))
 				return 0;
 		}
@@ -384,7 +387,7 @@ int writefiles(struct repoinfo* info) {
 
 	git_tree_free(tree);
 
-	bufferwrite(headoid, GIT_OID_HEXSZ, "%s/.cache/filetree", info->destdir);
+	bufferwrite(headoid, GIT_OID_SHA1_HEXSIZE, "%s/.cache/filetree", info->destdir);
 
 	git_commit_free(commit);
 

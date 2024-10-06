@@ -1,6 +1,7 @@
 #pragma once
 
-#include <git2.h>
+#include <git2/patch.h>
+#include <git2/types.h>
 #include <stdio.h>
 
 #define MAXPINS 8

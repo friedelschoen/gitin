@@ -4,7 +4,8 @@
 
 #include <assert.h>
 #include <errno.h>
-#include <git2.h>
+#include <git2/errors.h>
+#include <git2/types.h>
 #include <stdarg.h>
 #include <string.h>
 
@@ -177,7 +178,7 @@ void vhprintf(FILE* file, const char* format, va_list args) {
 			int error = va_arg(args, int);
 			fprintf(file, "%s", strerror(error));
 		} else if (strncmp(p, "gw", 2) == 0) {
-			const git_error* error = giterr_last();
+			const git_error* error = git_error_last();
 			fprintf(file, "%s", error ? error->message : "no error");
 			p++;
 		} else if (strncmp(p, "gW", 2) == 0) {

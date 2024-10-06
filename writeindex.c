@@ -4,6 +4,8 @@
 #include "parseconfig.h"
 #include "writer.h"
 
+#include <git2/commit.h>
+#include <git2/revwalk.h>
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>

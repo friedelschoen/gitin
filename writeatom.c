@@ -1,15 +1,11 @@
 #include "hprintf.h"
 #include "writer.h"
 
-#include <git2.h>
 #include <git2/commit.h>
-#include <git2/deprecated.h>
-#include <git2/oid.h>
-#include <git2/types.h>
 #include <stdio.h>
 
 void writecommitatom(FILE* fp, git_commit* commit, const char* tag) {
-	char                 oid[GIT_OID_HEXSZ + 1], parentoid[GIT_OID_HEXSZ + 1];
+	char                 oid[GIT_OID_SHA1_HEXSIZE + 1], parentoid[GIT_OID_SHA1_HEXSIZE + 1];
 	const git_signature* author    = git_commit_author(commit);
 	const git_signature* committer = git_commit_committer(commit);
 	const char*          summary   = git_commit_summary(commit);
