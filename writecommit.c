@@ -1,8 +1,13 @@
+#include "common.h"
+#include "config.h"
 #include "hprintf.h"
 #include "writer.h"
 
 #include <ctype.h>
+#include <git2/commit.h>
+#include <limits.h>
 #include <string.h>
+#include <unistd.h>
 
 
 /* Escape characters below as HTML 2.0 / XML 1.0, ignore printing '\r', '\n' */
@@ -112,8 +117,9 @@ static int hasheadfile(const struct repoinfo* info, const char* filename) {
 	return 0;
 }
 
-void writediff(FILE* fp, const struct repoinfo* info, git_commit* commit,
-               const struct commitstats* ci, int parentlink) {
+void writecommitfile(const struct repoinfo* info, git_commit* commit, const struct commitstats* ci,
+                     int parentlink) {
+	FILE*                 fp;
 	const git_diff_delta* delta;
 	const git_diff_hunk*  hunk;
 	const git_diff_line*  line;
@@ -121,12 +127,23 @@ void writediff(FILE* fp, const struct repoinfo* info, git_commit* commit,
 	size_t                nhunks, nhunklines, changed, add, del, total, i, j, k;
 	char                  linestr[80];
 	int                   c;
-	char                  oid[GIT_OID_HEXSZ + 1], parentoid[GIT_OID_HEXSZ + 1];
-	const git_signature*  author = git_commit_author(commit);
-	const char*           msg    = git_commit_message(commit);
+	char                  path[PATH_MAX], oid[GIT_OID_HEXSZ + 1], parentoid[GIT_OID_HEXSZ + 1];
+	const git_signature*  author  = git_commit_author(commit);
+	const char*           msg     = git_commit_message(commit);
+	const char*           summary = git_commit_summary(commit);
 
 	git_oid_tostr(oid, sizeof(oid), git_commit_id(commit));
 	git_oid_tostr(parentoid, sizeof(parentoid), git_commit_parent_id(commit, 0));
+
+	snprintf(path, sizeof(path), "%s/commit/%s.html", info->destdir, oid);
+
+	// if it does not exist yet
+	if (!force && !access(path, F_OK))
+		return;
+
+	fp = xfopen("w", "%s", path);
+	writeheader(fp, info, 1, info->name, "%y", summary);
+	fputs("<pre>", fp);
 
 	hprintf(fp, "<b>commit</b> <a href=\"%s.html\">%s</a>\n", oid, oid);
 
@@ -262,4 +279,8 @@ void writediff(FILE* fp, const struct repoinfo* info, git_commit* commit,
 			}
 		}
 	}
+
+	fputs("</pre>\n", fp);
+	writefooter(fp);
+	fclose(fp);
 }

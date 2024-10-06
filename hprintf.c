@@ -179,9 +179,11 @@ void vhprintf(FILE* file, const char* format, va_list args) {
 		} else if (strncmp(p, "gw", 2) == 0) {
 			const git_error* error = giterr_last();
 			fprintf(file, "%s", error ? error->message : "no error");
+			p++;
 		} else if (strncmp(p, "gW", 2) == 0) {
 			const git_error* error = va_arg(args, const git_error*);
 			fprintf(file, "%s", error ? error->message : "no error");
+			p++;
 		} else if (*p == 'j') {
 			const char* text = va_arg(args, const char*);
 			jsonencode(file, text);

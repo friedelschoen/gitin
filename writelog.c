@@ -3,6 +3,10 @@
 #include "hprintf.h"
 #include "writer.h"
 
+#include <git2/commit.h>
+#include <git2/deprecated.h>
+#include <git2/oid.h>
+#include <git2/repository.h>
 #include <limits.h>
 #include <string.h>
 #include <unistd.h>
@@ -27,7 +31,8 @@ void freestats(struct commitstats* ci) {
 	memset(ci, 0, sizeof(*ci));    // Reset structure
 }
 
-static int getstats(struct commitstats* ci, git_commit* commit, git_repository* repo) {
+static int getdiff(struct commitstats* ci, git_repository* repo, git_tree* commit_tree,
+                   git_tree* parent_tree) {
 	struct deltainfo*     di;
 	git_diff_options      opts;
 	git_diff_find_options fopts;
@@ -37,36 +42,22 @@ static int getstats(struct commitstats* ci, git_commit* commit, git_repository* 
 	git_patch*            patch = NULL;
 	size_t                ndeltas, nhunks, nhunklines;
 	size_t                i, j, k;
+	git_diff*             diff = NULL;
 
-	git_commit* parent      = NULL;
-	git_tree*   commit_tree = NULL;
-	git_tree*   parent_tree = NULL;
-	git_diff*   diff        = NULL;
+	git_diff_options_init(&opts, GIT_DIFF_OPTIONS_VERSION);
+	git_diff_find_options_init(&fopts, GIT_DIFF_FIND_OPTIONS_VERSION);
+
+	opts.flags |=
+	    GIT_DIFF_DISABLE_PATHSPEC_MATCH | GIT_DIFF_IGNORE_SUBMODULES | GIT_DIFF_INCLUDE_TYPECHANGE;
+	fopts.flags |= GIT_DIFF_FIND_RENAMES | GIT_DIFF_FIND_COPIES | GIT_DIFF_FIND_EXACT_MATCH_ONLY;
 
 	memset(ci, 0, sizeof(*ci));
 
-	if (git_tree_lookup(&commit_tree, repo, git_commit_tree_id(commit))) {
-		hprintf(stderr, "error: unable to look up commit tree: %gw\n");
-		goto err;
-	}
-
-	if (!git_commit_parent(&parent, commit, 0)) {
-		if (git_tree_lookup(&parent_tree, repo, git_commit_tree_id(parent))) {
-			parent      = NULL;
-			parent_tree = NULL;
-		}
-	}
-
-	git_diff_options_init(&opts, GIT_DIFF_OPTIONS_VERSION);
-	opts.flags |=
-	    GIT_DIFF_DISABLE_PATHSPEC_MATCH | GIT_DIFF_IGNORE_SUBMODULES | GIT_DIFF_INCLUDE_TYPECHANGE;
 	if (git_diff_tree_to_tree(&diff, repo, parent_tree, commit_tree, &opts)) {
 		hprintf(stderr, "error: unable to generate diff: %gw\n");
 		goto err;
 	}
 
-	git_diff_find_options_init(&fopts, GIT_DIFF_FIND_OPTIONS_VERSION);
-	fopts.flags |= GIT_DIFF_FIND_RENAMES | GIT_DIFF_FIND_COPIES | GIT_DIFF_FIND_EXACT_MATCH_ONLY;
 	if (git_diff_find_similar(diff, &fopts)) {
 		hprintf(stderr, "error: unable to find similar changes: %gw\n");
 		goto err;
@@ -119,17 +110,10 @@ static int getstats(struct commitstats* ci, git_commit* commit, git_repository* 
 	ci->filecount = i;
 
 	git_diff_free(diff);
-	git_tree_free(commit_tree);
-	git_tree_free(parent_tree);
-	git_commit_free(parent);
-
 	return 0;
 
 err:
 	git_diff_free(diff);
-	git_tree_free(commit_tree);
-	git_tree_free(parent_tree);
-	git_commit_free(parent);
 	freestats(ci);
 	return -1;
 }
@@ -160,40 +144,67 @@ static void writelogline(FILE* fp, git_commit* commit, const struct commitstats*
 	fputs("</td></tr>\n", fp);
 }
 
-static void writecommit(const struct repoinfo* info, const char* oidstr, git_commit* commit,
-                        const struct commitstats* ci, int parentlink) {
-	char        path[PATH_MAX];
-	FILE*       fp;
-	const char* summary;
+static void writelogcommit(FILE* fp, FILE* json, FILE* atom, const struct repoinfo* info, int index,
+                           git_commit* commit) {
 
-	snprintf(path, sizeof(path), "%s/commit/%s.html", info->destdir, oidstr);
+	struct commitstats ci;
+	git_commit*        parent;
+	git_tree *         commit_tree, *parent_tree = NULL;
 
-	// if it does not exist yet
-	if (!force && !access(path, F_OK))
+	memset(&ci, 0, sizeof(ci));
+
+	if (git_commit_tree(&commit_tree, commit)) {
+		hprintf(stderr, "error: unable to fetch tree: %gw");
+		return;
+	}
+
+	if (git_commit_parent(&parent, commit, 0)) {
+		parent      = NULL;
+		parent_tree = NULL;
+	} else if (git_commit_tree(&parent_tree, parent)) {
+		hprintf(stderr, "warn: unable to fetch parent-tree: %gw");
+		git_commit_free(parent);
+		parent      = NULL;
+		parent_tree = NULL;
+	}
+
+	if (getdiff(&ci, info->repo, commit_tree, parent_tree) == -1)
 		return;
 
-	summary = git_commit_summary(commit);
+	writecommitfile(info, commit, &ci, index == maxcommits);
 
-	fp = xfopen("w", "%s", path);
-	writeheader(fp, info, 1, info->name, "%y", summary);
-	fputs("<pre>", fp);
-	writediff(fp, info, commit, ci, parentlink);
-	fputs("</pre>\n", fp);
-	writefooter(fp);
-	fclose(fp);
+	writelogline(fp, commit, &ci);
+	writecommitatom(atom, commit, NULL);
+	writejsoncommit(json, commit, index == 0);
+
+	freestats(&ci);
+	git_commit_free(commit);
 }
 
-int writelog(FILE* fp, FILE* json, const struct repoinfo* info) {
-	git_commit*        commit = NULL;
-	git_revwalk*       w      = NULL;
-	git_oid            id;
-	char               oidstr[GIT_OID_HEXSZ + 1];
-	ssize_t            ncommits = 0;
-	struct commitstats ci;
-	FILE*              atom;
-	int                first;
+int writelog(const struct repoinfo* info) {
+	git_revwalk* w = NULL;
+	git_oid      id;
+	ssize_t      ncommits = 0;
+	FILE *       fp, *atom, *json;
 
+	/* log for HEAD */
+	fp   = xfopen("w", "%s/index.html", info->destdir);
+	json = xfopen("w", "%s/%s", info->destdir, jsonfile);
 	atom = xfopen("w", "%s/%s", info->destdir, commitatomfile);
+
+	writeheader(fp, info, 0, info->name, "%y", info->description);
+	fprintf(json, "{");
+	writerefs(fp, json, info);
+
+	fputs("<h2>Commits</h2>\n<table id=\"log\"><thead>\n<tr><td><b>Date</b></td>"
+	      "<td class=\"expand\"><b>Commit message</b></td>"
+	      "<td><b>Author</b></td><td class=\"num\" align=\"right\"><b>Files</b></td>"
+	      "<td class=\"num\" align=\"right\"><b>+</b></td>"
+	      "<td class=\"num\" align=\"right\"><b>-</b></td></tr>\n</thead><tbody>\n",
+	      fp);
+
+	fprintf(json, ",\"commits\":{");
+
 	writeatomheader(atom, info);
 
 	// Create a revwalk to iterate through the commits
@@ -203,35 +214,47 @@ int writelog(FILE* fp, FILE* json, const struct repoinfo* info) {
 	}
 	git_revwalk_push_head(w);
 
+	git_commit* current;
+	git_tree*   current_tree = NULL;
+
 	// Iterate through the commits
 	while (!git_revwalk_next(&id, w)) {
-		first = ncommits == 0;
-		ncommits++;
-		if (maxcommits > 0 && ncommits > maxcommits)
+		if (maxcommits > 0 && ncommits > maxcommits) {
+			ncommits++;    // we still want to know how many commits we have
 			continue;
+		}
 
-		// Lookup the commit object
-		if (git_commit_lookup(&commit, info->repo, &id)) {
+		// Lookup the current commit
+		if (git_commit_lookup(&current, info->repo, &id)) {
 			hprintf(stderr, "error: unable to lookup commit: %gw\n");
 			continue;
 		}
 
-		git_oid_tostr(oidstr, sizeof(oidstr), &id);
-
-		if (getstats(&ci, commit, info->repo) == -1)
+		// Get the tree for the current commit
+		if (git_commit_tree(&current_tree, current)) {
+			hprintf(stderr, "error: unable to get tree for commit: %gw\n");
+			git_commit_free(current);
+			current = NULL;
 			continue;
+		}
 
-		writecommit(info, oidstr, commit, &ci, ncommits != maxcommits);
+		writelogcommit(fp, json, atom, info, ncommits, current);
 
-		writelogline(fp, commit, &ci);
-		writecommitatom(atom, commit, NULL);
-		writejsoncommit(json, commit, first);
+		// Free previous parent commit and tree (if they exist)
+		git_commit_free(current);
+		git_tree_free(current_tree);
 
-		freestats(&ci);
-		git_commit_free(commit);
+		ncommits++;
 	}
 
 	git_revwalk_free(w);
+
+	fputs("</tbody></table>", fp);
+	writefooter(fp);
+	fclose(fp);
+
+	fprintf(json, "}}");
+	fclose(json);
 
 	writeatomfooter(atom);
 	fclose(atom);
