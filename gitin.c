@@ -5,6 +5,8 @@
 #include "writer.h"
 
 #include <dirent.h>
+#include <git2/config.h>
+#include <git2/global.h>
 #include <limits.h>
 #include <signal.h>
 #include <stdio.h>

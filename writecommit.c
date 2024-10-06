@@ -127,10 +127,10 @@ void writecommitfile(const struct repoinfo* info, git_commit* commit, const stru
 	size_t                nhunks, nhunklines, changed, add, del, total, i, j, k;
 	char                  linestr[80];
 	int                   c;
-	char                  path[PATH_MAX], oid[GIT_OID_HEXSZ + 1], parentoid[GIT_OID_HEXSZ + 1];
-	const git_signature*  author  = git_commit_author(commit);
-	const char*           msg     = git_commit_message(commit);
-	const char*           summary = git_commit_summary(commit);
+	char path[PATH_MAX], oid[GIT_OID_SHA1_HEXSIZE + 1], parentoid[GIT_OID_SHA1_HEXSIZE + 1];
+	const git_signature* author  = git_commit_author(commit);
+	const char*          msg     = git_commit_message(commit);
+	const char*          summary = git_commit_summary(commit);
 
 	git_oid_tostr(oid, sizeof(oid), git_commit_id(commit));
 	git_oid_tostr(parentoid, sizeof(parentoid), git_commit_parent_id(commit, 0));

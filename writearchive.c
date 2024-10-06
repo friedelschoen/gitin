@@ -5,7 +5,9 @@
 
 #include <archive.h>
 #include <archive_entry.h>
+#include <git2/blob.h>
 #include <git2/deprecated.h>
+#include <git2/types.h>
 #include <libgen.h>
 #include <limits.h>
 #include <string.h>
@@ -50,7 +52,7 @@ static int process_tree(git_repository* repo, git_tree* tree, const char* base_p
 		char                  full_path[1024];
 		snprintf(full_path, sizeof(full_path), "%s/%s", base_path, name);
 
-		if (git_tree_entry_type(entry) == GIT_OBJ_TREE) {
+		if (git_tree_entry_type(entry) == GIT_OBJECT_TREE) {
 			git_tree* subtree;
 			if (git_tree_entry_to_object((git_object**) &subtree, repo, entry) != 0) {
 				hprintf(stderr, "error: unable to load git-tree: %gw\n");
@@ -58,7 +60,7 @@ static int process_tree(git_repository* repo, git_tree* tree, const char* base_p
 			}
 			process_tree(repo, subtree, full_path, a);
 			git_tree_free(subtree);
-		} else if (git_tree_entry_type(entry) == GIT_OBJ_BLOB) {
+		} else if (git_tree_entry_type(entry) == GIT_OBJECT_BLOB) {
 			git_blob* blob;
 			if (git_tree_entry_to_object((git_object**) &blob, repo, entry) != 0) {
 				hprintf(stderr, "error: unable to load blob: %gw\n");
@@ -80,7 +82,7 @@ int writearchive(const struct repoinfo* info, const struct git_reference* ref) {
 	git_tree*   tree   = NULL;
 	int         error  = 0;
 	char        path[PATH_MAX];
-	char        oid[GIT_OID_HEXSZ + 1], configoid[GIT_OID_HEXSZ + 1];
+	char        oid[GIT_OID_SHA1_HEXSIZE + 1], configoid[GIT_OID_SHA1_HEXSIZE + 1];
 	char        escapename[NAME_MAX];
 
 	// Get the commit the reference points to
@@ -97,9 +99,9 @@ int writearchive(const struct repoinfo* info, const struct git_reference* ref) {
 		if (*p == '/')
 			*p = '-';
 
-	if (!force &&
-	    !bufferread(configoid, GIT_OID_HEXSZ, "%s/.cache/archive/%s", info->destdir, escapename)) {
-		configoid[GIT_OID_HEXSZ] = '\0';
+	if (!force && !bufferread(configoid, GIT_OID_SHA1_HEXSIZE, "%s/.cache/archive/%s",
+	                          info->destdir, escapename)) {
+		configoid[GIT_OID_SHA1_HEXSIZE] = '\0';
 		if (!strcmp(configoid, oid))
 			return 0;
 	}
@@ -135,7 +137,7 @@ int writearchive(const struct repoinfo* info, const struct git_reference* ref) {
 		return -1;
 	}
 
-	bufferwrite(oid, GIT_OID_HEXSZ, "%s/.cache/archive/%s", info->destdir, escapename);
+	bufferwrite(oid, GIT_OID_SHA1_HEXSIZE, "%s/.cache/archive/%s", info->destdir, escapename);
 
 	git_tree_free(tree);
 	git_commit_free(commit);

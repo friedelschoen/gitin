@@ -4,6 +4,9 @@
 #include "parseconfig.h"
 #include "writer.h"
 
+#include <git2/repository.h>
+#include <git2/revparse.h>
+#include <git2/types.h>
 #include <limits.h>
 #include <string.h>
 
@@ -28,7 +31,7 @@ void addpinfile(struct repoinfo* info, const char* pinfile) {
 	git_object* obj;
 
 	snprintf(path, sizeof(path), "HEAD:%s", pinfile);
-	if (!git_revparse_single(&obj, info->repo, path) && git_object_type(obj) == GIT_OBJ_BLOB)
+	if (!git_revparse_single(&obj, info->repo, path) && git_object_type(obj) == GIT_OBJECT_BLOB)
 		info->pinfiles[info->pinfileslen++] = pinfile;
 	git_object_free(obj);
 }
@@ -119,7 +122,7 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 	}
 
 	if (!git_revparse_single(&obj, info.repo, "HEAD:.gitmodules") &&
-	    git_object_type(obj) == GIT_OBJ_BLOB)
+	    git_object_type(obj) == GIT_OBJECT_BLOB)
 		info.submodules = ".gitmodules";
 	git_object_free(obj);
 

@@ -5,7 +5,6 @@
 
 #include <errno.h>
 #include <ftw.h>
-#include <git2/deprecated.h>
 #include <limits.h>
 #include <stdarg.h>
 #include <stdio.h>

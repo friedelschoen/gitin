@@ -8,7 +8,7 @@ PREFIX = /usr/local
 CC 		 ?= gcc
 CFLAGS 	 += -Wall -Wextra -Wpedantic -Werror -O2 -g \
 		    $(shell pkg-config --cflags $(LIBS))
-CPPFLAGS += -D_XOPEN_SOURCE=700 -D_GNU_SOURCE -DVERSION=\"$(VERSION)\"
+CPPFLAGS += -D_XOPEN_SOURCE=700 -D_GNU_SOURCE -DVERSION=\"$(VERSION)\" -DGIT_DEPRECATE_HARD
 LDFLAGS  += $(shell pkg-config --libs $(LIBS))
 
 BINS = gitin findrepos
