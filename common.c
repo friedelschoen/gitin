@@ -168,3 +168,31 @@ int bufferread(char* buffer, size_t len, const char* format, ...) {
 
 	return 0;
 }
+
+void printprogress(const char* what, ssize_t indx, ssize_t ncommits) {
+	// Handle zero commits case
+	if (ncommits == 0) {
+		printf("\r%s [##################################################] 100.0%% (0 / 0)", what);
+		fflush(stdout);
+		return;
+	}
+
+	double progress  = (double) indx / ncommits;
+	int    bar_width = 50;    // The width of the progress bar
+
+	// Print the progress bar
+	printf("\r%s [", what);
+	int pos = (int) (bar_width * progress);
+	for (int i = 0; i < bar_width; ++i) {
+		if (i < pos)
+			fputc('#', stdout);    // Filled part of the bar
+		else
+			fputc('-', stdout);    // Unfilled part of the bar
+	}
+
+	// Print the progress percentage and counts
+	printf("] %5.1f%% (%zd / %zd)", progress * 100, indx, ncommits);
+
+	// Ensure the line is flushed and fully updated in the terminal
+	fflush(stdout);
+}

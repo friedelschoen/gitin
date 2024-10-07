@@ -128,12 +128,7 @@ int writelog(const struct repoinfo* info) {
 		indx++;
 
 		if (!verbose) {
-			printf("\rwrite log: [");
-			for (ssize_t i = 0; i < 50 * indx / ncommits; i++)
-				fputc('#', stdout);
-			for (ssize_t i = 0; i < 50 * (ncommits - indx) / ncommits; i++)
-				fputc('-', stdout);
-			printf("] % 5.1f%% (%zd / %zd)", 100.0 * indx / ncommits, indx, ncommits);
+			printprogress("write log:  ", indx, ncommits);
 		}
 	}
 	if (!verbose)
