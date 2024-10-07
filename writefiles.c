@@ -274,8 +274,33 @@ static const char* geticon(const git_blob* blob, const char* filename) {
 	return git_blob_is_binary(blob) ? "binary" : "other";
 }
 
+static size_t countfiles(git_repository* repo, git_tree* tree) {
+	size_t entry_count = git_tree_entrycount(tree);
+	size_t file_count  = 0;
+
+	for (size_t i = 0; i < entry_count; i++) {
+		const git_tree_entry* entry = git_tree_entry_byindex(tree, i);
+		if (!entry)
+			continue;
+
+		git_object* object = NULL;
+		if (git_tree_entry_type(entry) == GIT_OBJECT_BLOB) {
+			// If it's a blob (file), increment the file count
+			file_count++;
+		} else if (git_tree_entry_type(entry) == GIT_OBJECT_TREE) {
+			// If it's a subdirectory (tree), recurse into it
+			if (git_tree_entry_to_object(&object, repo, entry) == 0) {
+				git_tree* subtree = (git_tree*) object;
+				file_count += countfiles(repo, subtree);    // Recurse into the subtree
+				git_tree_free(subtree);
+			}
+		}
+	}
+	return file_count;
+}
+
 static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree* tree,
-                          const char* basepath) {
+                          const char* basepath, size_t* index, size_t maxfiles) {
 	const git_tree_entry* entry = NULL;
 	git_object*           obj   = NULL;
 	const char*           entryname;
@@ -325,6 +350,12 @@ static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree
 				else
 					fprintf(fp, "%zuB", filesize);
 				fputs("</td></tr>\n", fp);
+
+				(*index)++;
+
+				if (!verbose) {
+					printprogress("write files:", *index, maxfiles);
+				}
 			} else if (git_object_type(obj) == GIT_OBJECT_TREE) {
 				if (splitdirectories) {
 					hprintf(
@@ -332,7 +363,8 @@ static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree
 					    "<tr><td><img src=\"%ricons/directory.svg\" /></td><td>d---------</td><td colspan=\"2\"><a href=\"%h/\">%y</a></td><tr>\n",
 					    info->relpath + relpath, entrypath, entrypath);
 				}
-				writefilestree(fp, info, relpath + !!splitdirectories, (git_tree*) obj, entrypath);
+				writefilestree(fp, info, relpath + !!splitdirectories, (git_tree*) obj, entrypath,
+				               index, maxfiles);
 			}
 
 			git_object_free(obj);
@@ -357,6 +389,7 @@ static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree
 int writefiles(struct repoinfo* info) {
 	git_tree*   tree   = NULL;
 	git_commit* commit = NULL;
+	size_t      indx   = 0;
 	int         ret    = -1;
 	char        path[PATH_MAX];
 	char        headoid[GIT_OID_SHA1_HEXSIZE + 1], oid[GIT_OID_SHA1_HEXSIZE + 1];
@@ -382,7 +415,10 @@ int writefiles(struct repoinfo* info) {
 
 	if (info->head && !git_commit_lookup(&commit, info->repo, info->head) &&
 	    !git_commit_tree(&tree, commit)) {
-		ret = writefilestree(NULL, info, 1, tree, "");
+		ret = writefilestree(NULL, info, 1, tree, "", &indx, countfiles(info->repo, tree));
+
+		if (!verbose)
+			fputc('\n', stdout);
 	}
 
 	git_tree_free(tree);
