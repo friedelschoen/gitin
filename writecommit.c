@@ -172,7 +172,7 @@ void writecommitfile(const struct repoinfo* info, git_commit* commit, const stru
 	/* diff stat */
 	fputs("<b>Diffstat:</b>\n<table>", fp);
 	for (i = 0; i < ci->ndeltas; i++) {
-		delta = git_patch_get_delta(ci->deltas[i]->patch);
+		delta = git_patch_get_delta(ci->deltas[i].patch);
 
 		switch (delta->status) {
 			case GIT_DELTA_ADDED:
@@ -206,8 +206,8 @@ void writecommitfile(const struct repoinfo* info, git_commit* commit, const stru
 		if (strcmp(delta->old_file.path, delta->new_file.path))
 			hprintf(fp, " -&gt; \n%y", delta->new_file.path);
 
-		add     = ci->deltas[i]->addcount;
-		del     = ci->deltas[i]->delcount;
+		add     = ci->deltas[i].addcount;
+		del     = ci->deltas[i].delcount;
 		changed = add + del;
 		total   = sizeof(linestr) - 2;
 		if (changed > total) {
@@ -220,7 +220,7 @@ void writecommitfile(const struct repoinfo* info, git_commit* commit, const stru
 		memset(&linestr[add], '-', del);
 
 		fprintf(fp, "</a></td><td class=\"num\">%zu</td><td class=\"expand\"><span class=\"i\">",
-		        ci->deltas[i]->addcount + ci->deltas[i]->delcount);
+		        ci->deltas[i].addcount + ci->deltas[i].delcount);
 		fwrite(&linestr, 1, add, fp);
 		fputs("</span><span class=\"d\">", fp);
 		fwrite(&linestr[add], 1, del, fp);
@@ -233,7 +233,7 @@ void writecommitfile(const struct repoinfo* info, git_commit* commit, const stru
 	fputs("<hr/>", fp);
 
 	for (i = 0; i < ci->ndeltas; i++) {
-		patch = ci->deltas[i]->patch;
+		patch = ci->deltas[i].patch;
 		delta = git_patch_get_delta(patch);
 
 		if (hasheadfile(info, delta->old_file.path))

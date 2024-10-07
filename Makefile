@@ -24,6 +24,7 @@ HEADER = \
 	common.h \
 	config.h \
 	filetypes.h \
+	getdiff.h \
 	hprintf.h \
 	parseconfig.h \
 	writer.h
@@ -32,6 +33,7 @@ OBJECTS = \
 	common.o \
 	config.o \
 	hprintf.o \
+	getdiff.o \
 	parseconfig.o \
 	writearchive.o \
 	writeatom.o \

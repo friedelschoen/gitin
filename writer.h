@@ -1,5 +1,7 @@
 #pragma once
 
+#include "getdiff.h"
+
 #include <git2/patch.h>
 #include <git2/types.h>
 #include <stdio.h>
@@ -27,21 +29,6 @@ struct repoinfo {
 	char** headfiles;
 	int    headfileslen;
 	int    headfilesalloc;
-};
-
-struct deltainfo {
-	git_patch* patch;
-	size_t     addcount;
-	size_t     delcount;
-};
-
-struct commitstats {
-	size_t addcount;
-	size_t delcount;
-	size_t filecount;
-
-	struct deltainfo** deltas;
-	size_t             ndeltas;
 };
 
 int  writearchive(const struct repoinfo* info, const struct git_reference* ref);
