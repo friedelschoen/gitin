@@ -1,8 +1,8 @@
 #include "common.h"
-#include "config.h"
 #include "hprintf.h"
 #include "writer.h"
 
+#include <assert.h>
 #include <ctype.h>
 #include <git2/commit.h>
 #include <limits.h>
@@ -127,21 +127,15 @@ void writecommitfile(const struct repoinfo* info, git_commit* commit, const stru
 	size_t                nhunks, nhunklines, changed, add, del, total, i, j, k;
 	char                  linestr[80];
 	int                   c;
-	char path[PATH_MAX], oid[GIT_OID_SHA1_HEXSIZE + 1], parentoid[GIT_OID_SHA1_HEXSIZE + 1];
-	const git_signature* author  = git_commit_author(commit);
-	const char*          msg     = git_commit_message(commit);
-	const char*          summary = git_commit_summary(commit);
+	char                  oid[GIT_OID_SHA1_HEXSIZE + 1], parentoid[GIT_OID_SHA1_HEXSIZE + 1];
+	const git_signature*  author  = git_commit_author(commit);
+	const char*           msg     = git_commit_message(commit);
+	const char*           summary = git_commit_summary(commit);
 
 	git_oid_tostr(oid, sizeof(oid), git_commit_id(commit));
 	git_oid_tostr(parentoid, sizeof(parentoid), git_commit_parent_id(commit, 0));
 
-	snprintf(path, sizeof(path), "%s/commit/%s.html", info->destdir, oid);
-
-	// if it does not exist yet
-	if (!force && !access(path, F_OK))
-		return;
-
-	fp = xfopen("w", "%s", path);
+	fp = xfopen("w", "%s/commit/%s.html", info->destdir, oid);
 	writeheader(fp, info, 1, info->name, "%y", summary);
 	fputs("<pre>", fp);
 
@@ -163,8 +157,7 @@ void writecommitfile(const struct repoinfo* info, git_commit* commit, const stru
 	if (!ci->deltas)
 		return;
 
-	if (ci->filecount > 1000 || ci->ndeltas > 1000 || ci->addcount > 100000 ||
-	    ci->delcount > 100000) {
+	if (ci->ndeltas > 1000 || ci->addcount > 100000 || ci->delcount > 100000) {
 		fputs("Diff is too large, output suppressed.\n", fp);
 		return;
 	}
@@ -172,6 +165,7 @@ void writecommitfile(const struct repoinfo* info, git_commit* commit, const stru
 	/* diff stat */
 	fputs("<b>Diffstat:</b>\n<table>", fp);
 	for (i = 0; i < ci->ndeltas; i++) {
+		assert(ci->deltas[i].patch);
 		delta = git_patch_get_delta(ci->deltas[i].patch);
 
 		switch (delta->status) {
@@ -227,8 +221,8 @@ void writecommitfile(const struct repoinfo* info, git_commit* commit, const stru
 		fputs("</span></td></tr>\n", fp);
 	}
 	fprintf(fp, "</table></pre><pre>%zu file%s changed, %zu insertion%s(+), %zu deletion%s(-)\n",
-	        ci->filecount, ci->filecount == 1 ? "" : "s", ci->addcount,
-	        ci->addcount == 1 ? "" : "s", ci->delcount, ci->delcount == 1 ? "" : "s");
+	        ci->ndeltas, ci->ndeltas == 1 ? "" : "s", ci->addcount, ci->addcount == 1 ? "" : "s",
+	        ci->delcount, ci->delcount == 1 ? "" : "s");
 
 	fputs("<hr/>", fp);
 
