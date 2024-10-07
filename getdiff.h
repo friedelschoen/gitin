@@ -1,20 +1,6 @@
+#pragma once
 
-#include <git2/patch.h>
+#include "writer.h"
 
-struct deltainfo {
-	git_patch* patch;
-	size_t     addcount;
-	size_t     delcount;
-};
-
-struct commitstats {
-	size_t addcount;
-	size_t delcount;
-	size_t filecount;
-
-	struct deltainfo* deltas;
-	size_t            ndeltas;
-};
-
-int  getdiff(struct commitstats* ci, git_repository* repo, git_commit* commit);
+int  getdiff(struct commitstats* ci, const struct repoinfo* info, git_commit* commit, int docache);
 void freediff(struct commitstats* ci);

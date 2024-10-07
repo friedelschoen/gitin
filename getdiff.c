@@ -1,23 +1,79 @@
 #include "getdiff.h"
 
+#include "common.h"
 #include "hprintf.h"
 
 #include <git2/commit.h>
+#include <git2/oid.h>
+#include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 
-int getdiff(struct commitstats* ci, git_repository* repo, git_commit* commit) {
+// Function to dump the commitstats struct into a file
+static void dumpdiff(FILE* fp, const struct commitstats* stats) {
+	// Write commitstats fields
+	fwrite(&stats->addcount, sizeof(size_t), 1, fp);
+	fwrite(&stats->delcount, sizeof(size_t), 1, fp);
+
+	// Write the number of deltas
+	fwrite(&stats->ndeltas, sizeof(size_t), 1, fp);
+
+	// Write each delta (if any)
+	for (size_t i = 0; i < stats->ndeltas; i++) {
+		fwrite(&stats->deltas[i].addcount, sizeof(size_t), 1, fp);
+		fwrite(&stats->deltas[i].delcount, sizeof(size_t), 1, fp);
+	}
+}
+
+// Function to parse the commitstats struct from a file
+static void loaddiff(FILE* fp, struct commitstats* stats) {
+	// Read commitstats fields
+	fread(&stats->addcount, sizeof(size_t), 1, fp);
+	fread(&stats->delcount, sizeof(size_t), 1, fp);
+
+	// Read the number of deltas
+	fread(&stats->ndeltas, sizeof(size_t), 1, fp);
+
+	// Allocate memory for the deltas array
+	stats->deltas = NULL;    // No deltas to store
+	if (stats->ndeltas > 0) {
+		stats->deltas = malloc(stats->ndeltas * sizeof(struct deltainfo));
+		if (!stats->deltas) {
+			fprintf(stderr, "Memory allocation failed\n");
+			exit(100);
+		}
+
+		// Read each delta
+		for (size_t i = 0; i < stats->ndeltas; i++) {
+			stats->deltas[i].patch = NULL;
+			fread(&stats->deltas[i].addcount, sizeof(size_t), 1, fp);
+			fread(&stats->deltas[i].delcount, sizeof(size_t), 1, fp);
+		}
+	}
+}
+
+int getdiff(struct commitstats* ci, const struct repoinfo* info, git_commit* commit, int docache) {
 	git_diff_options      opts;
 	git_diff_find_options fopts;
 	const git_diff_delta* delta;
 	const git_diff_hunk*  hunk;
 	const git_diff_line*  line;
 	git_patch*            patch = NULL;
-	size_t                ndeltas, nhunks, nhunklines;
-	size_t                i, j, k;
+	size_t                nhunks, nhunklines;
 	git_diff*             diff = NULL;
 	git_commit*           parent;
 	git_tree *            commit_tree, *parent_tree;
+	FILE*                 fp;
+	char                  oid[GIT_OID_SHA1_HEXSIZE + 1];
+
+	git_oid_tostr(oid, sizeof(oid), git_commit_id(commit));
+
+	if (docache && (fp = xfopen("!.r", "%s/.cache/diffs/%s", info->destdir, oid))) {
+		loaddiff(fp, ci);
+		fclose(fp);
+		return 0;
+	}
 
 	if (git_commit_tree(&commit_tree, commit)) {
 		hprintf(stderr, "error: unable to fetch tree: %gw");
@@ -42,7 +98,7 @@ int getdiff(struct commitstats* ci, git_repository* repo, git_commit* commit) {
 
 	memset(ci, 0, sizeof(*ci));
 
-	if (git_diff_tree_to_tree(&diff, repo, parent_tree, commit_tree, &opts)) {
+	if (git_diff_tree_to_tree(&diff, info->repo, parent_tree, commit_tree, &opts)) {
 		hprintf(stderr, "error: unable to generate diff: %gw\n");
 		goto err;
 	}
@@ -52,13 +108,13 @@ int getdiff(struct commitstats* ci, git_repository* repo, git_commit* commit) {
 		goto err;
 	}
 
-	ndeltas = git_diff_num_deltas(diff);
-	if (ndeltas && !(ci->deltas = calloc(ndeltas, sizeof(struct deltainfo)))) {
+	ci->ndeltas = git_diff_num_deltas(diff);
+	if (ci->ndeltas && !(ci->deltas = calloc(ci->ndeltas, sizeof(struct deltainfo)))) {
 		hprintf(stderr, "error: unable to allocate memory for deltas: %w\n");
 		exit(100);    // Fatal error
 	}
 
-	for (i = 0; i < ndeltas; i++) {
+	for (size_t i = 0; i < ci->ndeltas; i++) {
 		if (git_patch_from_diff(&patch, diff, i)) {
 			hprintf(stderr, "error: unable to create patch from diff: %gw\n");
 			goto err;
@@ -74,12 +130,12 @@ int getdiff(struct commitstats* ci, git_repository* repo, git_commit* commit) {
 			continue;
 
 		nhunks = git_patch_num_hunks(patch);
-		for (j = 0; j < nhunks; j++) {
+		for (size_t j = 0; j < nhunks; j++) {
 			if (git_patch_get_hunk(&hunk, &nhunklines, patch, j)) {
 				hprintf(stderr, "error: unable to get hunk: %gw\n");
 				break;
 			}
-			for (k = 0;; k++) {
+			for (size_t k = 0;; k++) {
 				if (git_patch_get_line_in_hunk(&line, patch, j, k))
 					break;
 				if (line->old_lineno == -1) {
@@ -92,10 +148,14 @@ int getdiff(struct commitstats* ci, git_repository* repo, git_commit* commit) {
 			}
 		}
 	}
-	ci->ndeltas   = i;
-	ci->filecount = i;
 
 	git_diff_free(diff);
+
+	if ((fp = xfopen("!.w", "%s/.cache/diffs/%s", info->destdir, oid))) {
+		dumpdiff(fp, ci);
+		fclose(fp);
+	}
+
 	return 0;
 
 err:

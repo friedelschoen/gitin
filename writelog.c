@@ -1,11 +1,16 @@
 #include "common.h"
 #include "config.h"
+#include "getdiff.h"
 #include "hprintf.h"
 #include "writer.h"
 
 #include <git2/commit.h>
+#include <git2/oid.h>
 #include <git2/revwalk.h>
+#include <git2/types.h>
+#include <limits.h>
 #include <string.h>
+#include <unistd.h>
 
 
 static void writelogline(FILE* fp, git_commit* commit, const struct commitstats* ci) {
@@ -26,7 +31,7 @@ static void writelogline(FILE* fp, git_commit* commit, const struct commitstats*
 	if (author)
 		hprintf(fp, "%y", author->name);
 	fputs("</td><td class=\"num\" align=\"right\">", fp);
-	fprintf(fp, "%zu", ci->filecount);
+	fprintf(fp, "%zu", ci->ndeltas);
 	fputs("</td><td class=\"num\" align=\"right\">", fp);
 	fprintf(fp, "+%zu", ci->addcount);
 	fputs("</td><td class=\"num\" align=\"right\">", fp);
@@ -35,16 +40,36 @@ static void writelogline(FILE* fp, git_commit* commit, const struct commitstats*
 }
 
 static void writelogcommit(FILE* fp, FILE* json, FILE* atom, const struct repoinfo* info, int index,
-                           git_commit* commit) {
+                           git_oid* id) {
 
 	struct commitstats ci;
+	git_commit*        commit;
+	git_tree*          tree;
+	char               path[PATH_MAX], oid[GIT_OID_SHA1_HEXSIZE + 1];
+	int                cachedcommit;
 
-	memset(&ci, 0, sizeof(ci));
+	// Lookup the current commit
+	if (git_commit_lookup(&commit, info->repo, id)) {
+		hprintf(stderr, "error: unable to lookup commit: %gw\n");
+		return;
+	}
 
-	if (getdiff(&ci, info->repo, commit) == -1)
+	// Get the tree for the current commit
+	if (git_commit_tree(&tree, commit)) {
+		hprintf(stderr, "error: unable to get tree for commit: %gw\n");
+		git_commit_free(commit);
+		return;
+	}
+
+	git_oid_tostr(oid, sizeof(oid), id);
+	snprintf(path, sizeof(path), "%s/commit/%s.html", info->destdir, oid);
+
+	cachedcommit = !force && !access(path, F_OK);
+	if (getdiff(&ci, info, commit, cachedcommit) == -1)
 		return;
 
-	writecommitfile(info, commit, &ci, index == maxcommits);
+	if (!cachedcommit)
+		writecommitfile(info, commit, &ci, index == maxcommits);
 
 	writelogline(fp, commit, &ci);
 	writecommitatom(atom, commit, NULL);
@@ -52,6 +77,7 @@ static void writelogcommit(FILE* fp, FILE* json, FILE* atom, const struct repoin
 
 	freediff(&ci);
 	git_commit_free(commit);
+	git_tree_free(tree);
 }
 
 int writelog(const struct repoinfo* info) {
@@ -87,38 +113,31 @@ int writelog(const struct repoinfo* info) {
 	}
 	git_revwalk_push_head(w);
 
-	git_commit* current;
-	git_tree*   current_tree = NULL;
+	// Iterate through the commits
+	while (!git_revwalk_next(&id, w))
+		ncommits++;
+
+	git_revwalk_reset(w);
+	git_revwalk_push_head(w);
 
 	// Iterate through the commits
-	while (!git_revwalk_next(&id, w)) {
-		if (maxcommits > 0 && ncommits > maxcommits) {
-			ncommits++;    // we still want to know how many commits we have
-			continue;
+	ssize_t indx = 0;
+	while ((maxcommits <= 0 || indx < maxcommits) && !git_revwalk_next(&id, w)) {
+		writelogcommit(fp, json, atom, info, indx, &id);
+
+		indx++;
+
+		if (!verbose) {
+			printf("\rwrite log: [");
+			for (ssize_t i = 0; i < 50 * indx / ncommits; i++)
+				fputc('#', stdout);
+			for (ssize_t i = 0; i < 50 * (ncommits - indx) / ncommits; i++)
+				fputc('-', stdout);
+			printf("] % 5.1f%% (%zd / %zd)", 100.0 * indx / ncommits, indx, ncommits);
 		}
-
-		// Lookup the current commit
-		if (git_commit_lookup(&current, info->repo, &id)) {
-			hprintf(stderr, "error: unable to lookup commit: %gw\n");
-			continue;
-		}
-
-		// Get the tree for the current commit
-		if (git_commit_tree(&current_tree, current)) {
-			hprintf(stderr, "error: unable to get tree for commit: %gw\n");
-			git_commit_free(current);
-			current = NULL;
-			continue;
-		}
-
-		writelogcommit(fp, json, atom, info, ncommits, current);
-
-		// Free previous parent commit and tree (if they exist)
-		git_commit_free(current);
-		git_tree_free(current_tree);
-
-		ncommits++;
 	}
+	if (!verbose)
+		fputc('\n', stdout);
 
 	git_revwalk_free(w);
 

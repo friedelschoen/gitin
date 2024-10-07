@@ -99,7 +99,7 @@ int writearchive(const struct repoinfo* info, const struct git_reference* ref) {
 		if (*p == '/')
 			*p = '-';
 
-	if (!force && !bufferread(configoid, GIT_OID_SHA1_HEXSIZE, "%s/.cache/archive/%s",
+	if (!force && !bufferread(configoid, GIT_OID_SHA1_HEXSIZE, "%s/.cache/archives/%s",
 	                          info->destdir, escapename)) {
 		configoid[GIT_OID_SHA1_HEXSIZE] = '\0';
 		if (!strcmp(configoid, oid))
@@ -137,7 +137,7 @@ int writearchive(const struct repoinfo* info, const struct git_reference* ref) {
 		return -1;
 	}
 
-	bufferwrite(oid, GIT_OID_SHA1_HEXSIZE, "%s/.cache/archive/%s", info->destdir, escapename);
+	bufferwrite(oid, GIT_OID_SHA1_HEXSIZE, "%s/.cache/archives/%s", info->destdir, escapename);
 
 	git_tree_free(tree);
 	git_commit_free(commit);

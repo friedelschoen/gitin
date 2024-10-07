@@ -1,13 +1,25 @@
 #pragma once
 
-#include "getdiff.h"
-
 #include <git2/patch.h>
 #include <git2/types.h>
 #include <stdio.h>
 
 #define MAXPINS 8
 #define SUMMARY 5
+
+struct deltainfo {
+	git_patch* patch;
+	size_t     addcount;
+	size_t     delcount;
+};
+
+struct commitstats {
+	size_t addcount;
+	size_t delcount;
+
+	struct deltainfo* deltas;
+	size_t            ndeltas;
+};
 
 struct repoinfo {
 	git_repository* repo;
