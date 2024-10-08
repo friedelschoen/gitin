@@ -1,60 +1,36 @@
-.TH FINDREPOS 1 "September 2024" "findrepos %VERSION%" "User Commands"
+.TH FINDREPOS 1 "October 2024" "Version %VERSION%" "User Commands"
 .SH NAME
-findrepos \- recursively search for bare Git repositories
+findrepos \- Recursively search for Git repositories
 
 .SH SYNOPSIS
 .B findrepos
-[\fIstart-point\fR]
+[startdir]
 
 .SH DESCRIPTION
 .B findrepos
-is a utility that recursively searches through directories starting from a given point and identifies directories that are bare Git repositories. A bare Git repository is identified by the presence of a \fBHEAD\fR file directly in the directory.
-
-If no \fIstart-point\fR is provided, the search will start from the current directory.
+is a simple utility that recursively searches for Git repositories starting from the specified directory (or the current directory if none is provided). It outputs the paths of all found repositories.
 
 .SH OPTIONS
+
 .TP
-.I start-point
-The directory from which to begin the search. If omitted, the program will start from the current directory (`.`).
-
-.SH USAGE
-.PP
-To search from the current directory:
-
-.nf
-    findrepos
-.fi
-
-To search from a specific directory:
-
-.nf
-    findrepos /path/to/directory
-.fi
+.B startdir
+The starting directory from which to begin searching. If not specified, the current directory is used.
 
 .SH EXAMPLES
-.PP
-Start searching for bare Git repositories from the current directory:
 
-.nf
-    findrepos
-.fi
-
-Start searching for bare Git repositories from the specified directory `/home/user/projects`:
-
-.nf
-    findrepos /home/user/projects
-.fi
-
-.SH EXIT STATUS
 .TP
-.B 0
-Successful execution.
+.B findrepos
+Search for all Git repositories starting from the current directory and output their paths.
+
 .TP
-.B 1
-Invalid arguments (too many arguments or unrecognized option).
+.B findrepos /home/git
+Search for all Git repositories under the `/home/git` directory and output their paths.
 
 .SH SEE ALSO
-git(1)
+.BR gitin(1),
+.BR gitin.conf(5)
 
 .SH AUTHOR
-Written by Friedel Schön
+This project is founded by Hiltjo Posthuma and multiple contributers as \fIstagit\fR. This project is forked by Friedel Schön as \fIgitin\fR. For more information about changes and contribution, visit
+.P
+%HOMEPAGE%
