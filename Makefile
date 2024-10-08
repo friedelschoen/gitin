@@ -17,7 +17,19 @@ MAN1 = gitin.1 findrepos.1
 DOCS = \
 	assets/favicon.png \
 	assets/logo.png \
-	assets/style.css
+	assets/style.css \
+	README.md \
+	LICENSE
+
+ICONS = \
+	icons/image.svg \
+	icons/binary.svg \
+	icons/source.svg \
+	icons/text.svg \
+	icons/readme.svg \
+	icons/directory.svg \
+	icons/other.svg \
+	icons/command.svg
 
 HEADER = \
 	arg.h \
@@ -79,7 +91,7 @@ filetypes.h: filetypes.txt
 clean:
 	rm -f $(BINS) $(BINS:=.o) $(OBJECTS) $(MAN1) compile_flags.txt filetypes.h
 
-install: $(BINS) $(MAN1)
+install: $(BINS) $(MAN1) $(DOCS) $(ICONS)
 	install -d $(PREFIX)/bin
 	install -m 755 $(BINS) $(PREFIX)/bin
 
@@ -88,6 +100,9 @@ install: $(BINS) $(MAN1)
 
 	install -d $(PREFIX)/share/doc/$(NAME)
 	install -m 644 $(DOCS) $(PREFIX)/share/doc/$(NAME)
+
+	install -d $(PREFIX)/share/doc/$(NAME)/icons
+	install -m 644 $(ICONS) $(PREFIX)/share/doc/$(NAME)/icons
 
 uninstall:
 	rm -f $(addprefix $(PREFIX)/bin/, $(BINS))
