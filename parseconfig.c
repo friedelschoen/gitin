@@ -1,4 +1,4 @@
-#include "parseconfig.h"
+#include "gitin.h"
 
 #include <ctype.h>
 #include <errno.h>

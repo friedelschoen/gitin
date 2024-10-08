@@ -1,8 +1,4 @@
-#include "common.h"
-#include "config.h"
-#include "getdiff.h"
-#include "hprintf.h"
-#include "writer.h"
+#include "gitin.h"
 
 #include <git2/commit.h>
 #include <git2/oid.h>
@@ -127,9 +123,7 @@ int writelog(const struct repoinfo* info) {
 
 		indx++;
 
-		if (!verbose) {
-			printprogress("write log:  ", indx, ncommits);
-		}
+		printprogress("write log:  ", indx, ncommits);
 	}
 	if (!verbose)
 		fputc('\n', stdout);

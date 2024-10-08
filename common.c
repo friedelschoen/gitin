@@ -1,7 +1,4 @@
-#include "common.h"
-
-#include "config.h"
-#include "hprintf.h"
+#include "gitin.h"
 
 #include <errno.h>
 #include <ftw.h>
@@ -9,6 +6,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 
 FILE* xfopen(const char* mode, const char* format, ...) {
@@ -170,6 +168,9 @@ int bufferread(char* buffer, size_t len, const char* format, ...) {
 }
 
 void printprogress(const char* what, ssize_t indx, ssize_t ncommits) {
+	if (verbose)
+		return;
+
 	// Handle zero commits case
 	if (ncommits == 0) {
 		printf("\r%s [##################################################] 100.0%% (0 / 0)", what);

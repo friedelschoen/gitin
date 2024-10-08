@@ -1,8 +1,5 @@
-#include "common.h"
-#include "config.h"
 #include "filetypes.h"
-#include "hprintf.h"
-#include "writer.h"
+#include "gitin.h"
 
 #include <git2/blob.h>
 #include <git2/commit.h>
@@ -353,9 +350,7 @@ static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree
 
 				(*index)++;
 
-				if (!verbose) {
-					printprogress("write files:", *index, maxfiles);
-				}
+				printprogress("write files:", *index, maxfiles);
 			} else if (git_object_type(obj) == GIT_OBJECT_TREE) {
 				if (splitdirectories) {
 					hprintf(

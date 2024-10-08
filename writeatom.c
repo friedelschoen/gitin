@@ -1,5 +1,4 @@
-#include "hprintf.h"
-#include "writer.h"
+#include "gitin.h"
 
 #include <git2/commit.h>
 #include <stdio.h>

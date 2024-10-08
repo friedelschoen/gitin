@@ -1,6 +1,4 @@
-#include "config.h"
-
-#include "parseconfig.h"
+#include "gitin.h"
 
 /* Configuration keys for the configuration parser. */
 struct config config_keys[] = {

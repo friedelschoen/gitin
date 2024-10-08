@@ -1,7 +1,4 @@
-#include "getdiff.h"
-
-#include "common.h"
-#include "hprintf.h"
+#include "gitin.h"
 
 #include <git2/commit.h>
 #include <git2/oid.h>

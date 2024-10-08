@@ -21,13 +21,8 @@ DOCS = \
 
 HEADER = \
 	arg.h \
-	common.h \
-	config.h \
 	filetypes.h \
-	getdiff.h \
-	hprintf.h \
-	parseconfig.h \
-	writer.h
+	gitin.h
 
 OBJECTS = \
 	common.o \
