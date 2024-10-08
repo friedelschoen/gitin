@@ -1,5 +1,6 @@
 NAME = gitin
 VERSION = 0.1
+HOMEPAGE = https://git.friedelschoen.io/web/gitin
 
 # paths
 PREFIX = /usr/local
@@ -13,6 +14,7 @@ LDFLAGS  += $(shell pkg-config --libs $(LIBS))
 
 BINS = gitin findrepos
 MAN1 = gitin.1 findrepos.1
+MAN5 = gitin.conf.5
 
 DOCS = \
 	assets/favicon.png \
@@ -56,15 +58,15 @@ OBJECTS = \
 .PHONY: all clean install uninstall
 
 # default target, make everything
-all: $(BINS) $(MAN1) compile_flags.txt
+all: $(BINS) $(MAN1) $(MAN5) compile_flags.txt
 
 # automatic tagets
 
 %.o: %.c $(HEADER)
 	$(CC) -c -o $@ $< $(CFLAGS) $(CPPFLAGS)
 
-%: %.in
-	sed 's/%VERSION%/$(VERSION)/g' $< > $@
+%: %.in Makefile
+	sed 's/%VERSION%/$(VERSION)/g;s|%HOMEPAGE%|$(HOMEPAGE)|g' $< > $@
 
 %: %.o
 	$(CC) -o $@ $^ $(LDFLAGS)
@@ -89,14 +91,17 @@ filetypes.h: filetypes.txt
 # pseudo targets
 
 clean:
-	rm -f $(BINS) $(BINS:=.o) $(OBJECTS) $(MAN1) compile_flags.txt filetypes.h
+	rm -f $(BINS) $(BINS:=.o) $(OBJECTS) $(MAN1) $(MAN5) compile_flags.txt filetypes.h
 
-install: $(BINS) $(MAN1) $(DOCS) $(ICONS)
+install: $(BINS) $(MAN1) $(MAN5) $(DOCS) $(ICONS)
 	install -d $(PREFIX)/bin
 	install -m 755 $(BINS) $(PREFIX)/bin
 
 	install -d $(PREFIX)/share/man/man1
 	install -m 644 $(MAN1) $(PREFIX)/share/man/man1
+
+	install -d $(PREFIX)/share/man/man5
+	install -m 644 $(MAN5) $(PREFIX)/share/man/man5
 
 	install -d $(PREFIX)/share/doc/$(NAME)
 	install -m 644 $(DOCS) $(PREFIX)/share/doc/$(NAME)
@@ -107,4 +112,5 @@ install: $(BINS) $(MAN1) $(DOCS) $(ICONS)
 uninstall:
 	rm -f $(addprefix $(PREFIX)/bin/, $(BINS))
 	rm -f $(addprefix $(PREFIX)/share/man/man1/, $(MAN1))
+	rm -f $(addprefix $(PREFIX)/share/man/man5/, $(MAN5))
 	rm -rf $(PREFIX)/share/doc/$(NAME)
