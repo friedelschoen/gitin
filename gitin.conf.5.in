@@ -149,7 +149,7 @@ files/tag\-atom=tags_feed.xml
 
 .SH SEE ALSO
 .BR gitin(1),
-.BR findrepos(1)
+.BR gitin-findrepos(1)
 
 .SH AUTHOR
 This project is founded by Hiltjo Posthuma and multiple contributers as \fIstagit\fR. This project is forked by Friedel Schön as \fIgitin\fR. For more information about changes and contribution, visit

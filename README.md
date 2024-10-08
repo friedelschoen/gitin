@@ -52,12 +52,12 @@ gitin [-fhsuvV] [-C workdir] [-d destdir] -r [startdir]
 | -V         | Print the version and exit.                                                                                    |
 | -v         | Print a list of all written files.                                                                             |
 
-### `findrepos`
+### `gitin-findrepos`
 
-`findrepos` is a utility that searches for Git repositories within a specified directory. This is useful for automating the generation of static pages for multiple repositories.
+`gitin-findrepos` is a utility that searches for Git repositories within a specified directory. This is useful for automating the generation of static pages for multiple repositories.
 
 ```bash
-findrepos [startdir]
+gitin-findrepos [startdir]
 ```
 
 ## Dependencies
@@ -80,7 +80,7 @@ $ make
 
 ## Documentation
 
-For more detailed usage instructions, see the man pages: `gitin(1)`, `gitin.conf(5)` and `findrepos(1)`.
+For more detailed usage instructions, see the man pages: `gitin(1)`, `gitin.conf(5)` and `gitin-findrepos(1)`.
 
 ## License
 
