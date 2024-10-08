@@ -1,11 +1,8 @@
-#include "common.h"
-#include "hprintf.h"
-#include "writer.h"
+#include "gitin.h"
 
 #include <assert.h>
 #include <ctype.h>
 #include <git2/commit.h>
-#include <limits.h>
 #include <string.h>
 #include <unistd.h>
 

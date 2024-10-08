@@ -1,6 +1,4 @@
-#include "hprintf.h"
-
-#include "common.h"
+#include "gitin.h"
 
 #include <assert.h>
 #include <errno.h>

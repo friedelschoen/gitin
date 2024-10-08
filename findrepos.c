@@ -1,4 +1,4 @@
-#include "config.h"
+#include "gitin.h"
 
 #include <dirent.h>
 #include <limits.h>

@@ -1,7 +1,4 @@
-#include "common.h"
-#include "config.h"
-#include "hprintf.h"
-#include "writer.h"
+#include "gitin.h"
 
 #include <git2/commit.h>
 #include <git2/refs.h>

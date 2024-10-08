@@ -1,8 +1,6 @@
+#include "gitin.h"
+
 #include "arg.h"
-#include "config.h"
-#include "hprintf.h"
-#include "parseconfig.h"
-#include "writer.h"
 
 #include <dirent.h>
 #include <git2/config.h>
