@@ -1,13 +1,13 @@
-.TH FINDREPOS 1 "October 2024" "Version %VERSION%" "User Commands"
+.TH GITIN-FINDREPOS 1 "October 2024" "Version %VERSION%" "User Commands"
 .SH NAME
-findrepos \- Recursively search for Git repositories
+gitin-findrepos \- Recursively search for Git repositories
 
 .SH SYNOPSIS
-.B findrepos
+.B gitin-findrepos
 [startdir]
 
 .SH DESCRIPTION
-.B findrepos
+.B gitin-findrepos
 is a simple utility that recursively searches for Git repositories starting from the specified directory (or the current directory if none is provided). It outputs the paths of all found repositories.
 
 .SH OPTIONS
@@ -19,11 +19,11 @@ The starting directory from which to begin searching. If not specified, the curr
 .SH EXAMPLES
 
 .TP
-.B findrepos
+.B gitin-findrepos
 Search for all Git repositories starting from the current directory and output their paths.
 
 .TP
-.B findrepos /home/git
+.B gitin-findrepos /home/git
 Search for all Git repositories under the `/home/git` directory and output their paths.
 
 .SH SEE ALSO

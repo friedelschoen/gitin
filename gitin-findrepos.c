@@ -65,7 +65,7 @@ int main(int argc, char* argv[]) {
 	} else if (argc == 2) {
 		start_path = argv[1];    // Use path from argument
 	} else {
-		fprintf(stderr, "usage: findrepos [start-point]\n");
+		fprintf(stderr, "usage: gitin-findrepos [start-point]\n");
 		return 1;
 	}
 
