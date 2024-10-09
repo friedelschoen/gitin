@@ -6,6 +6,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 
@@ -196,4 +197,12 @@ void printprogress(const char* what, ssize_t indx, ssize_t ncommits) {
 
 	// Ensure the line is flushed and fully updated in the terminal
 	fflush(stdout);
+}
+
+int endswith(const char* str, const char* suffix) {
+	size_t lenstr    = strlen(str);
+	size_t lensuffix = strlen(suffix);
+	if (lensuffix > lenstr)
+		return 0;
+	return strncmp(str + lenstr - lensuffix, suffix, lensuffix) == 0;
 }

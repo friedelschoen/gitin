@@ -13,6 +13,7 @@ struct config config_keys[] = {
 	{ "logoicon", ConfigString, &logoicon },
 	{ "stylesheet", ConfigString, &stylesheet },
 	{ "highlightcmd", ConfigString, &highlightcmd },
+	{ "pandoccmd", ConfigString, &pandoccmd },
 	{ "colorscheme", ConfigString, &colorscheme },
 	{ "pinfiles", ConfigString, &extrapinfiles },
 	{ "splitdirectories", ConfigBoolean, &splitdirectories },
@@ -61,6 +62,8 @@ const char* stylesheet = "style.css";
  * be substituted into this command. */
 const char* highlightcmd =
     "chroma --html --html-only --html-lines --html-inline-styles --style=$scheme --lexer=$type";
+
+const char* pandoccmd = "pandoc --from=$type --to=html";
 
 /* Color scheme to use for syntax highlighting in the HTML output. */
 const char* colorscheme = "pastie";

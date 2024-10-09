@@ -1,4 +1,3 @@
-#include "filetypes.h"
 #include "gitin.h"
 
 #include <git2/blob.h>
@@ -6,6 +5,7 @@
 #include <git2/types.h>
 #include <libgen.h>
 #include <limits.h>
+#include <stdint.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
@@ -121,89 +121,27 @@ static const char* filemode(git_filemode_t m) {
 }
 
 static ssize_t highlight(FILE* fp, const struct repoinfo* info, const char* filename, const char* s,
-                         ssize_t len) {
-	static unsigned char buffer[512];
-	ssize_t              n = 0;
-	FILE*                cache;
-	pipe_t               inpipefd;
-	pipe_t               outpipefd;
-	pid_t                process;
-	ssize_t              readlen;
-	int                  status;
-	uint32_t             contenthash;
-	char*                type;
+                         ssize_t len, uint32_t contenthash) {
 
-	contenthash = filehash(s, len);
-
-	if (!force && (cache = xfopen(".!r", "%s/.cache/files/%x", info->destdir, contenthash))) {
-		n = 0;
-		while ((readlen = fread(buffer, 1, sizeof(buffer), cache)) > 0) {
-			fwrite(buffer, 1, readlen, fp);
-			n += readlen;
-		}
-		fclose(cache);
-
-		return n;
-	}
-
+	char* type;
 	if ((type = strrchr(filename, '.')) != NULL)
 		type++;
 	else
 		type = "txt";
 
-	pipe((int*) &inpipefd);
-	pipe((int*) &outpipefd);
+	struct callcached_param params = {
+		.command     = highlightcmd,
+		.cachename   = "files",
+		.content     = s,
+		.ncontent    = len,
+		.contenthash = contenthash,
+		.fp          = fp,
+		.info        = info,
+		.nenviron    = 3,
+		.environ     = (const char*[]){ "filename", filename, "type", type, "scheme", colorscheme },
+	};
 
-	if ((process = fork()) == -1) {
-		hprintf(stderr, "error: unable to fork process: %w\n");
-		exit(100);    // Fatal error, exit with 100
-	} else if (process == 0) {
-		// Child
-		dup2(outpipefd.read, STDIN_FILENO);
-		dup2(inpipefd.write, STDOUT_FILENO);
-
-		// close unused pipe ends
-		close(outpipefd.write);
-		close(inpipefd.read);
-
-		setenv("filename", filename, 1);
-		setenv("scheme", colorscheme, 1);
-		setenv("type", type, 1);
-		execlp("sh", "sh", "-c", highlightcmd, NULL);
-
-		hprintf(stderr, "error: unable to exec highlight: %w\n");
-		_exit(100);    // Fatal error inside child
-	}
-
-	close(outpipefd.read);
-	close(inpipefd.write);
-
-	if (write(outpipefd.write, s, len) == -1) {
-		hprintf(stderr, "error: unable to write to pipe: %w\n");
-		exit(100);    // Fatal error, exit with 100
-		goto wait;
-	}
-
-	close(outpipefd.write);
-
-	cache = xfopen(".!w+", "%s/.cache/files/%x", info->destdir, contenthash);
-
-	n = 0;
-	while ((readlen = read(inpipefd.read, buffer, sizeof buffer)) > 0) {
-		fwrite(buffer, readlen, 1, fp);
-		if (cache)
-			fwrite(buffer, readlen, 1, cache);
-		n += readlen;
-	}
-
-	close(inpipefd.read);
-	if (cache)
-		fclose(cache);
-
-wait:
-	waitpid(process, &status, 0);
-
-	return WEXITSTATUS(status) ? -1 : n;
+	return callcached(&params);
 }
 
 static size_t writeblob(const struct repoinfo* info, int relpath, git_blob* obj,
@@ -211,6 +149,7 @@ static size_t writeblob(const struct repoinfo* info, int relpath, git_blob* obj,
 	size_t      lc = 0;
 	FILE*       fp;
 	const void* content = git_blob_rawcontent(obj);
+	uint32_t    contenthash;
 
 	bufferwrite(content, filesize, "%s/blob/%s", info->destdir, filepath);
 
@@ -219,12 +158,16 @@ static size_t writeblob(const struct repoinfo* info, int relpath, git_blob* obj,
 	hprintf(fp, "<p> %y (%zuB) <a href='%rblob/%h'>download</a></p><hr/>", filename, filesize,
 	        relpath, filepath);
 
+	contenthash = filehash(content, filesize);
+
+	writepreview(fp, info, relpath, filepath, content, filesize, contenthash);
+
 	if (git_blob_is_binary(obj)) {
 		fputs("<p>Binary file.</p>\n", fp);
 	} else if (maxfilesize != -1 && filesize >= maxfilesize) {
 		fputs("<p>File too big.</p>\n", fp);
 	} else if (filesize > 0) {
-		lc = highlight(fp, info, filename, content, filesize);
+		lc = highlight(fp, info, filepath, content, filesize, contenthash);
 	}
 
 	writefooter(fp);
@@ -248,14 +191,6 @@ static void addheadfile(struct repoinfo* info, const char* filename) {
 
 	// Copy the string and store it in the list
 	info->headfiles[info->headfileslen++] = strdup(filename);
-}
-
-static int endswith(const char* str, const char* suffix) {
-	size_t lenstr    = strlen(str);
-	size_t lensuffix = strlen(suffix);
-	if (lensuffix > lenstr)
-		return 0;
-	return strncmp(str + lenstr - lensuffix, suffix, lensuffix) == 0;
 }
 
 static const char* geticon(const git_blob* blob, const char* filename) {
