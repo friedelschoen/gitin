@@ -64,6 +64,19 @@ struct repoinfo {
 	int    headfilesalloc;
 };
 
+struct callcached_param {
+	const char*            command;
+	FILE*                  fp;
+	const struct repoinfo* info;
+	const char*            filename;
+	uint32_t               contenthash;
+	const char*            cachename;
+	const char*            content;
+	ssize_t                ncontent;
+	const char**           environ;
+	int                    nenviron;
+};
+
 
 extern struct config config_keys[];
 
@@ -72,6 +85,7 @@ extern const char* favicon;
 extern const char* favicontype;
 extern const char* footertext;
 extern const char* highlightcmd;
+extern const char* pandoccmd;
 extern const char* logoicon;
 extern const char* pinfiles[];
 extern const char* extrapinfiles;
@@ -89,6 +103,7 @@ extern const char* tagatomfile;
 
 extern int force, verbose, columnate;
 
+extern const char* filetypes[][3];
 
 FILE* xfopen(const char* mode, const char* format, ...) __attribute__((format(printf, 2, 3)));
 void  xmkdirf(int mode, const char* format, ...) __attribute__((format(printf, 2, 3)));
@@ -96,6 +111,7 @@ int   removedir(char* path);
 void  normalize_path(char* path);
 void  unhide_path(char* path);
 void  printprogress(const char* what, ssize_t indx, ssize_t ncommits);
+int   endswith(const char* str, const char* suffix);
 
 int bufferwrite(const char* buffer, size_t len, const char* format, ...)
     __attribute__((format(printf, 3, 4)));
@@ -105,13 +121,12 @@ int bufferread(char* buffer, size_t len, const char* format, ...)
 int  getdiff(struct commitstats* ci, const struct repoinfo* info, git_commit* commit, int docache);
 void freediff(struct commitstats* ci);
 
-
 void hprintf(FILE* file, const char* format, ...);
 void vhprintf(FILE* file, const char* format, va_list args);
 
-
 char* parseconfig(FILE* file, struct config* keys);
 
+ssize_t callcached(struct callcached_param* params);
 
 int  writearchive(const struct repoinfo* info, const struct git_reference* ref);
 void writeatomheader(FILE* fp, const struct repoinfo* info);
@@ -128,5 +143,7 @@ void writejsonref(FILE* fp, const struct repoinfo* info, git_reference* ref, git
 int  writelog(const struct repoinfo* info);
 void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char* name,
                  const char* description, ...);
+void writepreview(FILE* fp, const struct repoinfo* info, int relpath, const char* filename,
+                  const char* s, ssize_t len, uint32_t contenthash);
 int  writerefs(FILE* fp, FILE* json, const struct repoinfo* info);
 void writerepo(FILE* index, const char* repodir, const char* destination);

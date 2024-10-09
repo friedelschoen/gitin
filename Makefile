@@ -35,12 +35,13 @@ ICONS = \
 
 HEADER = \
 	arg.h \
-	filetypes.h \
 	gitin.h
 
 OBJECTS = \
+	callcached.o \
 	common.o \
 	config.o \
+	filetypes.o \
 	hprintf.o \
 	getdiff.o \
 	parseconfig.o \
@@ -52,6 +53,7 @@ OBJECTS = \
 	writeindex.o \
 	writejson.o \
 	writelog.o \
+	writepreview.o \
 	writerefs.o \
 	writerepo.o
 
@@ -83,15 +85,15 @@ compile_flags.txt: LIBS = libgit2 libarchive
 compile_flags.txt: Makefile
 	echo $(CFLAGS) $(CPPFLAGS) | tr ' ' '\n' > $@
 
-filetypes.h: filetypes.txt
-	@echo "static const char* filetypes[][2] = {" > $@
-	sed -E 's/([a-z]+) (.*)/{ "\2", "\1" },/' $< >> $@
+filetypes.c: filetypes.txt
+	@echo "const char* filetypes[][3] = {" > $@
+	sed -E 's/([^ ]+) ([^ ]+)( ([^ ]*))?/{ "\1", "\2", "\4" },/' $< >> $@
 	@echo "{0} };" >> $@
 
 # pseudo targets
 
 clean:
-	rm -f $(BINS) $(BINS:=.o) $(OBJECTS) $(MAN1) $(MAN5) compile_flags.txt filetypes.h
+	rm -f $(BINS) $(BINS:=.o) $(OBJECTS) $(MAN1) $(MAN5) compile_flags.txt filetypes.c
 
 install: $(BINS) $(MAN1) $(MAN5) $(DOCS) $(ICONS)
 	install -d $(PREFIX)/bin
