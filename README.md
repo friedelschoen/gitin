@@ -80,6 +80,8 @@ gitin-findrepos [startdir]
 - [libarchive](https://libarchive.org/) - For handling archive creation.
 - [chroma](https://github.com/alecthomas/chroma) - Syntax highlighter for source code.
 - [pandoc](https://pandoc.org/) - Preview Markdown, RST and other formats
+- [python3](https://python.org/) - Interpreter for gitin-configtree
+- [pyyaml](https://pyyaml.org/) - YAML-parser for gitin-configtree
 
 ## Build
 

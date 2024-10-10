@@ -86,6 +86,7 @@ extern const char* favicontype;
 extern const char* footertext;
 extern const char* highlightcmd;
 extern const char* pandoccmd;
+extern const char* configtreecmd;
 extern const char* logoicon;
 extern const char* pinfiles[];
 extern const char* extrapinfiles;
