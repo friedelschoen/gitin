@@ -12,11 +12,13 @@ struct config config_keys[] = {
 	{ "favicontype", ConfigString, &favicontype },
 	{ "logoicon", ConfigString, &logoicon },
 	{ "stylesheet", ConfigString, &stylesheet },
-	{ "highlightcmd", ConfigString, &highlightcmd },
-	{ "pandoccmd", ConfigString, &pandoccmd },
 	{ "colorscheme", ConfigString, &colorscheme },
 	{ "pinfiles", ConfigString, &extrapinfiles },
 	{ "splitdirectories", ConfigBoolean, &splitdirectories },
+
+	{ "cmd/highlight", ConfigString, &highlightcmd },
+	{ "cmd/pandoc", ConfigString, &pandoccmd },
+	{ "cmd/configtree", ConfigString, &configtreecmd },
 
 	/* Limits for commits and file sizes */
 	{ "limit/commits", ConfigInteger, &maxcommits },
@@ -64,6 +66,8 @@ const char* highlightcmd =
     "chroma --html --html-only --html-lines --html-inline-styles --style=$scheme --lexer=$type";
 
 const char* pandoccmd = "pandoc --from=$type --to=html";
+
+const char* configtreecmd = "gitin-configtree $type";
 
 /* Color scheme to use for syntax highlighting in the HTML output. */
 const char* colorscheme = "pastie";

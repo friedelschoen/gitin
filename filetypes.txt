@@ -1,118 +1,106 @@
-.sh command
-.bash command
-.zsh command
-.fish command
-.csh command
-.bat command
-.cmd command
-.ps1 command
-.mk command
-.makefile command
-Makefile command
-.ninja command
-.gradle command
-.build command
-.ebuild command
-.waf command
-.scons command
-.config command
-
-.jpg image image
+.ini source configtree
+.toml source configtree
+.json source configtree:yaml
+.yaml source configtree:yaml
+.yml source configtree:yaml
 .jpeg image image
+.jpg image image
 .png image image
-.gif image
-.bmp image
 .svg image image
 .webp image image
-.tiff image
-.ico image
-.psd image
-.ai image
-.eps image
-.xcf image
-.heic image
-
-.c source
-.cpp source
-.h source
-.hpp source
-.py source
-.java source
-.js source
-.ts source
-.rb source
-.rs source
-.go source
-.kt source
-.swift source
-.pl source
-.lua source
-.sh source
-.php source
-.html source
-.css source
-.scss source
-.jsx source
-.tsx source
-.xml source
-.xsl source
-.sql source
-.yml source
-.yaml source
-.json source
-.toml source
-.ini source
-.asm source
-.v source
-.vhdl source
-.m source
-.r source
-.f source
-.for source
-.pas source
-.erl source
-.ex source
-.el source
-.clj source
-.lisp source
-.ml source
-.fs source
-.cs source
-
-.txt text
-.log text
-.ini text
-.conf text
-.cfg text
-.csv text
-.tsv text
-.json text
-.xml text
-.yaml text
-.yml text
-.env text
-.properties text
-.toml text
-.htm text
-.html text
-.css text
-.scss text
-.less text
-.js text
-.jsx text
-.ts text
-.tsx text
-.bat text
-.cmd text
-.sh text
-.bashrc text
-.zshrc text
-.bash_profile text
-.gitignore text
-.dockerignore text
-.editorconfig text
-.prettierrc text
-.eslintrc text
-
+.csv text pandoc
+.tsv text pandoc
 .md text pandoc:gfm
 .rst text pandoc:rst
+
+.1 text pandoc:man
+.2 text pandoc:man
+.3 text pandoc:man
+.4 text pandoc:man
+.5 text pandoc:man
+.6 text pandoc:man
+.7 text pandoc:man
+.8 text pandoc:man
+
+.ai image
+.asm source
+.bash command
+.bash_profile text
+.bashrc text
+.bat command
+.bmp image
+.build command
+.c source
+.cfg text
+.clj source
+.cmd command
+.conf text
+.config command
+.cpp source
+.cs source
+.csh command
+.css source
+.dockerignore text
+.ebuild command
+.editorconfig text
+.el source
+.env text
+.eps image
+.erl source
+.eslintrc text
+.ex source
+.f source
+.fish command
+.for source
+.fs source
+.gif image
+.gitignore text
+.go source
+.gradle command
+.h source
+.heic image
+.hpp source
+.html source
+.ico image
+.java source
+.js source
+.jsx source
+.kt source
+.less text
+.lisp source
+.log text
+.lua source
+.m source
+.makefile command
+.mk command
+.ml source
+.ninja command
+.pas source
+.php source
+.pl source
+.prettierrc text
+.properties text
+.ps1 command
+.psd image
+.py source
+.r source
+.rb source
+.rs source
+.scons command
+.scss text
+.sh command
+.sql source
+.swift source
+.tiff image
+.ts source
+.tsx source
+.txt text
+.v source
+.vhdl source
+.waf command
+.xcf image
+.xml source
+.xsl source
+.zsh command
+.zshrc text
+Makefile command

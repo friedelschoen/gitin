@@ -12,7 +12,7 @@ CFLAGS 	 += -Wall -Wextra -Wpedantic -Werror -O2 -g \
 CPPFLAGS += -D_XOPEN_SOURCE=700 -D_GNU_SOURCE -DVERSION=\"$(VERSION)\" -DGIT_DEPRECATE_HARD
 LDFLAGS  += $(shell pkg-config --libs $(LIBS))
 
-BINS = gitin gitin-findrepos
+BINS = gitin gitin-findrepos gitin-configtree
 MAN1 = gitin.1 gitin-findrepos.1
 MAN5 = gitin.conf.5
 
@@ -80,6 +80,10 @@ gitin: $(OBJECTS)
 
 gitin-findrepos: LIBS = libgit2
 gitin-findrepos: gitin-findrepos.o config.o
+
+gitin-configtree:
+gitin-configtree: gitin-configtree.py
+	cp $^ $@
 
 compile_flags.txt: LIBS = libgit2 libarchive
 compile_flags.txt: Makefile
