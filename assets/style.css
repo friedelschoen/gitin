@@ -138,6 +138,10 @@ pre {
     color: #eee;
 } 
 
+#shortlog-graph {
+	border: 1px solid #000;
+	margin: 10px 0;
+}
 
 /* Flexbox container for the tables */
 #refcontainer {

@@ -95,7 +95,7 @@ long long maxcommits = -1;
 
 /* Maximum file size (in bytes) that will be processed for syntax highlighting. Files larger than
  * this size (1MB) will be skipped. */
-long long maxfilesize = 1e+6;    // 1MB
+long long maxfilesize = 1e+5;    // 1MB
 
 /* --- Output file names --- */
 

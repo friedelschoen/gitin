@@ -2,7 +2,7 @@
 
 `gitin` is a tool for generating static HTML pages to showcase a Git repository, including logs, diffs, files, and other relevant repository data.
 
-### Features
+## Features
 
 - **Generates a File Tree with Syntax-Highlighted File Content**: This feature makes the static HTML pages visually appealing and functional for code review, supporting multiple languages and handling larger files efficiently.
   
@@ -30,8 +30,12 @@
   
 - **Shows Local Branches and Tags**: Displays information about local branches and tags to give users an overview of the repository’s structure.
 
+- **Shows a Commits by Author Table**: `git shortlog -s` show the amount of commits made by a author, this is shown in a table
 
-### Limitations
+- **Shows Commit Timeline**: Generates a graph with how many commits are made in which months.
+
+
+## Limitations
 
 - **Not Ideal for Large Histories (2000+ Commits)**: Generating diffstat for a large number of commits can be resource-intensive and slow.
   
