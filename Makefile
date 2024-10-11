@@ -55,7 +55,8 @@ OBJECTS = \
 	writelog.o \
 	writepreview.o \
 	writerefs.o \
-	writerepo.o
+	writerepo.o \
+	writeshortlog.o
 
 .PHONY: all clean install uninstall
 

@@ -8,7 +8,6 @@
 #include <string.h>
 #include <unistd.h>
 
-
 static void writelogline(FILE* fp, git_commit* commit, const struct commitstats* ci) {
 	char                 oid[GIT_OID_SHA1_HEXSIZE + 1];
 	const git_signature* author  = git_commit_author(commit);
@@ -90,6 +89,7 @@ int writelog(const struct repoinfo* info) {
 	writeheader(fp, info, 0, info->name, "%y", info->description);
 	fprintf(json, "{");
 	writerefs(fp, json, info);
+	writeshortlog(fp, info);
 
 	fputs("<h2>Commits</h2>\n<table id=\"log\"><thead>\n<tr><td><b>Date</b></td>"
 	      "<td class=\"expand\"><b>Commit message</b></td>"
@@ -120,7 +120,6 @@ int writelog(const struct repoinfo* info) {
 	ssize_t indx = 0;
 	while ((maxcommits <= 0 || indx < maxcommits) && !git_revwalk_next(&id, w)) {
 		writelogcommit(fp, json, atom, info, indx, &id);
-
 		indx++;
 
 		printprogress("write log:  ", indx, ncommits);

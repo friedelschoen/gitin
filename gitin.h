@@ -148,3 +148,4 @@ void writepreview(FILE* fp, const struct repoinfo* info, int relpath, const char
                   const char* s, ssize_t len, uint32_t contenthash);
 int  writerefs(FILE* fp, FILE* json, const struct repoinfo* info);
 void writerepo(FILE* index, const char* repodir, const char* destination);
+void writeshortlog(FILE* fp, const struct repoinfo* info);
