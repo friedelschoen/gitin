@@ -7,6 +7,7 @@ body {
 h1, h2, h3, h4, h5, h6 {
 	font-size: 1em;
 	margin: 0;
+	text-decoration: underline;
 }
 
 img, h1, h2 {
@@ -36,6 +37,24 @@ a.line {
 #blob a:hover {
 	color: blue;
 	text-decoration: none;
+}
+
+#preview {
+	font-family: sans-serif;
+	padding: 10px;
+	border: 1px dashed #000;
+	background-color: #f8f8f8;
+	overflow-y: scroll;
+}
+
+#preview table {
+	background-color: #fff;
+}
+
+#preview pre {
+	border: 1px solid #000;
+	background-color: #eee;
+	padding: 5px;
 }
 
 table {
@@ -76,7 +95,7 @@ table td.expand {
 }
 
 #content table td {
-	vertical-align: top;
+	vertical-align: middle;
 	white-space: nowrap;
 }
 
