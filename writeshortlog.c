@@ -7,6 +7,7 @@
 
 #define MONTHDIFFERENCE(year1, month1, year2, month2) ((year1 - year2) * 12 + (month1 - month2))
 
+#define MAXREFS 64
 
 struct authorcount {
 	char* name;
@@ -15,9 +16,10 @@ struct authorcount {
 };
 
 struct datecount {
-	int year;
-	int month;
-	int count;
+	int  year;
+	int  month;
+	int  count;
+	char refs[MAXREFS];
 };
 
 static const char* months[] = {
@@ -49,9 +51,9 @@ static void writediagram(FILE* file, struct datecount* datecount, int ndatecount
 	const int width        = 1200;
 	const int height       = 400;
 	const int xpadding     = 20;
-	const int ypadding     = 30;
-	const int point_radius = 5;
-	const int textpadding  = 70;
+	const int point_radius = 3;
+	const int textpadding  = 100;
+	const int refpadding   = 50;
 
 	int max_commits = 0;
 
@@ -69,39 +71,52 @@ static void writediagram(FILE* file, struct datecount* datecount, int ndatecount
 
 	// Scaling factors for graph
 	float x_scale = (float) (width - 2 * xpadding) / (ndatecount - 1);
-	float y_scale = (float) (height - 2 * ypadding - textpadding) / max_commits;
+	float y_scale = (float) (height - refpadding - textpadding) / max_commits;
 
 	// Draw the line graph from right to left
 	for (int i = 0; i < ndatecount - 1; i++) {
 		int x1 = width - xpadding - i * x_scale;
-		int y1 = height - ypadding - datecount[i].count * y_scale - textpadding;
+		int y1 = height - datecount[i].count * y_scale - textpadding;
 		int x2 = width - xpadding - (i + 1) * x_scale;
-		int y2 = height - ypadding - datecount[i + 1].count * y_scale - textpadding;
+		int y2 = height - datecount[i + 1].count * y_scale - textpadding;
 
 		fprintf(
 		    file,
-		    "  <line x1=\"%d\" y1=\"%d\" x2=\"%d\" y2=\"%d\" stroke=\"blue\" stroke-width=\"2\"/>\n",
+		    "  <line x1=\"%d\" y1=\"%d\" x2=\"%d\" y2=\"%d\" stroke=\"#3498db\" stroke-width=\"2\"/>\n",
 		    x1, y1, x2, y2);
 	}
 
 	// Add vertical labels for months, also right to left
 	for (int i = 0; i < ndatecount; i++) {
-		int x  = width - xpadding - i * x_scale;          // Reversed X
-		int y  = height - ypadding - textpadding + 10;    // Adjust for spacing below the graph
-		int ty = height - ypadding - datecount[i].count * y_scale - textpadding;
+		int x  = width - xpadding - i * x_scale;    // Reversed X
+		int y  = height - textpadding + 10;         // Adjust for spacing below the graph
+		int ty = height - datecount[i].count * y_scale - textpadding;
 
-		if (datecount[i].count > 0) {
+		if (datecount[i].count > 0 || *datecount[i].refs) {
 			fprintf(
 			    file,
 			    "  <text x=\"%d\" y=\"%d\" font-size=\"8px\" text-anchor=\"start\" transform=\"rotate(90 %d,%d)\">%s %d</text>\n",
 			    x - 2, y, x - 2, y, months[datecount[i].month], datecount[i].year + 1900);
-
+		}
+		if (datecount[i].count > 0) {
 			fprintf(
 			    file,
 			    "  <text x=\"%d\" y=\"%d\" font-size=\"10px\" text-anchor=\"middle\">%d</text>\n",
 			    x, ty - 10, datecount[i].count);
 			fprintf(file, "  <circle cx=\"%d\" cy=\"%d\" r=\"%d\" fill=\"#3498db\"/>\n", x, ty,
 			        point_radius);
+		}
+		if (*datecount[i].refs) {
+			int y2 = height - datecount[i].count * y_scale - textpadding;
+			fprintf(
+			    file,
+			    "  <line x1=\"%d\" y1=\"%ld\" x2=\"%d\" y2=\"%d\" stroke=\"#000\" stroke-width=\"1\" stroke-dasharray=\"4\"/>\n",
+			    x, 20 + 5 * strlen(datecount[i].refs), x, y2 - 30);
+
+			fprintf(
+			    file,
+			    "  <text x=\"%d\" y=\"%d\" font-size=\"8px\" text-anchor=\"start\" transform=\"rotate(90 %d,%d)\">%s</text>\n",
+			    x - 2, 10, x - 2, 10, datecount[i].refs);
 		}
 	}
 
@@ -110,15 +125,18 @@ static void writediagram(FILE* file, struct datecount* datecount, int ndatecount
 }
 
 void writeshortlog(FILE* fp, const struct repoinfo* info) {
-	struct authorcount*  authorcount  = NULL;
-	struct datecount*    datecount    = NULL;
-	int                  nauthorcount = 0, ndatecount = 0, monthgap;
-	git_revwalk*         w = NULL;
-	git_oid              id;
-	git_commit*          commit = NULL;
-	const git_signature* author;
-	struct tm            time;
-	int                  prev_month, prev_year;
+	struct authorcount*     authorcount  = NULL;
+	struct datecount*       datecount    = NULL;
+	int                     nauthorcount = 0, ndatecount = 0, monthgap;
+	git_revwalk*            w = NULL;
+	git_oid                 id;
+	git_commit*             commit = NULL;
+	const git_signature*    author;
+	struct tm               time;
+	int                     prev_month, prev_year;
+	git_reference_iterator* iter = NULL;
+	git_reference*          ref  = NULL;
+	git_time_t              gittime;
 
 	git_revwalk_new(&w, info->repo);
 	git_revwalk_push_head(w);
@@ -168,9 +186,10 @@ void writeshortlog(FILE* fp, const struct repoinfo* info) {
 			}
 
 			// init new date
-			datecount[ndatecount].count = 0;
-			datecount[ndatecount].month = prev_month;
-			datecount[ndatecount].year  = prev_year;
+			datecount[ndatecount].count   = 0;
+			datecount[ndatecount].month   = prev_month;
+			datecount[ndatecount].year    = prev_year;
+			datecount[ndatecount].refs[0] = '\0';
 			ndatecount++;
 		}
 
@@ -178,6 +197,44 @@ void writeshortlog(FILE* fp, const struct repoinfo* info) {
 	}
 
 	git_revwalk_free(w);
+
+	if (git_reference_iterator_new(&iter, info->repo))
+		return;
+
+	while (!git_reference_next(&ref, iter)) {
+		if (!git_reference_is_branch(ref) && !git_reference_is_tag(ref)) {
+			git_reference_free(ref);
+			ref = NULL;
+			continue;
+		}
+
+		if (git_reference_resolve(&ref, ref))
+			continue;
+
+		if (git_reference_peel((git_object**) &commit, ref, GIT_OBJECT_COMMIT))
+			continue;
+
+		gittime = git_commit_time(commit);
+		gmtime_r(&gittime, &time);
+
+		for (int i = 0; i < ndatecount; i++) {
+			if (datecount[i].year == time.tm_year && datecount[i].month == time.tm_mon) {
+				if (*datecount[i].refs)
+					strncat(datecount[i].refs, ", ", sizeof(datecount[i].refs));
+
+				if (git_reference_is_tag(ref))
+					strncat(datecount[i].refs, "[", sizeof(datecount[i].refs));
+				strncat(datecount[i].refs, git_reference_shorthand(ref), sizeof(datecount[i].refs));
+				if (git_reference_is_tag(ref))
+					strncat(datecount[i].refs, "]", sizeof(datecount[i].refs));
+				break;
+			}
+		}
+
+		git_reference_free(ref);
+		git_commit_free(commit);
+	}
+	git_reference_iterator_free(iter);
 
 	if (!authorcount)
 		return;
