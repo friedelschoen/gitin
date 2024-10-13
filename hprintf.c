@@ -85,16 +85,6 @@ static void xmlencode(FILE* fp, const char* s) {
 /* Escape characters below as HTML 2.0 / XML 1.0. */
 static void jsonencode(FILE* fp, const char* s) {
 	while (*s) {
-		// \"
-		// \\
-    // \/
-		// \b
-		// \f
-		// \n
-		// \r
-		// \t
-		// \u followed by four-hex-digits
-
 		switch (*s) {
 			case '"':
 				fputs("\\\"", fp);

@@ -74,7 +74,7 @@ static void findrepos(const char* base_path, char*** repos, int* size) {
 	closedir(dir);
 }
 
-static void usage(const char* argv0, int exitcode) {
+static __attribute__((noreturn)) void usage(const char* argv0, int exitcode) {
 	fprintf(stderr,
 	        "usage: %s [-fhu] [-C workdir] [-d destdir] repos...\n"
 	        "   or: %s [-fhu] [-C workdir] [-d destdir] -r startdir\n",
