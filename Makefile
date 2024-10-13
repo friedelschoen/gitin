@@ -12,6 +12,12 @@ CFLAGS 	 += -Wall -Wextra -Wpedantic -Werror -O2 -g \
 CPPFLAGS += -D_XOPEN_SOURCE=700 -D_GNU_SOURCE -DVERSION=\"$(VERSION)\" -DGIT_DEPRECATE_HARD
 LDFLAGS  += $(shell pkg-config --libs $(LIBS))
 
+ifeq ($(CC),gcc)
+CFLAGS += -Wno-stringop-truncation \
+		  -Wno-stringop-overflow \
+		  -Wno-format-truncation
+endif
+
 BINS = gitin gitin-findrepos gitin-configtree
 MAN1 = gitin.1 gitin-findrepos.1
 MAN5 = gitin.conf.5
