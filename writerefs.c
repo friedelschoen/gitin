@@ -1,6 +1,7 @@
 #include "gitin.h"
 
 #include <git2/commit.h>
+#include <git2/oid.h>
 #include <git2/refs.h>
 #include <git2/types.h>
 #include <limits.h>
@@ -34,8 +35,8 @@ static int refs_cmp(const void* v1, const void* v2) {
 
 static int writeref(FILE* fp, FILE* atom, FILE* json, const struct repoinfo* info,
                     struct referenceinfo* refs, size_t nrefs, const char* title) {
-	char                 escapename[NAME_MAX];
-	const char*          name;
+	char                 escapename[NAME_MAX], oid[GIT_OID_SHA1_HEXSIZE + 1];
+	const char *         name, *summary;
 	const git_signature* author;
 	int                  ishead;
 
@@ -57,11 +58,12 @@ static int writeref(FILE* fp, FILE* atom, FILE* json, const struct repoinfo* inf
 
 		ishead = info->head && !git_oid_cmp(git_reference_target(refs[i].ref), info->head);
 
+		name    = git_reference_shorthand(refs[i].ref);
+		author  = git_commit_author(refs[i].commit);
+		summary = git_commit_summary(refs[i].commit);
+		git_oid_tostr(oid, sizeof(oid), git_commit_id(refs[i].commit));
 
-		name   = git_reference_shorthand(refs[i].ref);
-		author = git_commit_author(refs[i].commit);
 		strlcpy(escapename, name, sizeof(escapename));
-
 		for (char* p = escapename; *p; p++)
 			if (*p == '/')
 				*p = '-';
@@ -71,7 +73,8 @@ static int writeref(FILE* fp, FILE* atom, FILE* json, const struct repoinfo* inf
 			hprintf(fp, "<b>%y</b>", name);
 		else
 			hprintf(fp, "%y", name);
-		hprintf(fp, "</a></td><td>", name);
+		fprintf(fp, "</a> <small>at \"<a href=\"commit/%s.html\">%s</a>\"</small></td><td>", oid,
+		        summary);
 		if (author)
 			hprintf(fp, "%t", &author->when);
 		fputs("</td><td>", fp);
