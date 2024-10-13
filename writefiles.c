@@ -290,11 +290,10 @@ static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree
 				if (splitdirectories) {
 					hprintf(
 					    fp,
-					    "<tr><td><img src=\"%ricons/directory.svg\" /></td><td>d---------</td><td colspan=\"2\"><a href=\"%h/\">%y</a></td><tr>\n",
+					    "<tr><td><img src=\"%ricons/directory.svg\" /></td><td>d---------</td><td colspan=\"2\"><a href=\"%h/\">%y</a></td></tr>\n",
 					    info->relpath + relpath, entrypath, entrypath);
 				}
-				writefilestree(fp, info, relpath + !!splitdirectories, (git_tree*) obj, entrypath,
-				               index, maxfiles);
+				writefilestree(fp, info, relpath + 1, (git_tree*) obj, entrypath, index, maxfiles);
 			}
 
 			git_object_free(obj);
