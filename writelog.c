@@ -130,6 +130,14 @@ int writelog(const struct repoinfo* info) {
 
 	git_revwalk_free(w);
 
+	if (maxcommits > 0 && ncommits > maxcommits) {
+		if (ncommits - maxcommits == 1)
+			fprintf(fp, "<tr><td></td><td colspan=\"5\">1 commit left out...</td></tr>\n");
+		else
+			fprintf(fp, "<tr><td></td><td colspan=\"5\">%lld commits left out...</td></tr>\n",
+			        ncommits - maxcommits);
+	}
+
 	fputs("</tbody></table>", fp);
 	writefooter(fp);
 	fclose(fp);
@@ -139,14 +147,6 @@ int writelog(const struct repoinfo* info) {
 
 	writeatomfooter(atom);
 	fclose(atom);
-
-	if (maxcommits > 0 && ncommits > maxcommits) {
-		if (ncommits - maxcommits == 1)
-			fprintf(fp, "<tr><td></td><td colspan=\"5\">1 commit left out...</td></tr>\n");
-		else
-			fprintf(fp, "<tr><td></td><td colspan=\"5\">%lld commits left out...</td></tr>\n",
-			        ncommits - maxcommits);
-	}
 
 	return 0;
 }
