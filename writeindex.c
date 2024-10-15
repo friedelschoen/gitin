@@ -16,7 +16,7 @@ int writeindexline(FILE* fp, const struct repoinfo* info) {
 	int                  ret = 0;
 
 	git_revwalk_new(&w, info->repo);
-	if (git_revwalk_push_head(w)) {
+	if (git_revwalk_push(w, git_commit_id(info->commit))) {
 		hprintf(stderr, "error: unable to push head: %gw\n");
 		return -1;
 	}

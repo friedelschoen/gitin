@@ -91,12 +91,13 @@ int writelog(const struct repoinfo* info) {
 	writerefs(fp, json, info);
 	writeshortlog(fp, info);
 
-	fputs("<h2>Commits</h2>\n<table id=\"log\"><thead>\n<tr><td><b>Date</b></td>"
-	      "<td class=\"expand\"><b>Commit message</b></td>"
-	      "<td><b>Author</b></td><td class=\"num\" align=\"right\"><b>Files</b></td>"
-	      "<td class=\"num\" align=\"right\"><b>+</b></td>"
-	      "<td class=\"num\" align=\"right\"><b>-</b></td></tr>\n</thead><tbody>\n",
-	      fp);
+	fprintf(fp, "<h2>Commits of %s</h2>", info->revision);
+
+	fprintf(fp, "<table id=\"log\"><thead>\n<tr><td><b>Date</b></td>"
+	            "<td class=\"expand\"><b>Commit message</b></td>"
+	            "<td><b>Author</b></td><td class=\"num\" align=\"right\"><b>Files</b></td>"
+	            "<td class=\"num\" align=\"right\"><b>+</b></td>"
+	            "<td class=\"num\" align=\"right\"><b>-</b></td></tr>\n</thead><tbody>");
 
 	fprintf(json, ",\"commits\":{");
 
@@ -107,14 +108,14 @@ int writelog(const struct repoinfo* info) {
 		hprintf(stderr, "error: unable to initialize revwalk: %gw\n");
 		return -1;
 	}
-	git_revwalk_push_head(w);
+	git_revwalk_push(w, git_commit_id(info->commit));
 
 	// Iterate through the commits
 	while (!git_revwalk_next(&id, w))
 		ncommits++;
 
 	git_revwalk_reset(w);
-	git_revwalk_push_head(w);
+	git_revwalk_push(w, git_commit_id(info->commit));
 
 	// Iterate through the commits
 	ssize_t indx = 0;
