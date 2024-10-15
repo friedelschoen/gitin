@@ -14,7 +14,6 @@ LDFLAGS  += $(shell pkg-config --libs $(LIBS))
 
 ifeq ($(CC),gcc)
 CFLAGS += -Wno-stringop-truncation \
-		  -Wno-stringop-overflow \
 		  -Wno-format-truncation
 endif
 

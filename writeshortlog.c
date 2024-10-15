@@ -5,9 +5,10 @@
 #include <string.h>
 #include <time.h>
 
-#define MONTHDIFFERENCE(year1, month1, year2, month2) ((year1 - year2) * 12 + (month1 - month2))
-
-#define MAXREFS 64
+#define MAXREFS      64
+#define SECONDSINDAY (60 * 60 * 24)
+#define DAYSINYEAR   365
+#define DAYSINMONTH  28    // at least 28 days
 
 struct authorcount {
 	char* name;
@@ -16,10 +17,9 @@ struct authorcount {
 };
 
 struct datecount {
-	int  year;
-	int  month;
-	int  count;
-	char refs[MAXREFS];
+	size_t day;
+	int    count;
+	char   refs[MAXREFS];
 };
 
 static const char* months[] = {
@@ -46,7 +46,7 @@ static int compareauthor(const void* leftp, const void* rightp) {
 	return right->count - left->count;
 }
 
-static void writediagram(FILE* file, struct datecount* datecount, int ndatecount) {
+static void writediagram(FILE* file, struct datecount* datecount, int ndatecount, int bymonth) {
 	// Constants for the SVG size and scaling
 	const int width        = 1200;
 	const int height       = 400;
@@ -92,13 +92,25 @@ static void writediagram(FILE* file, struct datecount* datecount, int ndatecount
 		int y  = height - textpadding + 10;         // Adjust for spacing below the graph
 		int ty = height - datecount[i].count * y_scale - textpadding;
 
-		if (datecount[i].count > 0 || *datecount[i].refs) {
+		time_t    secs;
+		struct tm time;
+
+		if (datecount[i].count > 0) {
+			secs = datecount[i].day * SECONDSINDAY;
+			gmtime_r(&secs, &time);
+
 			fprintf(
 			    file,
-			    "  <text x=\"%d\" y=\"%d\" font-size=\"8px\" text-anchor=\"start\" transform=\"rotate(90 %d,%d)\">%s %d</text>\n",
-			    x - 2, y, x - 2, y, months[datecount[i].month], datecount[i].year + 1900);
-		}
-		if (datecount[i].count > 0) {
+			    "  <text x=\"%d\" y=\"%d\" font-size=\"8px\" text-anchor=\"start\" transform=\"rotate(90 %d,%d)\">",
+			    x - 2, y, x - 2, y);
+
+			if (bymonth)
+				fprintf(file, "%s %d", months[time.tm_mon], time.tm_year + 1900);
+			else
+				fprintf(file, "%d %s %d", time.tm_mday, months[time.tm_mon], time.tm_year + 1900);
+
+			fprintf(file, "</text>\n");
+
 			fprintf(
 			    file,
 			    "  <text x=\"%d\" y=\"%d\" font-size=\"10px\" text-anchor=\"middle\">%d</text>\n",
@@ -124,19 +136,68 @@ static void writediagram(FILE* file, struct datecount* datecount, int ndatecount
 	fprintf(file, "</svg>\n");
 }
 
+int mergedatecount(struct datecount* datecount, int ndatecount) {
+	struct datecount* merged = malloc((ndatecount / DAYSINMONTH + 1) * sizeof(struct datecount));
+	if (!merged) {
+		fprintf(stderr, "error: unable to allocate memory\n");
+		return 0;
+	}
+
+	int       merged_index   = 0;
+	time_t    first_day_secs = datecount[0].day * SECONDSINDAY;
+	struct tm first_day;
+	gmtime_r(&first_day_secs, &first_day);
+
+	merged[merged_index].day     = datecount[0].day;    // Initialize with the first day
+	merged[merged_index].count   = 0;
+	merged[merged_index].refs[0] = '\0';
+
+	for (int i = 0; i < ndatecount; i++) {
+		time_t    current_secs = datecount[i].day * SECONDSINDAY;
+		struct tm current_day;
+		gmtime_r(&current_secs, &current_day);
+
+		if (current_day.tm_mon == first_day.tm_mon && current_day.tm_year == first_day.tm_year) {
+			// Same month, accumulate the counts
+			merged[merged_index].count += datecount[i].count;
+			if (*datecount[i].refs) {
+				if (*merged[merged_index].refs) {
+					strncat(merged[merged_index].refs, ", ",
+					        sizeof(merged[merged_index].refs) - strlen(merged[merged_index].refs) -
+					            1);
+				}
+				strncat(merged[merged_index].refs, datecount[i].refs,
+				        sizeof(merged[merged_index].refs) - strlen(merged[merged_index].refs) - 1);
+			}
+		} else {
+			// Move to the next month
+			merged_index++;
+			merged[merged_index].day   = datecount[i].day;
+			merged[merged_index].count = datecount[i].count;
+			memcpy(merged[merged_index].refs, datecount[i].refs, MAXREFS);
+
+			first_day = current_day;
+		}
+	}
+
+	// Copy the merged results back into datecount
+	memcpy(datecount, merged, sizeof(struct datecount) * (merged_index + 1));
+	free(merged);
+
+	return merged_index + 1;    // Return the number of merged entries (per month)
+}
 void writeshortlog(FILE* fp, const struct repoinfo* info) {
 	struct authorcount*     authorcount  = NULL;
 	struct datecount*       datecount    = NULL;
-	int                     nauthorcount = 0, ndatecount = 0, monthgap;
+	int                     nauthorcount = 0, ndatecount = 0, bymonth;
 	git_revwalk*            w = NULL;
 	git_oid                 id;
 	git_commit*             commit = NULL;
 	const git_signature*    author;
-	struct tm               time;
-	int                     prev_month, prev_year;
+	size_t                  previous;
 	git_reference_iterator* iter = NULL;
 	git_reference*          ref  = NULL;
-	git_time_t              gittime;
+	size_t                  days;
 
 	git_revwalk_new(&w, info->repo);
 	git_revwalk_push(w, git_commit_id(info->commit));
@@ -149,7 +210,7 @@ void writeshortlog(FILE* fp, const struct repoinfo* info) {
 		if (!(author = git_commit_author(commit)))
 			continue;
 
-		gmtime_r(&author->when.time, &time);
+		days = author->when.time / SECONDSINDAY;
 
 		if (!incrementauthor(authorcount, nauthorcount, author)) {
 			// make space for new author
@@ -165,30 +226,26 @@ void writeshortlog(FILE* fp, const struct repoinfo* info) {
 			nauthorcount++;
 		}
 
-		if (ndatecount == 0) {
-			prev_month = time.tm_mon + 1;
-			prev_year  = time.tm_year;
-		}
+		if (ndatecount == 0)
+			previous = days + 1;
 
-		monthgap = MONTHDIFFERENCE(prev_year, prev_month, time.tm_year, time.tm_mon);
+		// we expect that commits are in chronological order
+		if (previous < days)
+			continue;
 
-		for (int i = 0; i < monthgap; i++) {
+		size_t gap = previous - days;
+		for (size_t i = 0; i < gap; i++) {
 			// make space for new author
 			if (!(datecount = realloc(datecount, (ndatecount + 1) * sizeof(*datecount)))) {
 				fprintf(stderr, "error: unable to allocate memory\n");
 				exit(100);
 			}
 
-			prev_month--;
-			if (prev_month < 0) {
-				prev_month = 11;
-				prev_year--;
-			}
+			previous--;
 
 			// init new date
 			datecount[ndatecount].count   = 0;
-			datecount[ndatecount].month   = prev_month;
-			datecount[ndatecount].year    = prev_year;
+			datecount[ndatecount].day     = previous;
 			datecount[ndatecount].refs[0] = '\0';
 			ndatecount++;
 		}
@@ -214,17 +271,17 @@ void writeshortlog(FILE* fp, const struct repoinfo* info) {
 		if (git_reference_peel((git_object**) &commit, ref, GIT_OBJECT_COMMIT))
 			continue;
 
-		gittime = git_commit_time(commit);
-		gmtime_r(&gittime, &time);
+		days = git_commit_time(commit) / SECONDSINDAY;
 
 		for (int i = 0; i < ndatecount; i++) {
-			if (datecount[i].year == time.tm_year && datecount[i].month == time.tm_mon) {
+			if (datecount[i].day == days) {
 				if (*datecount[i].refs)
 					strncat(datecount[i].refs, ", ", sizeof(datecount[i].refs));
 
 				if (git_reference_is_tag(ref))
 					strncat(datecount[i].refs, "[", sizeof(datecount[i].refs));
-				strncat(datecount[i].refs, git_reference_shorthand(ref), sizeof(datecount[i].refs));
+				strncat(datecount[i].refs, git_reference_shorthand(ref),
+				        sizeof(datecount[i].refs) - 1);
 				if (git_reference_is_tag(ref))
 					strncat(datecount[i].refs, "]", sizeof(datecount[i].refs));
 				break;
@@ -241,6 +298,10 @@ void writeshortlog(FILE* fp, const struct repoinfo* info) {
 
 	qsort(authorcount, nauthorcount, sizeof(*authorcount), compareauthor);
 
+	bymonth = ndatecount > DAYSINYEAR;
+	if (bymonth)
+		ndatecount = mergedatecount(datecount, ndatecount);
+
 	fputs("<h2>Shortlog</h2>", fp);
 	fputs("<table><thead>\n<tr><td class=\"num\"><b>Count</b></td>"
 	      "<td class=\"expand\"><b>Author</b></td>"
@@ -255,7 +316,7 @@ void writeshortlog(FILE* fp, const struct repoinfo* info) {
 	fputs("</tbody></table>", fp);
 
 	fputs("<h2>Commit Graph</h2>", fp);
-	writediagram(fp, datecount, ndatecount);
+	writediagram(fp, datecount, ndatecount, bymonth);
 
 	for (int i = 0; i < nauthorcount; i++) {
 		free(authorcount[i].name);
