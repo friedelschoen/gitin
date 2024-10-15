@@ -57,7 +57,7 @@ void writejsoncommit(FILE* fp, git_commit* commit, int first) {
 }
 
 void writejsonref(FILE* fp, const struct repoinfo* info, git_reference* ref, git_commit* commit) {
-	int ishead = info->head && !git_oid_cmp(git_reference_target(ref), info->head);
+	int ishead = !git_oid_cmp(git_reference_target(ref), git_commit_id(info->commit));
 
 	fprintf(fp, "{");
 	hprintf(fp, "\"name\":\"%j\",", git_reference_shorthand(ref));

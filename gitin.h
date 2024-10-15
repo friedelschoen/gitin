@@ -44,13 +44,14 @@ struct commitstats {
 
 struct repoinfo {
 	git_repository* repo;
-	const git_oid*  head;
+	git_commit*     commit;
 
 	const char* repodir;
 	char        destdir[1024];
 	int         relpath;
 
 	char        name[100];
+	const char* revision;
 	const char* description;
 	const char* cloneurl;
 
@@ -101,6 +102,8 @@ extern const char* configfile;
 extern const char* jsonfile;
 extern const char* commitatomfile;
 extern const char* tagatomfile;
+
+extern const char* default_revision;
 
 extern int force, verbose, columnate;
 

@@ -139,7 +139,7 @@ void writeshortlog(FILE* fp, const struct repoinfo* info) {
 	git_time_t              gittime;
 
 	git_revwalk_new(&w, info->repo);
-	git_revwalk_push_head(w);
+	git_revwalk_push(w, git_commit_id(info->commit));
 
 	while (!git_revwalk_next(&id, w)) {
 		if (git_commit_lookup(&commit, info->repo, &id)) {
