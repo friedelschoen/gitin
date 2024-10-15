@@ -1,5 +1,8 @@
 #include "gitin.h"
 
+#include <git2/commit.h>
+#include <git2/object.h>
+#include <git2/refs.h>
 #include <git2/repository.h>
 #include <git2/revparse.h>
 #include <git2/types.h>
@@ -36,7 +39,6 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 	struct repoinfo info;
 	git_object*     obj = NULL;
 	FILE*           fp;
-	char            path[PATH_MAX];
 	const char*     start;
 	char *          confbuffer = NULL, *end;
 
@@ -44,6 +46,7 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 	info.repodir     = repodir;
 	info.description = "";
 	info.cloneurl    = "";
+	info.revision    = NULL;
 
 	info.relpath = 1;
 	for (const char* p = repodir + 1; p[1]; p++)
@@ -79,27 +82,35 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 		exit(100);
 	}
 
-	/* find HEAD */
-	if (!git_revparse_single(&obj, info.repo, "HEAD")) {
-		info.head = git_object_id(obj);
-	}
-	git_object_free(obj);
-
-	snprintf(path, sizeof(path), "%s/%s", repodir, configfile);
-
-	if ((fp = fopen(path, "r"))) {
+	if ((fp = xfopen("!.r", "%s/%s", repodir, configfile))) {
 		struct config keys[] = {
 			{ "description", ConfigString, &info.description },
 			{ "url", ConfigString, &info.description },
 			{ "cloneurl", ConfigString, &info.description },
+			{ "revision", ConfigString, &info.revision },
 			{ 0 },
 		};
 
-		if (!(confbuffer = parseconfig(fp, keys)))
-			fprintf(stderr, "error: unable to parse config at %s\n", path);
-
+		confbuffer = parseconfig(fp, keys);
 		fclose(fp);
 	}
+
+	if (!info.revision) {
+		info.revision = default_revision;
+		printf("warn: branch of %s is not set, assuming %s\n", info.name, info.revision);
+	}
+
+	if (git_revparse_single(&obj, info.repo, info.revision)) {
+		hprintf(stderr, "error: unable to get reference: %gw\n");
+		return;
+	}
+
+	if (git_object_type(obj) != GIT_OBJECT_COMMIT) {
+		fprintf(stderr, "error: revision %s is not pointing to a commit\n", info.revision);
+		return;
+	}
+
+	info.commit = (git_commit*) obj;
 
 	/* check pinfiles */
 	for (int i = 0; pinfiles[i] && info.pinfileslen < MAXPINS; i++) {
@@ -126,13 +137,13 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 
 	writefiles(&info);
 
-	if (info.head)
-		writelog(&info);
+	writelog(&info);
 
 	if (index)
 		writeindexline(index, &info);
 
 	/* cleanup */
+	git_commit_free(info.commit);
 	git_repository_free(info.repo);
 	free(confbuffer);
 	freeheadfiles(&info);

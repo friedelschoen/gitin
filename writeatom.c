@@ -54,8 +54,8 @@ void writeatomheader(FILE* fp, const struct repoinfo* info) {
 	fputs("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
 	      "<feed xmlns=\"http://www.w3.org/2005/Atom\">\n",
 	      fp);
-	hprintf(fp, "<title>%y, branch HEAD</title>\n<subtitle>%y</subtitle>\n", info->name,
-	        info->description);
+	hprintf(fp, "<title>%y, branch %y</title>\n<subtitle>%y</subtitle>\n", info->name,
+	        info->revision, info->description);
 }
 
 void writeatomfooter(FILE* fp) {

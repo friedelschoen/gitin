@@ -56,7 +56,7 @@ static int writeref(FILE* fp, FILE* atom, FILE* json, const struct repoinfo* inf
 			fprintf(json, ",\n");
 		writejsonref(json, info, refs[i].ref, refs[i].commit);
 
-		ishead = info->head && !git_oid_cmp(git_reference_target(refs[i].ref), info->head);
+		ishead = !git_oid_cmp(git_reference_target(refs[i].ref), git_commit_id(info->commit));
 
 		name    = git_reference_shorthand(refs[i].ref);
 		author  = git_commit_author(refs[i].commit);

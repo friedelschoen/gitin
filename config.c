@@ -107,3 +107,5 @@ const char* commitatomfile = "atom.xml";
 
 /* Name of the file used for Atom feeds of tags or branches. */
 const char* tagatomfile = "tags.xml";
+
+const char* default_revision = "HEAD";

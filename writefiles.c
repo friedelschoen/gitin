@@ -316,15 +316,14 @@ static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree
 }
 
 int writefiles(struct repoinfo* info) {
-	git_tree*   tree   = NULL;
-	git_commit* commit = NULL;
-	size_t      indx   = 0;
-	int         ret    = -1;
-	char        path[PATH_MAX];
-	char        headoid[GIT_OID_SHA1_HEXSIZE + 1], oid[GIT_OID_SHA1_HEXSIZE + 1];
+	git_tree* tree = NULL;
+	size_t    indx = 0;
+	int       ret  = -1;
+	char      path[PATH_MAX];
+	char      headoid[GIT_OID_SHA1_HEXSIZE + 1], oid[GIT_OID_SHA1_HEXSIZE + 1];
 
-	if (!force && info->head) {
-		git_oid_tostr(headoid, sizeof(headoid), info->head);
+	if (!force) {
+		git_oid_tostr(headoid, sizeof(headoid), git_commit_id(info->commit));
 
 		if (!bufferread(oid, GIT_OID_SHA1_HEXSIZE, "%s/.cache/filetree", info->destdir)) {
 			oid[GIT_OID_SHA1_HEXSIZE] = '\0';
@@ -342,8 +341,7 @@ int writefiles(struct repoinfo* info) {
 	xmkdirf(0777, "%s/file", info->destdir);
 	xmkdirf(0777, "%s/blob", info->destdir);
 
-	if (info->head && !git_commit_lookup(&commit, info->repo, info->head) &&
-	    !git_commit_tree(&tree, commit)) {
+	if (!git_commit_tree(&tree, info->commit)) {
 		ret = writefilestree(NULL, info, 1, tree, "", &indx, countfiles(info->repo, tree));
 
 		if (!verbose)
@@ -353,8 +351,6 @@ int writefiles(struct repoinfo* info) {
 	git_tree_free(tree);
 
 	bufferwrite(headoid, GIT_OID_SHA1_HEXSIZE, "%s/.cache/filetree", info->destdir);
-
-	git_commit_free(commit);
 
 	return ret;
 }
