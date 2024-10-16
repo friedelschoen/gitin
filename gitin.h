@@ -78,6 +78,16 @@ struct callcached_param {
 	int                    nenviron;
 };
 
+struct blob {
+	const char* name;
+	const char* path;
+
+	const char* content;
+	ssize_t     length;
+	uint32_t    hash;
+	int         is_binary;
+};
+
 
 extern struct config config_keys[];
 
@@ -147,8 +157,7 @@ void writejsonref(FILE* fp, const struct repoinfo* info, git_reference* ref, git
 int  writelog(const struct repoinfo* info, git_reference* ref, git_commit* commit);
 void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char* name,
                  const char* description, ...);
-void writepreview(FILE* fp, const struct repoinfo* info, int relpath, const char* filename,
-                  const char* s, ssize_t len, uint32_t contenthash);
+void writepreview(FILE* fp, const struct repoinfo* info, int relpath, struct blob* blob);
 int  writerefs(FILE* fp, FILE* json, const struct repoinfo* info);
 void writerepo(FILE* index, const char* repodir, const char* destination);
 void writeshortlog(FILE* fp, const struct repoinfo* info, git_commit* head);
