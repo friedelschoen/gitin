@@ -2,6 +2,7 @@
 
 #include <git2/commit.h>
 #include <git2/oid.h>
+#include <git2/refs.h>
 #include <git2/revwalk.h>
 #include <git2/types.h>
 #include <limits.h>
@@ -75,23 +76,23 @@ static void writelogcommit(FILE* fp, FILE* json, FILE* atom, const struct repoin
 	git_tree_free(tree);
 }
 
-int writelog(const struct repoinfo* info) {
+int writelog(const struct repoinfo* info, git_reference* ref, git_commit* head) {
 	git_revwalk* w = NULL;
 	git_oid      id;
 	ssize_t      ncommits = 0;
 	FILE *       fp, *atom, *json;
 
 	/* log for HEAD */
-	fp   = xfopen("w", "%s/index.html", info->destdir);
-	json = xfopen("w", "%s/%s", info->destdir, jsonfile);
-	atom = xfopen("w", "%s/%s", info->destdir, commitatomfile);
+	fp   = xfopen("w", "%s/%s.html", info->destdir, git_reference_shorthand(ref));
+	json = xfopen("w", "%s/%s.json", info->destdir, git_reference_shorthand(ref));
+	atom = xfopen("w", "%s/%s.xml", info->destdir, git_reference_shorthand(ref));
 
 	writeheader(fp, info, 0, info->name, "%y", info->description);
 	fprintf(json, "{");
-	writerefs(fp, json, info);
-	writeshortlog(fp, info);
+	//	writerefs(fp, json, info);
+	writeshortlog(fp, info, head);
 
-	fprintf(fp, "<h2>Commits of %s</h2>", info->revision);
+	fprintf(fp, "<h2>Commits of %s</h2>", git_reference_shorthand(ref));
 
 	fprintf(fp, "<table id=\"log\"><thead>\n<tr><td><b>Date</b></td>"
 	            "<td class=\"expand\"><b>Commit message</b></td>"
@@ -108,14 +109,14 @@ int writelog(const struct repoinfo* info) {
 		hprintf(stderr, "error: unable to initialize revwalk: %gw\n");
 		return -1;
 	}
-	git_revwalk_push(w, git_commit_id(info->commit));
+	git_revwalk_push(w, git_reference_target(ref));
 
 	// Iterate through the commits
 	while (!git_revwalk_next(&id, w))
 		ncommits++;
 
 	git_revwalk_reset(w);
-	git_revwalk_push(w, git_commit_id(info->commit));
+	git_revwalk_push(w, git_reference_target(ref));
 
 	// Iterate through the commits
 	ssize_t indx = 0;

@@ -2,6 +2,7 @@
 
 #include <git2/blob.h>
 #include <git2/commit.h>
+#include <git2/refs.h>
 #include <git2/types.h>
 #include <libgen.h>
 #include <limits.h>
@@ -144,19 +145,20 @@ static ssize_t highlight(FILE* fp, const struct repoinfo* info, const char* file
 	return callcached(&params);
 }
 
-static size_t writeblob(const struct repoinfo* info, int relpath, git_blob* obj,
-                        const char* filename, const char* filepath, ssize_t filesize) {
+static size_t writeblob(const struct repoinfo* info, const char* refname, int relpath,
+                        git_blob* obj, const char* filename, const char* filepath,
+                        ssize_t filesize) {
 	size_t      lc = 0;
 	FILE*       fp;
 	const void* content = git_blob_rawcontent(obj);
 	uint32_t    contenthash;
 
-	bufferwrite(content, filesize, "%s/blob/%s", info->destdir, filepath);
+	bufferwrite(content, filesize, "%s/blob/%s/%s", info->destdir, refname, filepath);
 
-	fp = xfopen("w", "%s/file/%s.html", info->destdir, filepath);
+	fp = xfopen("w", "%s/file/%s/%s.html", info->destdir, refname, filepath);
 	writeheader(fp, info, relpath, info->name, "%y", filepath);
-	hprintf(fp, "<p> %y (%zuB) <a href='%rblob/%h'>download</a></p><hr/>", filename, filesize,
-	        relpath, filepath);
+	hprintf(fp, "<p> %y (%zuB) <a href='%rblob/%s/%h'>download</a></p><hr/>", filename, filesize,
+	        relpath, refname, filepath);
 
 	contenthash = filehash(content, filesize);
 
@@ -231,19 +233,19 @@ static size_t countfiles(git_repository* repo, git_tree* tree) {
 	return file_count;
 }
 
-static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree* tree,
-                          const char* basepath, size_t* index, size_t maxfiles) {
+static int writefilestree(FILE* fp, const struct repoinfo* info, const char* refname, int relpath,
+                          git_tree* tree, const char* basepath, size_t* index, size_t maxfiles) {
 	const git_tree_entry* entry = NULL;
 	git_object*           obj   = NULL;
 	const char*           entryname;
 	char                  entrypath[PATH_MAX], oid[8];
 	size_t                count, i, lc, filesize;
 
-	xmkdirf(0777, "%s/file/%s", info->destdir, basepath);
-	xmkdirf(0777, "%s/blob/%s", info->destdir, basepath);
+	xmkdirf(0777, "%s/file/%s/%s", info->destdir, refname, basepath);
+	xmkdirf(0777, "%s/blob/%s/%s", info->destdir, refname, basepath);
 
 	if (splitdirectories || !*basepath) {
-		fp = xfopen("w", "%s/file/%s/index.html", info->destdir, basepath);
+		fp = xfopen("w", "%s/file/%s/%s/index.html", info->destdir, refname, basepath);
 		writeheader(fp, info, relpath, info->name, "%s", basepath);
 
 		fputs("<table id=\"files\"><thead>\n<tr>"
@@ -263,14 +265,16 @@ static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree
 			strlcpy(entrypath, entryname, sizeof(entrypath));
 
 		if (!git_tree_entry_to_object(&obj, info->repo, entry)) {
-			addheadfile(info, entrypath);
+			// addheadfile(info, entrypath);
+			(void) addheadfile;
 
 			if (git_object_type(obj) == GIT_OBJECT_BLOB) {
 				hprintf(fp, "<tr><td><img src=\"%ricons/%s.svg\" /></td><td>%s</td>\n",
 				        info->relpath + relpath, geticon((git_blob*) obj, entryname),
 				        filemode(git_tree_entry_filemode(entry)));
 				filesize = git_blob_rawsize((git_blob*) obj);
-				lc = writeblob(info, relpath, (git_blob*) obj, entryname, entrypath, filesize);
+				lc       = writeblob(info, refname, relpath, (git_blob*) obj, entryname, entrypath,
+				                     filesize);
 
 				if (splitdirectories)
 					hprintf(fp, "<td><a href=\"%h.html\">%y</a></td>", entryname, entryname);
@@ -293,15 +297,17 @@ static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree
 					    "<tr><td><img src=\"%ricons/directory.svg\" /></td><td>d---------</td><td colspan=\"2\"><a href=\"%h/\">%y</a></td></tr>\n",
 					    info->relpath + relpath, entrypath, entrypath);
 				}
-				writefilestree(fp, info, relpath + 1, (git_tree*) obj, entrypath, index, maxfiles);
+				writefilestree(fp, info, refname, relpath + 1, (git_tree*) obj, entrypath, index,
+				               maxfiles);
 			}
 
 			git_object_free(obj);
 		} else if (git_tree_entry_type(entry) == GIT_OBJECT_COMMIT) {
 			git_oid_tostr(oid, sizeof(oid), git_tree_entry_id(entry));
-			hprintf(fp,
-			        "<tr><td></td><td>m---------</td><td><a href=\"file/-gitmodules.html\">%y</a>",
-			        entrypath);
+			hprintf(
+			    fp,
+			    "<tr><td></td><td>m---------</td><td><a href=\"file/%s/-gitmodules.html\">%y</a>",
+			    refname, entrypath);
 			hprintf(fp, " @ %y</td><td class=\"num\" align=\"right\"></td></tr>\n", oid);
 		}
 	}
@@ -315,15 +321,16 @@ static int writefilestree(FILE* fp, struct repoinfo* info, int relpath, git_tree
 	return 0;
 }
 
-int writefiles(struct repoinfo* info) {
-	git_tree* tree = NULL;
-	size_t    indx = 0;
-	int       ret  = -1;
-	char      path[PATH_MAX];
-	char      headoid[GIT_OID_SHA1_HEXSIZE + 1], oid[GIT_OID_SHA1_HEXSIZE + 1];
+int writefiles(const struct repoinfo* info, const git_reference* ref, git_commit* commit) {
+	git_tree*   tree = NULL;
+	size_t      indx = 0;
+	int         ret  = -1;
+	char        path[PATH_MAX];
+	char        headoid[GIT_OID_SHA1_HEXSIZE + 1], oid[GIT_OID_SHA1_HEXSIZE + 1];
+	const char* refname = git_reference_shorthand(ref);
 
 	if (!force) {
-		git_oid_tostr(headoid, sizeof(headoid), git_commit_id(info->commit));
+		git_oid_tostr(headoid, sizeof(headoid), git_commit_id(commit));
 
 		if (!bufferread(oid, GIT_OID_SHA1_HEXSIZE, "%s/.cache/filetree", info->destdir)) {
 			oid[GIT_OID_SHA1_HEXSIZE] = '\0';
@@ -333,16 +340,18 @@ int writefiles(struct repoinfo* info) {
 	}
 
 	// Clean /file and /blob directories since they will be rewritten
-	snprintf(path, sizeof(path), "%s/file", info->destdir);
+	snprintf(path, sizeof(path), "%s/file/%s", info->destdir, refname);
 	removedir(path);
-	snprintf(path, sizeof(path), "%s/blob", info->destdir);
+	snprintf(path, sizeof(path), "%s/blob/%s", info->destdir, refname);
 	removedir(path);
 
 	xmkdirf(0777, "%s/file", info->destdir);
+	xmkdirf(0777, "%s/file/%s", info->destdir, refname);
 	xmkdirf(0777, "%s/blob", info->destdir);
+	xmkdirf(0777, "%s/blob/%s", info->destdir, refname);
 
-	if (!git_commit_tree(&tree, info->commit)) {
-		ret = writefilestree(NULL, info, 1, tree, "", &indx, countfiles(info->repo, tree));
+	if (!git_commit_tree(&tree, commit)) {
+		ret = writefilestree(NULL, info, refname, 2, tree, "", &indx, countfiles(info->repo, tree));
 
 		if (!verbose)
 			fputc('\n', stdout);
