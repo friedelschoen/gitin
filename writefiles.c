@@ -16,6 +16,7 @@
 
 #define fallthrough __attribute__((fallthrough));
 
+
 /* hash file using murmur3 */
 static uint32_t filehash(const void* key, int len) {
 	const uint8_t* data    = (const uint8_t*) key;
@@ -121,11 +122,10 @@ static const char* filemode(git_filemode_t m) {
 	return mode;
 }
 
-static ssize_t highlight(FILE* fp, const struct repoinfo* info, const char* filename, const char* s,
-                         ssize_t len, uint32_t contenthash) {
+static ssize_t highlight(FILE* fp, const struct repoinfo* info, struct blob* blob) {
 
 	char* type;
-	if ((type = strrchr(filename, '.')) != NULL)
+	if ((type = strrchr(blob->name, '.')) != NULL)
 		type++;
 	else
 		type = "txt";
@@ -133,49 +133,83 @@ static ssize_t highlight(FILE* fp, const struct repoinfo* info, const char* file
 	struct callcached_param params = {
 		.command     = highlightcmd,
 		.cachename   = "files",
-		.content     = s,
-		.ncontent    = len,
-		.contenthash = contenthash,
+		.content     = blob->content,
+		.ncontent    = blob->length,
+		.contenthash = blob->hash,
 		.fp          = fp,
 		.info        = info,
 		.nenviron    = 3,
-		.environ     = (const char*[]){ "filename", filename, "type", type, "scheme", colorscheme },
+		.environ = (const char*[]){ "filename", blob->name, "type", type, "scheme", colorscheme },
 	};
 
 	return callcached(&params);
 }
 
-static size_t writeblob(const struct repoinfo* info, const char* refname, int relpath,
-                        git_blob* obj, const char* filename, const char* filepath,
-                        ssize_t filesize) {
-	size_t      lc = 0;
-	FILE*       fp;
-	const void* content = git_blob_rawcontent(obj);
-	uint32_t    contenthash;
+static void writeblob(const struct repoinfo* info, const char* refname, int relpath,
+                      struct blob* blob) {
+	char hashpath[PATH_MAX], destpath[PATH_MAX];
+	int  n;
 
-	bufferwrite(content, filesize, "%s/blob/%s/%s", info->destdir, refname, filepath);
+	snprintf(destpath, sizeof(destpath), "%s/.cache/blobs/%x-%s", info->destdir, blob->hash,
+	         blob->name);
 
-	fp = xfopen("w", "%s/file/%s/%s.html", info->destdir, refname, filepath);
-	writeheader(fp, info, relpath, info->name, "%y", filepath);
-	hprintf(fp, "<p> %y (%zuB) <a href='%rblob/%s/%h'>download</a></p><hr/>", filename, filesize,
-	        relpath, refname, filepath);
+	if (force || access(destpath, R_OK))
+		bufferwrite(blob->content, blob->length, "%s", destpath);
 
-	contenthash = filehash(content, filesize);
-
-	writepreview(fp, info, relpath, filepath, content, filesize, contenthash);
-
-	if (git_blob_is_binary(obj)) {
-		fputs("<p>Binary file.</p>\n", fp);
-	} else if (maxfilesize != -1 && filesize >= maxfilesize) {
-		fputs("<p>File too big.</p>\n", fp);
-	} else if (filesize > 0) {
-		lc = highlight(fp, info, filepath, content, filesize, contenthash);
+	n = 0;
+	for (int i = 0; i < relpath; i++) {
+		hashpath[n++] = '.';
+		hashpath[n++] = '.';
+		hashpath[n++] = '/';
 	}
 
-	writefooter(fp);
-	fclose(fp);
+	snprintf(hashpath + n, sizeof(hashpath) - n, ".cache/blobs/%x-%s", blob->hash, blob->name);
+	snprintf(destpath, sizeof(destpath), "%s/blob/%s/%s", info->destdir, refname, blob->path);
+	unlink(destpath);
+	if (symlink(hashpath, destpath))
+		fprintf(stderr, "error: unable to create symlink %s -> %s\n", destpath, hashpath);
+}
 
-	return lc;
+static void writefile(const struct repoinfo* info, const char* refname, int relpath,
+                      struct blob* blob) {
+	FILE* fp;
+	char  hashpath[PATH_MAX], destpath[PATH_MAX];
+	int   n;
+
+	snprintf(destpath, sizeof(destpath), "%s/.cache/files/%x-%s.html", info->destdir, blob->hash,
+	         blob->name);
+
+	if (force || access(destpath, R_OK)) {
+		fp = xfopen(".w", "%s", destpath);
+		writeheader(fp, info, relpath, info->name, "%y", blob->path);
+		hprintf(fp, "<p> %y (%zuB) <a href='%rblob/%s/%h'>download</a></p><hr/>", blob->name,
+		        blob->length, relpath, refname, blob->path);
+
+		writepreview(fp, info, relpath, blob);
+
+		if (blob->is_binary) {
+			fputs("<p>Binary file.</p>\n", fp);
+		} else if (maxfilesize != -1 && blob->length >= maxfilesize) {
+			fputs("<p>File too big.</p>\n", fp);
+		} else if (blob->length > 0) {
+			highlight(fp, info, blob);
+		}
+
+		writefooter(fp);
+		fclose(fp);
+	}
+
+	n = 0;
+	for (int i = 0; i < relpath; i++) {
+		hashpath[n++] = '.';
+		hashpath[n++] = '.';
+		hashpath[n++] = '/';
+	}
+	snprintf(hashpath + n, sizeof(hashpath) - n, ".cache/files/%x-%s.html", blob->hash, blob->name);
+	snprintf(destpath, sizeof(destpath), "%s/file/%s/%s.html", info->destdir, refname, blob->path);
+	unlink(destpath);
+	if (symlink(hashpath, destpath))
+		fprintf(stderr, "error: unable to create symlink %s -> %s\n", destpath, hashpath);
 }
 
 static void addheadfile(struct repoinfo* info, const char* filename) {
@@ -239,7 +273,8 @@ static int writefilestree(FILE* fp, const struct repoinfo* info, const char* ref
 	git_object*           obj   = NULL;
 	const char*           entryname;
 	char                  entrypath[PATH_MAX], oid[8];
-	size_t                count, i, lc, filesize;
+	size_t                count, i;
+	struct blob           blob;
 
 	xmkdirf(0777, "%s/file/%s/%s", info->destdir, refname, basepath);
 	xmkdirf(0777, "%s/blob/%s/%s", info->destdir, refname, basepath);
@@ -272,19 +307,23 @@ static int writefilestree(FILE* fp, const struct repoinfo* info, const char* ref
 				hprintf(fp, "<tr><td><img src=\"%ricons/%s.svg\" /></td><td>%s</td>\n",
 				        info->relpath + relpath, geticon((git_blob*) obj, entryname),
 				        filemode(git_tree_entry_filemode(entry)));
-				filesize = git_blob_rawsize((git_blob*) obj);
-				lc       = writeblob(info, refname, relpath, (git_blob*) obj, entryname, entrypath,
-				                     filesize);
+
+				blob.name      = entryname;
+				blob.path      = entrypath;
+				blob.content   = git_blob_rawcontent((git_blob*) obj);
+				blob.length    = git_blob_rawsize((git_blob*) obj);
+				blob.is_binary = git_blob_is_binary((git_blob*) obj);
+				blob.hash      = filehash(blob.content, blob.length);
+
+				writefile(info, refname, relpath, &blob);
+				writeblob(info, refname, relpath, &blob);
 
 				if (splitdirectories)
 					hprintf(fp, "<td><a href=\"%h.html\">%y</a></td>", entryname, entryname);
 				else
 					hprintf(fp, "<td><a href=\"%h.html\">%y</a></td>", entrypath, entrypath);
 				fputs("<td class=\"num\" align=\"right\">", fp);
-				if (lc > 0)
-					fprintf(fp, "%zuL", lc);
-				else
-					fprintf(fp, "%zuB", filesize);
+				fprintf(fp, "%zuB", blob.length);
 				fputs("</td></tr>\n", fp);
 
 				(*index)++;

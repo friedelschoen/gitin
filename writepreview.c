@@ -56,12 +56,11 @@ static void writeimage(FILE* fp, int relpath, const char* filename) {
 }
 
 
-void writepreview(FILE* fp, const struct repoinfo* info, int relpath, const char* filename,
-                  const char* content, ssize_t len, uint32_t contenthash) {
+void writepreview(FILE* fp, const struct repoinfo* info, int relpath, struct blob* blob) {
 	char type[1024] = "", *param;
 
 	for (int i = 0; filetypes[i][0] != NULL; i++) {
-		if (endswith(filename, filetypes[i][0])) {
+		if (endswith(blob->name, filetypes[i][0])) {
 			strlcpy(type, filetypes[i][2], sizeof(type));
 			break;
 		}
@@ -74,20 +73,20 @@ void writepreview(FILE* fp, const struct repoinfo* info, int relpath, const char
 		*param++ = '\0';
 
 	if (!strcmp(type, "pandoc")) {
-		if (!param && (param = strchr(filename, '.'))) {
+		if (!param && (param = strchr(blob->name, '.'))) {
 			param++;
 		}
 
 		if (param)
-			writepandoc(fp, info, filename, content, len, contenthash, param);
+			writepandoc(fp, info, blob->name, blob->content, blob->length, blob->hash, param);
 	} else if (!strcmp(type, "configtree")) {
-		if (!param && (param = strchr(filename, '.'))) {
+		if (!param && (param = strchr(blob->name, '.'))) {
 			param++;
 		}
 
 		if (param)
-			writetree(fp, info, content, len, contenthash, param);
+			writetree(fp, info, blob->content, blob->length, blob->hash, param);
 	} else if (!strcmp(type, "image")) {
-		writeimage(fp, relpath, filename);
+		writeimage(fp, relpath, blob->name);
 	}
 }

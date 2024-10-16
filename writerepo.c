@@ -73,6 +73,7 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 	xmkdirf(0777, "!%s/.cache/files", info.destdir);
 	xmkdirf(0777, "!%s/.cache/diffs", info.destdir);
 	xmkdirf(0777, "!%s/.cache/pandoc", info.destdir);
+	xmkdirf(0777, "!%s/.cache/blobs", info.destdir);
 	xmkdirf(0777, "%s/archive", info.destdir);
 	xmkdirf(0777, "%s/commit", info.destdir);
 
