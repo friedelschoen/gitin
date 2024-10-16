@@ -38,7 +38,7 @@ void addpinfile(struct repoinfo* info, const char* pinfile) {
 void writerepo(FILE* index, const char* repodir, const char* destination) {
 	struct repoinfo info;
 	git_object*     obj = NULL;
-	FILE*           fp;
+	FILE *          fp, *json;
 	const char*     start;
 	char *          confbuffer = NULL, *end;
 
@@ -46,7 +46,7 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 	info.repodir     = repodir;
 	info.description = "";
 	info.cloneurl    = "";
-	info.revision    = NULL;
+	//	info.revision    = NULL;
 
 	info.relpath = 1;
 	for (const char* p = repodir + 1; p[1]; p++)
@@ -87,7 +87,7 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 			{ "description", ConfigString, &info.description },
 			{ "url", ConfigString, &info.description },
 			{ "cloneurl", ConfigString, &info.description },
-			{ "revision", ConfigString, &info.revision },
+			//			{ "revision", ConfigString, &info.revision },
 			{ 0 },
 		};
 
@@ -95,22 +95,22 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 		fclose(fp);
 	}
 
-	if (!info.revision) {
-		info.revision = default_revision;
-		printf("warn: branch of %s is not set, assuming %s\n", info.name, info.revision);
-	}
+	// if (!info.revision) {
+	// 	info.revision = default_revision;
+	// 	printf("warn: branch of %s is not set, assuming %s\n", info.name, info.revision);
+	// }
 
-	if (git_revparse_single(&obj, info.repo, info.revision)) {
-		hprintf(stderr, "error: unable to get reference: %gw\n");
-		return;
-	}
+	// if (git_revparse_single(&obj, info.repo, info.revision)) {
+	// 	hprintf(stderr, "error: unable to get reference: %gw\n");
+	// 	return;
+	// }
 
-	if (git_object_type(obj) != GIT_OBJECT_COMMIT) {
-		fprintf(stderr, "error: revision %s is not pointing to a commit\n", info.revision);
-		return;
-	}
+	// if (git_object_type(obj) != GIT_OBJECT_COMMIT) {
+	// 	fprintf(stderr, "error: revision %s is not pointing to a commit\n", info.revision);
+	// 	return;
+	// }
 
-	info.commit = (git_commit*) obj;
+	// info.commit = (git_commit*) obj;
 
 	/* check pinfiles */
 	for (int i = 0; pinfiles[i] && info.pinfileslen < MAXPINS; i++) {
@@ -135,15 +135,23 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 		info.submodules = ".gitmodules";
 	git_object_free(obj);
 
-	writefiles(&info);
+	//	writefiles(&info);
 
-	writelog(&info);
+	fp   = xfopen("w", "%s/index.html", info.destdir);
+	json = xfopen("w", "%s/index.json", info.destdir);
+	writeheader(fp, &info, 0, info.name, "%y", info.description);
+	writerefs(fp, json, &info);
+	writefooter(fp);
+	fclose(fp);
+	fclose(json);
+
+	//	writelog(&info);
 
 	if (index)
 		writeindexline(index, &info);
 
 	/* cleanup */
-	git_commit_free(info.commit);
+	//	git_commit_free(info.commit);
 	git_repository_free(info.repo);
 	free(confbuffer);
 	freeheadfiles(&info);

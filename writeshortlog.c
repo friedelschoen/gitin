@@ -186,7 +186,8 @@ int mergedatecount(struct datecount* datecount, int ndatecount) {
 
 	return merged_index + 1;    // Return the number of merged entries (per month)
 }
-void writeshortlog(FILE* fp, const struct repoinfo* info) {
+
+void writeshortlog(FILE* fp, const struct repoinfo* info, git_commit* head) {
 	struct authorcount*     authorcount  = NULL;
 	struct datecount*       datecount    = NULL;
 	int                     nauthorcount = 0, ndatecount = 0, bymonth;
@@ -200,7 +201,7 @@ void writeshortlog(FILE* fp, const struct repoinfo* info) {
 	size_t                  days;
 
 	git_revwalk_new(&w, info->repo);
-	git_revwalk_push(w, git_commit_id(info->commit));
+	git_revwalk_push(w, git_commit_id(head));
 
 	while (!git_revwalk_next(&id, w)) {
 		if (git_commit_lookup(&commit, info->repo, &id)) {

@@ -44,14 +44,14 @@ struct commitstats {
 
 struct repoinfo {
 	git_repository* repo;
-	git_commit*     commit;
+	//	git_commit*     commit;
 
 	const char* repodir;
 	char        destdir[1024];
 	int         relpath;
 
-	char        name[100];
-	const char* revision;
+	char name[100];
+	// const char* revision;
 	const char* description;
 	const char* cloneurl;
 
@@ -132,23 +132,23 @@ char* parseconfig(FILE* file, struct config* keys);
 
 ssize_t callcached(struct callcached_param* params);
 
-int  writearchive(const struct repoinfo* info, const struct git_reference* ref);
+int  writearchive(const struct repoinfo* info, const git_reference* ref, git_commit* commit);
 void writeatomheader(FILE* fp, const struct repoinfo* info);
 void writeatomfooter(FILE* fp);
 void writecommitatom(FILE* fp, git_commit* commit, const char* tag);
 void writecommitfile(const struct repoinfo* info, git_commit* commit, const struct commitstats* ci,
                      int parentlink);
 void writefooter(FILE* fp);
-int  writefiles(struct repoinfo* info);
+int  writefiles(const struct repoinfo* info, const git_reference* ref, git_commit* commit);
 void writeindex(const char* destdir, char** repos, int nrepos);
 int  writeindexline(FILE* fp, const struct repoinfo* info);
 void writejsoncommit(FILE* fp, git_commit* commit, int first);
 void writejsonref(FILE* fp, const struct repoinfo* info, git_reference* ref, git_commit* commit);
-int  writelog(const struct repoinfo* info);
+int  writelog(const struct repoinfo* info, git_reference* ref, git_commit* commit);
 void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char* name,
                  const char* description, ...);
 void writepreview(FILE* fp, const struct repoinfo* info, int relpath, const char* filename,
                   const char* s, ssize_t len, uint32_t contenthash);
 int  writerefs(FILE* fp, FILE* json, const struct repoinfo* info);
 void writerepo(FILE* index, const char* repodir, const char* destination);
-void writeshortlog(FILE* fp, const struct repoinfo* info);
+void writeshortlog(FILE* fp, const struct repoinfo* info, git_commit* head);

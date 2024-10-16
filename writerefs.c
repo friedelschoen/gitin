@@ -17,7 +17,7 @@ static int refs_cmp(const void* v1, const void* v2) {
 	const struct referenceinfo *r1 = v1, *r2 = v2;
 	time_t                      t1, t2;
 	int                         r;
-	const struct git_signature *author1, *author2;
+	const git_signature *       author1, *author2;
 
 	if ((r = git_reference_is_tag(r1->ref) - git_reference_is_tag(r2->ref)))
 		return r;
@@ -41,7 +41,7 @@ static int writeref(FILE* fp, FILE* atom, FILE* json, const struct repoinfo* inf
 	int                  ishead;
 
 	fprintf(fp,
-	        "<div class=\"ref\"><h2>%s</h2><table>"
+	        "<h2>%s</h2><table>"
 	        "<thead>\n<tr><td class=\"expand\"><b>Name</b></td>"
 	        "<td><b>Last commit date</b></td>"
 	        "<td><b>Author</b></td>\n</tr>\n"
@@ -49,14 +49,17 @@ static int writeref(FILE* fp, FILE* atom, FILE* json, const struct repoinfo* inf
 	        title);
 
 	for (size_t i = 0; i < nrefs; i++) {
-		writearchive(info, refs[i].ref);
+		writelog(info, refs[i].ref, refs[i].commit);
+		writearchive(info, refs[i].ref, refs[i].commit);
+		writefiles(info, refs[i].ref, refs[i].commit);
 		writecommitatom(atom, refs[i].commit, git_reference_shorthand(refs[i].ref));
 
 		if (i > 0)
 			fprintf(json, ",\n");
 		writejsonref(json, info, refs[i].ref, refs[i].commit);
 
-		ishead = !git_oid_cmp(git_reference_target(refs[i].ref), git_commit_id(info->commit));
+		ishead = 0;
+		//! git_oid_cmp(git_reference_target(refs[i].ref), git_commit_id(info->commit));
 
 		name    = git_reference_shorthand(refs[i].ref);
 		author  = git_commit_author(refs[i].commit);
@@ -73,8 +76,10 @@ static int writeref(FILE* fp, FILE* atom, FILE* json, const struct repoinfo* inf
 			hprintf(fp, "<b>%y</b>", name);
 		else
 			hprintf(fp, "%y", name);
-		fprintf(fp, "</a> <small>at \"<a href=\"commit/%s.html\">%s</a>\"</small></td><td>", oid,
-		        summary);
+		fprintf(
+		    fp,
+		    "</a> <small>at \"<a href=\"commit/%s.html\">%s</a>\"</small> <a href=\"%s.html\">[log]</a> <a href=\"file/%s/index.html\">[files]</a></td><td>",
+		    oid, summary, name, name);
 		if (author)
 			hprintf(fp, "%t", &author->when);
 		fputs("</td><td>", fp);
@@ -83,7 +88,7 @@ static int writeref(FILE* fp, FILE* atom, FILE* json, const struct repoinfo* inf
 		fputs("</td></tr>\n", fp);
 	}
 
-	fputs("</tbody></table></div>\n", fp);
+	fputs("</tbody></table>\n", fp);
 
 	return 0;
 }
@@ -143,8 +148,6 @@ int writerefs(FILE* fp, FILE* json, const struct repoinfo* info) {
 	qsort(branches, nbranches, sizeof(*branches), refs_cmp);
 	qsort(tags, ntags, sizeof(*tags), refs_cmp);
 
-	fprintf(fp, "<div id=\"refcontainer\">\n");
-
 	atom = xfopen("w", "%s/%s", info->destdir, tagatomfile);
 	writeatomheader(atom, info);
 
@@ -165,8 +168,6 @@ int writerefs(FILE* fp, FILE* json, const struct repoinfo* info) {
 
 	freeref(branches, nbranches);
 	freeref(tags, ntags);
-
-	fputs("</div>", fp);
 
 	return 0;
 }
