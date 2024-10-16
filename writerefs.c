@@ -38,7 +38,6 @@ static int writeref(FILE* fp, FILE* atom, FILE* json, const struct repoinfo* inf
 	char                 escapename[NAME_MAX], oid[GIT_OID_SHA1_HEXSIZE + 1];
 	const char *         name, *summary;
 	const git_signature* author;
-	int                  ishead;
 
 	fprintf(fp,
 	        "<h2>%s</h2><table>"
@@ -58,9 +57,6 @@ static int writeref(FILE* fp, FILE* atom, FILE* json, const struct repoinfo* inf
 			fprintf(json, ",\n");
 		writejsonref(json, info, refs[i].ref, refs[i].commit);
 
-		ishead = 0;
-		//! git_oid_cmp(git_reference_target(refs[i].ref), git_commit_id(info->commit));
-
 		name    = git_reference_shorthand(refs[i].ref);
 		author  = git_commit_author(refs[i].commit);
 		summary = git_commit_summary(refs[i].commit);
@@ -71,15 +67,13 @@ static int writeref(FILE* fp, FILE* atom, FILE* json, const struct repoinfo* inf
 			if (*p == '/')
 				*p = '-';
 
-		hprintf(fp, "<tr><td><a href=\"archive/%s.tar.gz\">", escapename);
-		if (ishead)
-			hprintf(fp, "<b>%y</b>", name);
-		else
-			hprintf(fp, "%y", name);
-		fprintf(
-		    fp,
-		    "</a> <small>at \"<a href=\"commit/%s.html\">%s</a>\"</small> <a href=\"%s.html\">[log]</a> <a href=\"file/%s/index.html\">[files]</a></td><td>",
-		    oid, summary, name, name);
+		hprintf(fp, "<tr><td><b>%y</b>", name);
+		fprintf(fp,
+		        " <small>at \"<a href=\"commit/%s.html\">%s</a>\"</small>"
+		        " <a href=\"%s.html\">[log]</a>"
+		        " <a href=\"file/%s/index.html\">[files]</a>"
+		        " <a href=\"archive/%s.tar.gz\">[archive]</a></td><td>",
+		        oid, summary, name, name, name);
 		if (author)
 			hprintf(fp, "%t", &author->when);
 		fputs("</td><td>", fp);
