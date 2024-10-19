@@ -44,7 +44,7 @@ struct commitstats {
 
 struct repoinfo {
 	git_repository* repo;
-	//	git_commit*     commit;
+	git_reference*  head;
 
 	const char* repodir;
 	char        destdir[1024];
@@ -124,8 +124,9 @@ void  xmkdirf(int mode, const char* format, ...) __attribute__((format(printf, 2
 int   removedir(char* path);
 void  normalize_path(char* path);
 void  unhide_path(char* path);
-void  printprogress(const char* what, ssize_t indx, ssize_t ncommits);
-int   endswith(const char* str, const char* suffix);
+void  printprogress(ssize_t indx, ssize_t ncommits, const char* what, ...)
+    __attribute__((format(printf, 3, 4)));
+int endswith(const char* str, const char* suffix);
 
 int bufferwrite(const char* buffer, size_t len, const char* format, ...)
     __attribute__((format(printf, 3, 4)));
@@ -142,19 +143,19 @@ char* parseconfig(FILE* file, struct config* keys);
 
 ssize_t callcached(struct callcached_param* params);
 
-int  writearchive(const struct repoinfo* info, const git_reference* ref, git_commit* commit);
+int  writearchive(const struct repoinfo* info, const char* refname, git_commit* commit);
 void writeatomheader(FILE* fp, const struct repoinfo* info);
 void writeatomfooter(FILE* fp);
 void writecommitatom(FILE* fp, git_commit* commit, const char* tag);
 void writecommitfile(const struct repoinfo* info, git_commit* commit, const struct commitstats* ci,
-                     int parentlink);
+                     int parentlink, const char* refname);
 void writefooter(FILE* fp);
-int  writefiles(const struct repoinfo* info, const git_reference* ref, git_commit* commit);
+int  writefiles(const struct repoinfo* info, const char* refname, git_commit* commit);
 void writeindex(const char* destdir, char** repos, int nrepos);
 int  writeindexline(FILE* fp, const struct repoinfo* info);
 void writejsoncommit(FILE* fp, git_commit* commit, int first);
 void writejsonref(FILE* fp, const struct repoinfo* info, git_reference* ref, git_commit* commit);
-int  writelog(const struct repoinfo* info, git_reference* ref, git_commit* commit);
+int  writelog(const struct repoinfo* info, const char* refname, git_commit* commit);
 void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char* name,
                  const char* description, ...);
 void writepreview(FILE* fp, const struct repoinfo* info, int relpath, struct blob* blob);

@@ -8,6 +8,7 @@
 #include <git2/types.h>
 #include <limits.h>
 #include <string.h>
+#include <unistd.h>
 
 
 void freeheadfiles(struct repoinfo* info) {
@@ -41,6 +42,7 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 	FILE *          fp, *json;
 	const char*     start;
 	char *          confbuffer = NULL, *end;
+	char            path[PATH_MAX];
 
 	memset(&info, 0, sizeof(info));
 	info.repodir     = repodir;
@@ -138,6 +140,9 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 
 	//	writefiles(&info);
 
+
+	git_repository_head(&info.head, info.repo);
+
 	fp   = xfopen("w", "%s/index.html", info.destdir);
 	json = xfopen("w", "%s/index.json", info.destdir);
 	writeheader(fp, &info, 0, info.name, "%y", info.description);
@@ -146,13 +151,14 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 	fclose(fp);
 	fclose(json);
 
-	//	writelog(&info);
+	snprintf(path, sizeof(path), "%s/file/HEAD", info.destdir);
+	symlink(git_reference_shorthand(info.head), path);
 
 	if (index)
 		writeindexline(index, &info);
 
 	/* cleanup */
-	//	git_commit_free(info.commit);
+	git_reference_free(info.head);
 	git_repository_free(info.repo);
 	free(confbuffer);
 	freeheadfiles(&info);

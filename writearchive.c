@@ -74,7 +74,7 @@ static int process_tree(git_repository* repo, git_tree* tree, const char* base_p
 }
 
 // Updated function to accept git_reference instead of branch/tag name
-int writearchive(const struct repoinfo* info, const git_reference* ref, git_commit* commit) {
+int writearchive(const struct repoinfo* info, const char* refname, git_commit* commit) {
 	git_tree* tree  = NULL;
 	int       error = 0;
 	char      path[PATH_MAX];
@@ -83,7 +83,7 @@ int writearchive(const struct repoinfo* info, const git_reference* ref, git_comm
 
 	git_oid_tostr(oid, sizeof(oid), git_commit_id(commit));
 
-	strlcpy(escapename, git_reference_shorthand(ref), sizeof(escapename));
+	strlcpy(escapename, refname, sizeof(escapename));
 	for (char* p = escapename; *p; p++)
 		if (*p == '/')
 			*p = '-';

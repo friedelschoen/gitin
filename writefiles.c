@@ -181,7 +181,7 @@ static void writefile(const struct repoinfo* info, const char* refname, int relp
 
 	if (force || access(destpath, R_OK)) {
 		fp = xfopen(".w", "%s", destpath);
-		writeheader(fp, info, relpath, info->name, "%y", blob->path);
+		writeheader(fp, info, relpath, info->name, "%y in %s", blob->path, refname);
 		hprintf(fp, "<p> %y (%zuB) <a href='%rblob/%s/%h'>download</a></p><hr/>", blob->name,
 		        blob->length, relpath, refname, blob->path);
 
@@ -281,7 +281,7 @@ static int writefilestree(FILE* fp, const struct repoinfo* info, const char* ref
 
 	if (splitdirectories || !*basepath) {
 		fp = xfopen("w", "%s/file/%s/%s/index.html", info->destdir, refname, basepath);
-		writeheader(fp, info, relpath, info->name, "%s", basepath);
+		writeheader(fp, info, relpath, info->name, "%s in %s", basepath, refname);
 
 		fputs("<table id=\"files\"><thead>\n<tr>"
 		      "<td></td><td><b>Mode</b></td><td class=\"expand\"><b>Name</b></td>"
@@ -328,7 +328,7 @@ static int writefilestree(FILE* fp, const struct repoinfo* info, const char* ref
 
 				(*index)++;
 
-				printprogress("write files:", *index, maxfiles);
+				printprogress(*index, maxfiles, "write files: %-20s", refname);
 			} else if (git_object_type(obj) == GIT_OBJECT_TREE) {
 				if (splitdirectories) {
 					hprintf(
@@ -360,13 +360,12 @@ static int writefilestree(FILE* fp, const struct repoinfo* info, const char* ref
 	return 0;
 }
 
-int writefiles(const struct repoinfo* info, const git_reference* ref, git_commit* commit) {
-	git_tree*   tree = NULL;
-	size_t      indx = 0;
-	int         ret  = -1;
-	char        path[PATH_MAX];
-	char        headoid[GIT_OID_SHA1_HEXSIZE + 1], oid[GIT_OID_SHA1_HEXSIZE + 1];
-	const char* refname = git_reference_shorthand(ref);
+int writefiles(const struct repoinfo* info, const char* refname, git_commit* commit) {
+	git_tree* tree = NULL;
+	size_t    indx = 0;
+	int       ret  = -1;
+	char      path[PATH_MAX];
+	char      headoid[GIT_OID_SHA1_HEXSIZE + 1], oid[GIT_OID_SHA1_HEXSIZE + 1];
 
 	if (!force) {
 		git_oid_tostr(headoid, sizeof(headoid), git_commit_id(commit));

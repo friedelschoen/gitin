@@ -36,7 +36,7 @@ static void writelogline(FILE* fp, git_commit* commit, const struct commitstats*
 }
 
 static void writelogcommit(FILE* fp, FILE* json, FILE* atom, const struct repoinfo* info, int index,
-                           git_oid* id) {
+                           git_oid* id, const char* refname) {
 
 	struct commitstats ci;
 	git_commit*        commit;
@@ -65,7 +65,7 @@ static void writelogcommit(FILE* fp, FILE* json, FILE* atom, const struct repoin
 		return;
 
 	if (!cachedcommit)
-		writecommitfile(info, commit, &ci, index == maxcommits);
+		writecommitfile(info, commit, &ci, index == maxcommits, refname);
 
 	writelogline(fp, commit, &ci);
 	writecommitatom(atom, commit, NULL);
@@ -76,23 +76,23 @@ static void writelogcommit(FILE* fp, FILE* json, FILE* atom, const struct repoin
 	git_tree_free(tree);
 }
 
-int writelog(const struct repoinfo* info, git_reference* ref, git_commit* head) {
+int writelog(const struct repoinfo* info, const char* refname, git_commit* head) {
 	git_revwalk* w = NULL;
 	git_oid      id;
 	ssize_t      ncommits = 0;
 	FILE *       fp, *atom, *json;
 
 	/* log for HEAD */
-	fp   = xfopen("w", "%s/%s.html", info->destdir, git_reference_shorthand(ref));
-	json = xfopen("w", "%s/%s.json", info->destdir, git_reference_shorthand(ref));
-	atom = xfopen("w", "%s/%s.xml", info->destdir, git_reference_shorthand(ref));
+	fp   = xfopen("w", "%s/%s.html", info->destdir, refname);
+	json = xfopen("w", "%s/%s.json", info->destdir, refname);
+	atom = xfopen("w", "%s/%s.xml", info->destdir, refname);
 
-	writeheader(fp, info, 0, info->name, "%y", info->description);
+	writeheader(fp, info, 0, info->name, "%s", refname);
 	fprintf(json, "{");
 	//	writerefs(fp, json, info);
 	writeshortlog(fp, info, head);
 
-	fprintf(fp, "<h2>Commits of %s</h2>", git_reference_shorthand(ref));
+	fprintf(fp, "<h2>Commits of %s</h2>", refname);
 
 	fprintf(fp, "<table id=\"log\"><thead>\n<tr><td><b>Date</b></td>"
 	            "<td class=\"expand\"><b>Commit message</b></td>"
@@ -109,22 +109,22 @@ int writelog(const struct repoinfo* info, git_reference* ref, git_commit* head) 
 		hprintf(stderr, "error: unable to initialize revwalk: %gw\n");
 		return -1;
 	}
-	git_revwalk_push(w, git_reference_target(ref));
+	git_revwalk_push(w, git_commit_id(head));
 
 	// Iterate through the commits
 	while (!git_revwalk_next(&id, w))
 		ncommits++;
 
 	git_revwalk_reset(w);
-	git_revwalk_push(w, git_reference_target(ref));
+	git_revwalk_push(w, git_commit_id(head));
 
 	// Iterate through the commits
 	ssize_t indx = 0;
 	while ((maxcommits <= 0 || indx < maxcommits) && !git_revwalk_next(&id, w)) {
-		writelogcommit(fp, json, atom, info, indx, &id);
+		writelogcommit(fp, json, atom, info, indx, &id, refname);
 		indx++;
 
-		printprogress("write log:  ", indx, ncommits);
+		printprogress(indx, ncommits, "write log:   %-20s", refname);
 	}
 	if (!verbose)
 		fputc('\n', stdout);

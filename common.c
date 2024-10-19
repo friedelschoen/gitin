@@ -168,13 +168,20 @@ int bufferread(char* buffer, size_t len, const char* format, ...) {
 	return 0;
 }
 
-void printprogress(const char* what, ssize_t indx, ssize_t ncommits) {
+void printprogress(ssize_t indx, ssize_t ncommits, const char* what, ...) {
+	va_list args;
 	if (verbose)
 		return;
 
+	printf("\r");
+	va_start(args, what);
+	vprintf(what, args);
+	va_end(args);
+	printf(" [");
+
 	// Handle zero commits case
 	if (ncommits == 0) {
-		printf("\r%s [##################################################] 100.0%% (0 / 0)", what);
+		printf("##################################################] 100.0%% (0 / 0)");
 		fflush(stdout);
 		return;
 	}
@@ -183,7 +190,6 @@ void printprogress(const char* what, ssize_t indx, ssize_t ncommits) {
 	int    bar_width = 50;    // The width of the progress bar
 
 	// Print the progress bar
-	printf("\r%s [", what);
 	int pos = (int) (bar_width * progress);
 	for (int i = 0; i < bar_width; ++i) {
 		if (i < pos)

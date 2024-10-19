@@ -48,9 +48,9 @@ static int writeref(FILE* fp, FILE* atom, FILE* json, const struct repoinfo* inf
 	        title);
 
 	for (size_t i = 0; i < nrefs; i++) {
-		writelog(info, refs[i].ref, refs[i].commit);
-		writearchive(info, refs[i].ref, refs[i].commit);
-		writefiles(info, refs[i].ref, refs[i].commit);
+		writelog(info, git_reference_shorthand(refs[i].ref), refs[i].commit);
+		writearchive(info, git_reference_shorthand(refs[i].ref), refs[i].commit);
+		writefiles(info, git_reference_shorthand(refs[i].ref), refs[i].commit);
 		writecommitatom(atom, refs[i].commit, git_reference_shorthand(refs[i].ref));
 
 		if (i > 0)
@@ -72,8 +72,9 @@ static int writeref(FILE* fp, FILE* atom, FILE* json, const struct repoinfo* inf
 		        " <small>at \"<a href=\"commit/%s.html\">%s</a>\"</small>"
 		        " <a href=\"%s.html\">[log]</a>"
 		        " <a href=\"file/%s/index.html\">[files]</a>"
-		        " <a href=\"archive/%s.tar.gz\">[archive]</a></td><td>",
-		        oid, summary, name, name, name);
+		        " <a href=\"archive/%s.tar.gz\">[%s.tar.gz]</a>"
+		        " <a href=\"archive/%s.zip\">[%s.zip]</a></td><td>",
+		        oid, summary, name, name, name, name, name, name);
 		if (author)
 			hprintf(fp, "%t", &author->when);
 		fputs("</td><td>", fp);
