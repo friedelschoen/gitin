@@ -2,6 +2,8 @@
 
 #include <ctype.h>
 #include <errno.h>
+#include <limits.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -56,9 +58,15 @@ static int boolstr(const char* str) {
 		return -1;
 }
 
-static int handle(struct config* keys, char* key, char* value) {
+static int handle(struct config* keys, char* section, char* key, char* value) {
+	char confkey[NAME_MAX];
 	for (struct config* p = keys; p->name; p++) {
-		if (!strcmp(p->name, key)) {
+		if (section)
+			snprintf(confkey, sizeof(confkey), "%s/%s", section, key);
+		else
+			strncpy(confkey, key, sizeof(confkey));
+
+		if (!strcmp(p->name, confkey)) {
 			switch (p->type) {
 				case ConfigString:
 					*(char**) p->target = value;
@@ -83,7 +91,7 @@ static int handle(struct config* keys, char* key, char* value) {
 }
 
 char* parseconfig(FILE* file, struct config* keys) {
-	char *buffer, *line, *current, *value, *key;
+	char *buffer, *line, *current, *value, *key, *section = NULL;
 
 	if (!(buffer = read_file_to_buffer(file, NULL)))
 		return NULL;
@@ -103,6 +111,15 @@ char* parseconfig(FILE* file, struct config* keys) {
 		if (value)
 			*value = '\0';
 
+		// Handle sections: [section]
+		if (*line == '[' && line[strlen(line) - 1] == ']') {
+			// Extract the section name
+			line[strlen(line) - 1] = '\0';
+
+			section = strip(line + 1);
+			continue;
+		}
+
 		value = strchr(line, '=');
 		if (!value)
 			continue;
@@ -116,7 +133,7 @@ char* parseconfig(FILE* file, struct config* keys) {
 			continue;
 
 		// Handle the key-value pair
-		if (!handle(keys, key, value)) {
+		if (!handle(keys, section, key, value)) {
 			fprintf(stderr, "warn: ignoring unknown key '%s'\n", key);
 		}
 	}
