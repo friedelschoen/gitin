@@ -16,9 +16,9 @@ struct config config_keys[] = {
 	{ "pinfiles", ConfigString, &extrapinfiles },
 	{ "splitdirectories", ConfigBoolean, &splitdirectories },
 
-	{ "cmd/highlight", ConfigString, &highlightcmd },
-	{ "cmd/pandoc", ConfigString, &pandoccmd },
-	{ "cmd/configtree", ConfigString, &configtreecmd },
+	{ "command/highlight", ConfigString, &highlightcmd },
+	{ "command/pandoc", ConfigString, &pandoccmd },
+	{ "command/configtree", ConfigString, &configtreecmd },
 
 	/* Limits for commits and file sizes */
 	{ "limit/commits", ConfigInteger, &maxcommits },
@@ -109,3 +109,11 @@ const char* commitatomfile = "atom.xml";
 const char* tagatomfile = "tags.xml";
 
 const char* default_revision = "HEAD";
+
+int archivetypes = ArchiveTarGz | ArchiveTarXz | ArchiveZip;
+
+const char* archiveexts[] = {
+	[ArchiveTarGz] = "tar.gz",
+	[ArchiveTarXz] = "tar.xz",
+	[ArchiveZip]   = "zip",
+};

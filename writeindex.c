@@ -64,11 +64,10 @@ void writeindex(const char* destdir, char** repos, int nrepos) {
 
 	index = xfopen("w+", "%s/index.html", destdir);
 	writeheader(index, NULL, 0, sitename, "%y", sitedescription);
-	fputs(
-	    "<table id=\"index\"><thead>\n"
-	    "<tr><td><b>Name</b></td><td class=\"expand\"><b>Description</b></td><td><b>Last changes</b></td></tr>"
-	    "</thead><tbody>\n",
-	    index);
+	fputs("<table id=\"index\"><thead>\n"
+	      "<tr><td>Name</td><td class=\"expand\">Description</td><td>Last changes</td></tr>"
+	      "</thead><tbody>\n",
+	      index);
 
 	qsort(repos, nrepos, sizeof(char*), sortpath);
 

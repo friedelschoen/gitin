@@ -8,6 +8,7 @@
 #include <libgen.h>
 #include <limits.h>
 #include <string.h>
+#include <sys/stat.h>
 
 // Function to write a blob (file) from the repository to the archive
 static int write_blob_to_archive(git_blob* blob, const char* path, const git_tree_entry* gitentry,
@@ -74,12 +75,12 @@ static int process_tree(git_repository* repo, git_tree* tree, const char* base_p
 }
 
 // Updated function to accept git_reference instead of branch/tag name
-int writearchive(const struct repoinfo* info, const char* refname, git_commit* commit) {
-	git_tree* tree  = NULL;
-	int       error = 0;
-	char      path[PATH_MAX];
-	char      oid[GIT_OID_SHA1_HEXSIZE + 1], configoid[GIT_OID_SHA1_HEXSIZE + 1];
-	char      escapename[NAME_MAX];
+int writearchive(const struct repoinfo* info, int type, const char* refname, git_commit* commit) {
+	git_tree*   tree = NULL;
+	char        path[PATH_MAX];
+	char        oid[GIT_OID_SHA1_HEXSIZE + 1], configoid[GIT_OID_SHA1_HEXSIZE + 1];
+	char        escapename[NAME_MAX];
+	struct stat st;
 
 	git_oid_tostr(oid, sizeof(oid), git_commit_id(commit));
 
@@ -88,27 +89,43 @@ int writearchive(const struct repoinfo* info, const char* refname, git_commit* c
 		if (*p == '/')
 			*p = '-';
 
-	if (!force && !bufferread(configoid, GIT_OID_SHA1_HEXSIZE, "%s/.cache/archives/%s",
-	                          info->destdir, escapename)) {
+	snprintf(path, sizeof(path), "%s/archive/%s.%s", info->destdir, escapename, archiveexts[type]);
+
+	if (!force &&
+	    !bufferread(configoid, GIT_OID_SHA1_HEXSIZE, "%s/.cache/archives/%s", info->destdir,
+	                escapename) &&
+	    !access(path, R_OK)) {
 		configoid[GIT_OID_SHA1_HEXSIZE] = '\0';
 		if (!strcmp(configoid, oid))
-			return 0;
+			goto getsize;
 	}
 
 	// Get the tree associated with the commit
-	error = git_commit_tree(&tree, commit);
-	if (error != 0) {
+	if (git_commit_tree(&tree, commit)) {
 		hprintf(stderr, "error: unable to get tree from commit: %gw\n");
 		git_commit_free(commit);
 		return -1;
 	}
 
-	snprintf(path, sizeof(path), "%s/archive/%s.tar.gz", info->destdir, escapename);
-
 	struct archive* a;
 	a = archive_write_new();
-	archive_write_add_filter_gzip(a);
-	archive_write_set_format_pax_restricted(a);
+	switch (type) {
+		case ArchiveTarGz:
+			archive_write_add_filter_gzip(a);
+			archive_write_set_format_pax_restricted(a);
+			break;
+		case ArchiveTarXz:
+			archive_write_add_filter_lzma(a);
+			archive_write_set_format_pax_restricted(a);
+			break;
+		case ArchiveZip:
+			archive_write_set_format_zip(a);
+			break;
+		default:
+			fprintf(stderr, "error: invalid type passed to archiver\n");
+			return -1;
+	}
+
 	if (archive_write_open_filename(a, path) != ARCHIVE_OK) {
 		fprintf(stderr, "error: unable to open archive: %s\n", archive_error_string(a));
 		git_tree_free(tree);
@@ -132,5 +149,12 @@ int writearchive(const struct repoinfo* info, const char* refname, git_commit* c
 	git_commit_free(commit);
 	archive_write_close(a);
 	archive_write_free(a);
-	return 0;
+
+getsize:
+	if (stat(path, &st)) {
+		hprintf(stderr, "error: unable to stat %s: %w\n", path);
+		return -1;
+	}
+
+	return st.st_size;
 }

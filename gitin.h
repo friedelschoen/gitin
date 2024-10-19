@@ -8,6 +8,9 @@
 #define SUMMARY 5
 
 #define LEN(s) (sizeof(s) / sizeof(*s))
+#define FORMASK(var, in)                      \
+	for (int var = 1; var <= (in); var <<= 1) \
+		if (var & (in))
 
 
 /* helper struct for pipe(2) */
@@ -15,6 +18,12 @@ typedef struct {
 	int read;
 	int write;
 } pipe_t;
+
+enum {
+	ArchiveTarGz = 1 << 0,
+	ArchiveTarXz = 1 << 1,
+	ArchiveZip   = 1 << 2,
+};
 
 enum {
 	ConfigString,
@@ -107,13 +116,13 @@ extern const char* stylesheet;
 extern long long   maxcommits;
 extern long long   maxfilesize;
 extern int         splitdirectories;
-
 extern const char* configfile;
 extern const char* jsonfile;
 extern const char* commitatomfile;
 extern const char* tagatomfile;
-
 extern const char* default_revision;
+extern int         archivetypes;
+extern const char* archiveexts[];
 
 extern int force, verbose, columnate;
 
@@ -141,9 +150,10 @@ void vhprintf(FILE* file, const char* format, va_list args);
 
 char* parseconfig(FILE* file, struct config* keys);
 
-ssize_t callcached(struct callcached_param* params);
+ssize_t     callcached(struct callcached_param* params);
+const char* splitunit(ssize_t* size);
 
-int  writearchive(const struct repoinfo* info, const char* refname, git_commit* commit);
+int  writearchive(const struct repoinfo* info, int type, const char* refname, git_commit* commit);
 void writeatomheader(FILE* fp, const struct repoinfo* info);
 void writeatomfooter(FILE* fp);
 void writecommitatom(FILE* fp, git_commit* commit, const char* tag);
