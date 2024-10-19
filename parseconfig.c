@@ -7,6 +7,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+
+typedef int bool;
+
 static char* strip(char* str) {
 	char* end;
 
@@ -80,7 +83,20 @@ static int handle(struct config* keys, char* section, char* key, char* value) {
 						        "warn: '%s' is not a boolean value, leaving '%s' untouched.\n",
 						        value, key);
 					} else {
-						*(unsigned char*) p->target = boolstr(value);
+						*(bool*) p->target = boolstr(value);
+					}
+					break;
+				case ConfigBooleanAuto:
+					if (!strcmp(value, "auto")) {
+						*(bool*) p->target = -1;
+						break;
+					}
+					if (boolstr(value) == -1) {
+						fprintf(stderr,
+						        "warn: '%s' is not a boolean value, leaving '%s' untouched.\n",
+						        value, key);
+					} else {
+						*(bool*) p->target = boolstr(value);
 					}
 					break;
 			}
