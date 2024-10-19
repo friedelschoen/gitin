@@ -304,9 +304,9 @@ void writeshortlog(FILE* fp, const struct repoinfo* info, git_commit* head) {
 		ndatecount = mergedatecount(datecount, ndatecount);
 
 	fputs("<h2>Shortlog</h2>", fp);
-	fputs("<table><thead>\n<tr><td class=\"num\"><b>Count</b></td>"
-	      "<td class=\"expand\"><b>Author</b></td>"
-	      "<td><b>E-Mail</b></td></tr>\n</thead><tbody>\n",
+	fputs("<table><thead>\n<tr><td class=\"num\">Count</td>"
+	      "<td class=\"expand\">Author</td>"
+	      "<td>E-Mail</td></tr>\n</thead><tbody>\n",
 	      fp);
 
 	for (int i = 0; i < nauthorcount; i++) {

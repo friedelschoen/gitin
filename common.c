@@ -212,3 +212,24 @@ int endswith(const char* str, const char* suffix) {
 		return 0;
 	return strncmp(str + lenstr - lensuffix, suffix, lensuffix) == 0;
 }
+
+const char* splitunit(ssize_t* size) {
+	const char* unit = "B";
+	if (*size > 1024) {
+		unit = "KiB";
+		*size /= 1024;
+		if (*size > 1024) {
+			unit = "MiB";
+			*size /= 1024;
+			if (*size > 1024) {
+				unit = "GiB";
+				*size /= 1024;
+				if (*size > 1024) {
+					unit = "TiB";
+					*size /= 1024;
+				}
+			}
+		}
+	}
+	return unit;
+}

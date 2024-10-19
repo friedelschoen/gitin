@@ -284,8 +284,8 @@ static int writefilestree(FILE* fp, const struct repoinfo* info, const char* ref
 		writeheader(fp, info, relpath, info->name, "%s in %s", basepath, refname);
 
 		fputs("<table id=\"files\"><thead>\n<tr>"
-		      "<td></td><td><b>Mode</b></td><td class=\"expand\"><b>Name</b></td>"
-		      "<td class=\"num\" align=\"right\"><b>Size</b></td>"
+		      "<td></td><td>Mode</td><td class=\"expand\">Name</td>"
+		      "<td class=\"num\" align=\"right\">Size</td>"
 		      "</tr>\n</thead><tbody>\n",
 		      fp);
 	}

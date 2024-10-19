@@ -79,8 +79,9 @@ static void writelogcommit(FILE* fp, FILE* json, FILE* atom, const struct repoin
 int writelog(const struct repoinfo* info, const char* refname, git_commit* head) {
 	git_revwalk* w = NULL;
 	git_oid      id;
-	ssize_t      ncommits = 0;
+	ssize_t      ncommits = 0, arsize;
 	FILE *       fp, *atom, *json;
+	const char*  unit;
 
 	/* log for HEAD */
 	fp   = xfopen("w", "%s/%s.html", info->destdir, refname);
@@ -89,16 +90,28 @@ int writelog(const struct repoinfo* info, const char* refname, git_commit* head)
 
 	writeheader(fp, info, 0, info->name, "%s", refname);
 	fprintf(json, "{");
-	//	writerefs(fp, json, info);
+
+	fputs("<h2>Archives</h2>", fp);
+	fputs("<table><thead>\n<tr><td class=\"expand\">Name</td>"
+	      "<td class=\"num\">Size</td></tr>\n</thead><tbody>\n",
+	      fp);
+	FORMASK(type, archivetypes) {
+		arsize = writearchive(info, type, refname, head);
+		unit   = splitunit(&arsize);
+		fprintf(fp, "<tr><td><a href=\"archive/%s.tar.gz\">%s.%s</a></td><td>%zd%s</td></tr>",
+		        refname, refname, archiveexts[type], arsize, unit);
+	}
+	fputs("</tbody></table>", fp);
+
 	writeshortlog(fp, info, head);
 
 	fprintf(fp, "<h2>Commits of %s</h2>", refname);
 
-	fprintf(fp, "<table id=\"log\"><thead>\n<tr><td><b>Date</b></td>"
-	            "<td class=\"expand\"><b>Commit message</b></td>"
-	            "<td><b>Author</b></td><td class=\"num\" align=\"right\"><b>Files</b></td>"
-	            "<td class=\"num\" align=\"right\"><b>+</b></td>"
-	            "<td class=\"num\" align=\"right\"><b>-</b></td></tr>\n</thead><tbody>");
+	fprintf(fp, "<table id=\"log\"><thead>\n<tr><td>Date</td>"
+	            "<td class=\"expand\">Commit message</td>"
+	            "<td>Author</td><td class=\"num\" align=\"right\">Files</td>"
+	            "<td class=\"num\" align=\"right\">+</td>"
+	            "<td class=\"num\" align=\"right\">-</td></tr>\n</thead><tbody>");
 
 	fprintf(json, ",\"commits\":{");
 

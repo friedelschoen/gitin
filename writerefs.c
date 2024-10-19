@@ -41,17 +41,20 @@ static int writeref(FILE* fp, FILE* atom, FILE* json, const struct repoinfo* inf
 
 	fprintf(fp,
 	        "<h2>%s</h2><table>"
-	        "<thead>\n<tr><td class=\"expand\"><b>Name</b></td>"
-	        "<td><b>Last commit date</b></td>"
-	        "<td><b>Author</b></td>\n</tr>\n"
+	        "<thead>\n<tr><td class=\"expand\">Name</td>"
+	        "<td>Last commit date</td>"
+	        "<td>Author</td>\n</tr>\n"
 	        "</thead><tbody>\n",
 	        title);
 
 	for (size_t i = 0; i < nrefs; i++) {
 		writelog(info, git_reference_shorthand(refs[i].ref), refs[i].commit);
-		writearchive(info, git_reference_shorthand(refs[i].ref), refs[i].commit);
 		writefiles(info, git_reference_shorthand(refs[i].ref), refs[i].commit);
 		writecommitatom(atom, refs[i].commit, git_reference_shorthand(refs[i].ref));
+
+		FORMASK(type, archivetypes) {
+			writearchive(info, type, git_reference_shorthand(refs[i].ref), refs[i].commit);
+		}
 
 		if (i > 0)
 			fprintf(json, ",\n");
@@ -67,14 +70,14 @@ static int writeref(FILE* fp, FILE* atom, FILE* json, const struct repoinfo* inf
 			if (*p == '/')
 				*p = '-';
 
-		hprintf(fp, "<tr><td><b>%y</b>", name);
+		hprintf(fp, "<tr><td>%y", name);
 		fprintf(fp,
 		        " <small>at \"<a href=\"commit/%s.html\">%s</a>\"</small>"
-		        " <a href=\"%s.html\">[log]</a>"
-		        " <a href=\"file/%s/index.html\">[files]</a>"
-		        " <a href=\"archive/%s.tar.gz\">[%s.tar.gz]</a>"
-		        " <a href=\"archive/%s.zip\">[%s.zip]</a></td><td>",
-		        oid, summary, name, name, name, name, name, name);
+		        " <a href=\"%s.html\">log</a>"
+		        " <a href=\"file/%s/index.html\">files</a>",
+		        oid, summary, name, name);
+
+		fputs("</td><td>", fp);
 		if (author)
 			hprintf(fp, "%t", &author->when);
 		fputs("</td><td>", fp);
