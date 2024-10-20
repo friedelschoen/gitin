@@ -29,8 +29,6 @@ struct config config_keys[] = {
 	{ "archive/tarball-lzma", ConfigBoolean, &archivetarxz },
 
 	/* Files and output configurations */
-	{ "files/json", ConfigString, &jsonfile },
-	{ "files/commit-atom", ConfigString, &commitatomfile },
 	{ "files/tag-atom", ConfigString, &tagatomfile },
 
 	{ 0 },
@@ -103,16 +101,8 @@ long long maxfilesize = 1e+5;    // 1MB
 
 /* --- Output file names --- */
 
-/* Name of the JSON file containing commit data. */
-const char* jsonfile = "commits.json";
-
-/* Name of the file used for Atom feeds of commits. */
-const char* commitatomfile = "atom.xml";
-
 /* Name of the file used for Atom feeds of tags or branches. */
 const char* tagatomfile = "tags.xml";
-
-const char* default_revision = "HEAD";
 
 int archivetypes = ArchiveTarGz | ArchiveTarXz | ArchiveZip;
 
