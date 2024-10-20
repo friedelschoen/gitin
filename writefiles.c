@@ -275,11 +275,14 @@ static int writefilestree(FILE* fp, const struct repoinfo* info, const char* ref
 	char                  entrypath[PATH_MAX], oid[8];
 	size_t                count, i;
 	struct blob           blob;
+	int                   dosplit;
 
 	xmkdirf(0777, "%s/file/%s/%s", info->destdir, refname, basepath);
 	xmkdirf(0777, "%s/blob/%s/%s", info->destdir, refname, basepath);
 
-	if (splitdirectories || !*basepath) {
+	dosplit = splitdirectories == -1 ? maxfiles > autofilelimit : splitdirectories;
+
+	if (dosplit || !*basepath) {
 		fp = xfopen("w", "%s/file/%s/%s/index.html", info->destdir, refname, basepath);
 		writeheader(fp, info, relpath, info->name, "%s in %s", basepath, refname);
 
@@ -318,7 +321,7 @@ static int writefilestree(FILE* fp, const struct repoinfo* info, const char* ref
 				writefile(info, refname, relpath, &blob);
 				writeblob(info, refname, relpath, &blob);
 
-				if (splitdirectories)
+				if (dosplit)
 					hprintf(fp, "<td><a href=\"%h.html\">%y</a></td>", entryname, entryname);
 				else
 					hprintf(fp, "<td><a href=\"%h.html\">%y</a></td>", entrypath, entrypath);
@@ -330,7 +333,7 @@ static int writefilestree(FILE* fp, const struct repoinfo* info, const char* ref
 
 				printprogress(*index, maxfiles, "write files: %-20s", refname);
 			} else if (git_object_type(obj) == GIT_OBJECT_TREE) {
-				if (splitdirectories) {
+				if (dosplit) {
 					hprintf(
 					    fp,
 					    "<tr><td><img src=\"%ricons/directory.svg\" /></td><td>d---------</td><td colspan=\"2\"><a href=\"%h/\">%y</a></td></tr>\n",
@@ -351,7 +354,7 @@ static int writefilestree(FILE* fp, const struct repoinfo* info, const char* ref
 		}
 	}
 
-	if (splitdirectories || !*basepath) {
+	if (dosplit || !*basepath) {
 		fputs("</tbody></table>", fp);
 		writefooter(fp);
 		fclose(fp);

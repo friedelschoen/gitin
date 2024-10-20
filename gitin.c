@@ -15,6 +15,7 @@
 
 
 int force = 0, verbose = 0, columnate = 0;
+int archivezip = 0, archivetargz = 0, archivetarxz = 0;
 
 static int checkrepo(const char* path) {
 	char        git_path[PATH_MAX];
@@ -138,6 +139,14 @@ int main(int argc, char** argv) {
 		configbuffer = parseconfig(config, config_keys);
 		fclose(config);
 	}
+
+	archivetypes = 0;
+	if (archivetargz)
+		archivetypes |= ArchiveTarGz;
+	if (archivetarxz)
+		archivetypes |= ArchiveTarXz;
+	if (archivezip)
+		archivetypes |= ArchiveZip;
 
 	if (recursive) {
 		if (argc == 0) {
