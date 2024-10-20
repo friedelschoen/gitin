@@ -76,6 +76,12 @@ typedef struct {
 	int write;
 } pipe_t;
 
+struct indexinfo {
+	const char* repodir;
+	char*       name;
+	char*       description;
+};
+
 struct repoinfo {
 	git_repository* repo;
 	git_reference*  head;
@@ -129,6 +135,7 @@ extern const char*   tagatomfile;
 
 /* Methods */
 int     bufferread(char* buffer, size_t len, const char* format, ...) FORMAT(3, 4);
+char*   bufferreadmalloc(FILE* fp, size_t* pbuflen);
 int     bufferwrite(const char* buffer, size_t len, const char* format, ...) FORMAT(3, 4);
 ssize_t callcached(struct callcached_param* params);
 int     endswith(const char* str, const char* suffix);
@@ -153,12 +160,11 @@ int   writefiles(const struct repoinfo* info, const char* refname, git_commit* c
 void  writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char* name,
                   const char* description, ...);
 void  writeindex(const char* destdir, char** repos, int nrepos);
-int   writeindexline(FILE* fp, const struct repoinfo* info);
 void  writejsoncommit(FILE* fp, git_commit* commit, int first);
 void  writejsonref(FILE* fp, const struct repoinfo* info, git_reference* ref, git_commit* commit);
 int   writelog(const struct repoinfo* info, const char* refname, git_commit* commit);
 void  writepreview(FILE* fp, const struct repoinfo* info, int relpath, struct blob* blob);
-void  writerepo(FILE* index, const char* repodir, const char* destination);
+void  writerepo(struct indexinfo* indexinfo, const char* destination);
 int   writerefs(FILE* fp, FILE* json, const struct repoinfo* info);
 void  writeshortlog(FILE* fp, const struct repoinfo* info, git_commit* head);
 FILE* xfopen(const char* mode, const char* format, ...) FORMAT(2, 3);

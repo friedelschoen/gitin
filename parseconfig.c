@@ -1,7 +1,6 @@
 #include "gitin.h"
 
 #include <ctype.h>
-#include <errno.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,35 +20,6 @@ static char* strip(char* str) {
 		*end-- = '\0';
 
 	return str;
-}
-
-static char* read_file_to_buffer(FILE* fp, size_t* pbuflen) {
-	size_t buflen;
-	char*  buffer;
-	fseek(fp, 0, SEEK_END);
-	buflen = ftell(fp);
-	rewind(fp);
-
-	if (!(buffer = malloc(buflen + 1)))    // +1 for null terminator
-		return NULL;
-
-	if (fread(buffer, 1, buflen, fp) != buflen) {
-		free(buffer);
-		return NULL;
-	}
-
-	for (size_t i = 0; i < buflen; i++) {
-		if (!buffer[i]) {
-			errno = EINVAL;
-			free(buffer);
-			return NULL;
-		}
-	}
-
-	buffer[buflen] = '\0';    // Null-terminate the buffer
-	if (pbuflen)
-		*pbuflen = buflen;
-	return buffer;
 }
 
 static int boolstr(const char* str) {
@@ -109,7 +79,7 @@ static int handle(struct config* keys, char* section, char* key, char* value) {
 char* parseconfig(FILE* file, struct config* keys) {
 	char *buffer, *line, *current, *value, *key, *section = NULL;
 
-	if (!(buffer = read_file_to_buffer(file, NULL)))
+	if (!(buffer = bufferreadmalloc(file, NULL)))
 		return NULL;
 
 	current = buffer;
