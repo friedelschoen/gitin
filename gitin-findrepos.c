@@ -7,6 +7,8 @@
 #include <sys/stat.h>
 
 
+int archivezip = 0, archivetargz = 0, archivetarxz = 0;    // otherwise we have linker-errors
+
 int check_git_repo(const char* path) {
 	char        git_path[PATH_MAX];
 	struct stat statbuf;

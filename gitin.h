@@ -101,6 +101,10 @@ struct repoinfo {
 /* Variables */
 extern const char*   archiveexts[];
 extern int           archivetypes;
+extern int           archivezip;
+extern int           archivetargz;
+extern int           archivetarxz;
+extern size_t        autofilelimit;
 extern struct config config_keys[];
 extern const char*   colorscheme;
 extern const char*   commitatomfile;

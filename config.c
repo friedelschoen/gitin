@@ -14,7 +14,7 @@ struct config config_keys[] = {
 	{ "stylesheet", ConfigString, &stylesheet },
 	{ "colorscheme", ConfigString, &colorscheme },
 	{ "pinfiles", ConfigString, &extrapinfiles },
-	{ "splitdirectories", ConfigBoolean, &splitdirectories },
+	{ "splitdirectories", ConfigBooleanAuto, &splitdirectories },
 
 	{ "command/highlight", ConfigString, &highlightcmd },
 	{ "command/pandoc", ConfigString, &pandoccmd },
@@ -23,6 +23,10 @@ struct config config_keys[] = {
 	/* Limits for commits and file sizes */
 	{ "limit/commits", ConfigInteger, &maxcommits },
 	{ "limit/filesize", ConfigInteger, &maxfilesize },
+
+	{ "archive/zip", ConfigBoolean, &archivezip },
+	{ "archive/tarball-gzip", ConfigBoolean, &archivetargz },
+	{ "archive/tarball-lzma", ConfigBoolean, &archivetarxz },
 
 	/* Files and output configurations */
 	{ "files/json", ConfigString, &jsonfile },
@@ -117,3 +121,5 @@ const char* archiveexts[] = {
 	[ArchiveTarXz] = "tar.xz",
 	[ArchiveZip]   = "zip",
 };
+
+size_t autofilelimit = 100;
