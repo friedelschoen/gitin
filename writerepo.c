@@ -36,7 +36,7 @@ void addpinfile(struct repoinfo* info, const char* pinfile) {
 	git_object_free(obj);
 }
 
-void writerepo(FILE* index, const char* repodir, const char* destination) {
+void writerepo(struct indexinfo* indexinfo, const char* destination) {
 	struct repoinfo info;
 	git_object*     obj = NULL;
 	FILE *          fp, *json;
@@ -45,17 +45,17 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 	char            path[PATH_MAX];
 
 	memset(&info, 0, sizeof(info));
-	info.repodir     = repodir;
+	info.repodir     = indexinfo->repodir;
 	info.description = "";
 	info.cloneurl    = "";
 	//	info.revision    = NULL;
 
 	info.relpath = 1;
-	for (const char* p = repodir + 1; p[1]; p++)
+	for (const char* p = info.repodir + 1; p[1]; p++)
 		if (*p == '/')
 			info.relpath++;
 
-	start = repodir;
+	start = info.repodir;
 	if (start[0] == '/')
 		start++;
 	/* use directory name as name */
@@ -85,7 +85,7 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 		exit(100);
 	}
 
-	if ((fp = xfopen("!.r", "%s/%s", repodir, configfile))) {
+	if ((fp = xfopen("!.r", "%s/%s", info.repodir, configfile))) {
 		struct config keys[] = {
 			{ "description", ConfigString, &info.description },
 			{ "url", ConfigString, &info.description },
@@ -97,23 +97,6 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 		confbuffer = parseconfig(fp, keys);
 		fclose(fp);
 	}
-
-	// if (!info.revision) {
-	// 	info.revision = default_revision;
-	// 	printf("warn: branch of %s is not set, assuming %s\n", info.name, info.revision);
-	// }
-
-	// if (git_revparse_single(&obj, info.repo, info.revision)) {
-	// 	hprintf(stderr, "error: unable to get reference: %gw\n");
-	// 	return;
-	// }
-
-	// if (git_object_type(obj) != GIT_OBJECT_COMMIT) {
-	// 	fprintf(stderr, "error: revision %s is not pointing to a commit\n", info.revision);
-	// 	return;
-	// }
-
-	// info.commit = (git_commit*) obj;
 
 	/* check pinfiles */
 	for (int i = 0; pinfiles[i] && info.pinfileslen < MAXPINS; i++) {
@@ -154,8 +137,9 @@ void writerepo(FILE* index, const char* repodir, const char* destination) {
 	snprintf(path, sizeof(path), "%s/file/HEAD", info.destdir);
 	symlink(git_reference_shorthand(info.head), path);
 
-	if (index)
-		writeindexline(index, &info);
+	// expect it to be malloced
+	indexinfo->name        = strdup(info.name);
+	indexinfo->description = strdup(info.description);
 
 	/* cleanup */
 	git_reference_free(info.head);

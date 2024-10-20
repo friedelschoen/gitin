@@ -77,8 +77,8 @@ static void findrepos(const char* base_path, char*** repos, int* size) {
 
 static __attribute__((noreturn)) void usage(const char* argv0, int exitcode) {
 	fprintf(stderr,
-	        "usage: %s [-fhu] [-C workdir] [-d destdir] repos...\n"
-	        "   or: %s [-fhu] [-C workdir] [-d destdir] -r startdir\n",
+	        "usage: %s [-fhrsVv] [-C workdir] [-d destdir] repos...\n"
+	        "   or: %s [-fhrsVv] [-C workdir] [-d destdir] -r startdir\n",
 	        argv0, argv0);
 	exit(exitcode);
 }
@@ -86,7 +86,7 @@ static __attribute__((noreturn)) void usage(const char* argv0, int exitcode) {
 int main(int argc, char** argv) {
 	const char* self    = argv[0];
 	const char *destdir = ".", *pwd = NULL;
-	int         update = 0, recursive = 0;
+	int         recursive    = 0;
 	char**      repos        = NULL;
 	int         nrepos       = 0;
 	char*       configbuffer = NULL;
@@ -110,9 +110,6 @@ int main(int argc, char** argv) {
 			break;
 		case 's':
 			columnate = 1;
-			break;
-		case 'u':
-			update = 1;
 			break;
 		case 'V':
 			printf("gitin v%s\n", VERSION);
@@ -173,13 +170,7 @@ int main(int argc, char** argv) {
 	/* do not require the git repository to be owned by the current user */
 	git_libgit2_opts(GIT_OPT_SET_OWNER_VALIDATION, 0);
 
-	if (!update) {
-		writeindex(destdir, repos, nrepos);
-	} else {
-		for (int i = 0; i < nrepos; i++) {
-			writerepo(NULL, repos[i], destdir);
-		}
-	}
+	writeindex(destdir, repos, nrepos);
 
 	git_libgit2_shutdown();
 
