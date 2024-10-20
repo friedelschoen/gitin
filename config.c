@@ -27,6 +27,7 @@ struct config config_keys[] = {
 	{ "archive/zip", ConfigBoolean, &archivezip },
 	{ "archive/tarball-gzip", ConfigBoolean, &archivetargz },
 	{ "archive/tarball-lzma", ConfigBoolean, &archivetarxz },
+	{ "archive/tarball-bzip2", ConfigBoolean, &archivetarbz2 },
 
 	/* Files and output configurations */
 	{ "files/tag-atom", ConfigString, &tagatomfile },

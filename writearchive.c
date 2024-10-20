@@ -118,6 +118,10 @@ int writearchive(const struct repoinfo* info, int type, const char* refname, git
 			archive_write_add_filter_lzma(a);
 			archive_write_set_format_pax_restricted(a);
 			break;
+		case ArchiveTarBz2:
+			archive_write_add_filter_bzip2(a);    // Use bzip2 compression (older, still used)
+			archive_write_set_format_pax_restricted(a);    // Set to restricted PAX format
+			break;
 		case ArchiveZip:
 			archive_write_set_format_zip(a);
 			break;
