@@ -3,6 +3,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+
 ssize_t callcached(struct callcached_param* params) {
 	static char buffer[512];
 	ssize_t     n = 0;
@@ -17,7 +18,7 @@ ssize_t callcached(struct callcached_param* params) {
 	                              params->cachename, params->contenthash))) {
 		n = 0;
 		while ((readlen = fread(buffer, 1, sizeof(buffer), cache)) > 0) {
-			fwrite(buffer, 1, readlen, params->fp);
+			fwrite(buffer, 1, readlen, cache);
 			n += readlen;
 		}
 		fclose(cache);

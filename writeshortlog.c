@@ -252,9 +252,12 @@ void writeshortlog(FILE* fp, const struct repoinfo* info, git_commit* head) {
 		}
 
 		datecount[ndatecount - 1].count++;
+
+		git_commit_free(commit);
 	}
 
 	git_revwalk_free(w);
+	w = NULL;
 
 	if (git_reference_iterator_new(&iter, info->repo))
 		return;
@@ -291,6 +294,7 @@ void writeshortlog(FILE* fp, const struct repoinfo* info, git_commit* head) {
 
 		git_reference_free(ref);
 		git_commit_free(commit);
+		ref = NULL, commit = NULL;
 	}
 	git_reference_iterator_free(iter);
 

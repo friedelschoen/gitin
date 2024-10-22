@@ -48,7 +48,6 @@ void writerepo(struct indexinfo* indexinfo, const char* destination) {
 	info.repodir     = indexinfo->repodir;
 	info.description = "";
 	info.cloneurl    = "";
-	//	info.revision    = NULL;
 
 	info.relpath = 1;
 	for (const char* p = info.repodir + 1; p[1]; p++)

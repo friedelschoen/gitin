@@ -76,11 +76,12 @@ static int process_tree(git_repository* repo, git_tree* tree, const char* base_p
 
 // Updated function to accept git_reference instead of branch/tag name
 int writearchive(const struct repoinfo* info, int type, const char* refname, git_commit* commit) {
-	git_tree*   tree = NULL;
-	char        path[PATH_MAX];
-	char        oid[GIT_OID_SHA1_HEXSIZE + 1], configoid[GIT_OID_SHA1_HEXSIZE + 1];
-	char        escapename[NAME_MAX];
-	struct stat st;
+	git_tree*       tree = NULL;
+	char            path[PATH_MAX];
+	char            oid[GIT_OID_SHA1_HEXSIZE + 1], configoid[GIT_OID_SHA1_HEXSIZE + 1];
+	char            escapename[NAME_MAX];
+	struct stat     st;
+	struct archive* a;
 
 	git_oid_tostr(oid, sizeof(oid), git_commit_id(commit));
 
@@ -94,7 +95,7 @@ int writearchive(const struct repoinfo* info, int type, const char* refname, git
 	if (!force &&
 	    !bufferread(configoid, GIT_OID_SHA1_HEXSIZE, "%s/.cache/archives/%s", info->destdir,
 	                escapename) &&
-	    !access(path, R_OK)) {
+	    access(path, R_OK)) {
 		configoid[GIT_OID_SHA1_HEXSIZE] = '\0';
 		if (!strcmp(configoid, oid))
 			goto getsize;
@@ -107,7 +108,6 @@ int writearchive(const struct repoinfo* info, int type, const char* refname, git
 		return -1;
 	}
 
-	struct archive* a;
 	a = archive_write_new();
 	switch (type) {
 		case ArchiveTarGz:
@@ -116,6 +116,10 @@ int writearchive(const struct repoinfo* info, int type, const char* refname, git
 			break;
 		case ArchiveTarXz:
 			archive_write_add_filter_lzma(a);
+			archive_write_set_format_pax_restricted(a);
+			break;
+		case ArchiveTarBz2:
+			archive_write_add_filter_bzip2(a);
 			archive_write_set_format_pax_restricted(a);
 			break;
 		case ArchiveZip:
@@ -129,7 +133,6 @@ int writearchive(const struct repoinfo* info, int type, const char* refname, git
 	if (archive_write_open_filename(a, path) != ARCHIVE_OK) {
 		fprintf(stderr, "error: unable to open archive: %s\n", archive_error_string(a));
 		git_tree_free(tree);
-		git_commit_free(commit);
 		return -1;
 	}
 
@@ -137,7 +140,6 @@ int writearchive(const struct repoinfo* info, int type, const char* refname, git
 	if (process_tree(info->repo, tree, "", a) != 0) {
 		hprintf(stderr, "error: unable to process tree: %gw\n");
 		git_tree_free(tree);
-		git_commit_free(commit);
 		archive_write_close(a);
 		archive_write_free(a);
 		return -1;
@@ -146,7 +148,6 @@ int writearchive(const struct repoinfo* info, int type, const char* refname, git
 	bufferwrite(oid, GIT_OID_SHA1_HEXSIZE, "%s/.cache/archives/%s", info->destdir, escapename);
 
 	git_tree_free(tree);
-	git_commit_free(commit);
 	archive_write_close(a);
 	archive_write_free(a);
 

@@ -2,8 +2,12 @@
 
 import yaml
 import configparser
-import tomllib  # For Python >= 3.11, otherwise use 'import toml'
 import sys
+
+try:
+    import tomllib  # For Python >= 3.11
+except ImportError:
+    import toml     # For Python <= 3.10
 
 def writehtml(data, indent_level=0):
     indent = "    " * indent_level

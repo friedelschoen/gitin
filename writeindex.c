@@ -98,10 +98,10 @@ struct indexinfo* parsecache(char* buffer, int* count) {
 
 void writeindex(const char* destdir, char** repos, int nrepos) {
 	FILE *            fp, *cachefp;
-	char*             cache;
-	size_t            cachesize;
-	struct indexinfo* indexes;
-	int               nindexes = 0;
+	char*             cache     = NULL;
+	size_t            cachesize = 0;
+	struct indexinfo* indexes   = NULL;
+	int               nindexes  = 0;
 	xmkdirf(0777, "%s", destdir);
 	xmkdirf(0777, "!%s/.cache", destdir);
 
@@ -146,7 +146,6 @@ void writeindex(const char* destdir, char** repos, int nrepos) {
 	const char* category    = NULL;
 	int         categorylen = 0, curlen;
 	for (int i = 0; i < nindexes; i++) {
-
 		curlen = strchr(indexes[i].repodir, '/')
 		           ? strrchr(indexes[i].repodir, '/') - indexes[i].repodir
 		           : 0;

@@ -370,9 +370,8 @@ int writefiles(const struct repoinfo* info, const char* refname, git_commit* com
 	char      path[PATH_MAX];
 	char      headoid[GIT_OID_SHA1_HEXSIZE + 1], oid[GIT_OID_SHA1_HEXSIZE + 1];
 
+	git_oid_tostr(headoid, sizeof(headoid), git_commit_id(commit));
 	if (!force) {
-		git_oid_tostr(headoid, sizeof(headoid), git_commit_id(commit));
-
 		if (!bufferread(oid, GIT_OID_SHA1_HEXSIZE, "%s/.cache/filetree", info->destdir)) {
 			oid[GIT_OID_SHA1_HEXSIZE] = '\0';
 			if (!strcmp(oid, headoid))

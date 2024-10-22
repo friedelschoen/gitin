@@ -15,7 +15,7 @@
 
 
 int force = 0, verbose = 0, columnate = 0;
-int archivezip = 0, archivetargz = 0, archivetarxz = 0;
+int archivezip = 0, archivetargz = 0, archivetarxz = 0, archivetarbz2 = 0;
 
 static int checkrepo(const char* path) {
 	char        git_path[PATH_MAX];
@@ -142,6 +142,8 @@ int main(int argc, char** argv) {
 		archivetypes |= ArchiveTarGz;
 	if (archivetarxz)
 		archivetypes |= ArchiveTarXz;
+	if (archivetarbz2)
+		archivetypes |= ArchiveTarBz2;
 	if (archivezip)
 		archivetypes |= ArchiveZip;
 
