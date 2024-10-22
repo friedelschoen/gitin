@@ -28,12 +28,14 @@ void freeheadfiles(struct repoinfo* info) {
 
 void addpinfile(struct repoinfo* info, const char* pinfile) {
 	char        path[PATH_MAX];
-	git_object* obj;
+	git_object* obj = NULL;
 
 	snprintf(path, sizeof(path), "HEAD:%s", pinfile);
-	if (!git_revparse_single(&obj, info->repo, path) && git_object_type(obj) == GIT_OBJECT_BLOB)
-		info->pinfiles[info->pinfileslen++] = pinfile;
-	git_object_free(obj);
+	if (!git_revparse_single(&obj, info->repo, path)) {
+		if (git_object_type(obj) == GIT_OBJECT_BLOB)
+			info->pinfiles[info->pinfileslen++] = pinfile;
+		git_object_free(obj);
+	}
 }
 
 void writerepo(struct indexinfo* indexinfo, const char* destination) {
@@ -115,11 +117,11 @@ void writerepo(struct indexinfo* indexinfo, const char* destination) {
 		addpinfile(&info, start);
 	}
 
-	if (!git_revparse_single(&obj, info.repo, "HEAD:.gitmodules") &&
-	    git_object_type(obj) == GIT_OBJECT_BLOB)
-		info.submodules = ".gitmodules";
-	git_object_free(obj);
-
+	if (!git_revparse_single(&obj, info.repo, "HEAD:.gitmodules")) {
+		if (git_object_type(obj) == GIT_OBJECT_BLOB)
+			info.submodules = ".gitmodules";
+		git_object_free(obj);
+	}
 	//	writefiles(&info);
 
 

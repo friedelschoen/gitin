@@ -1,6 +1,7 @@
 #include "gitin.h"
 
 #include <git2/commit.h>
+#include <git2/refs.h>
 #include <git2/revwalk.h>
 #include <string.h>
 #include <time.h>
@@ -137,54 +138,52 @@ static void writediagram(FILE* file, struct datecount* datecount, int ndatecount
 }
 
 int mergedatecount(struct datecount* datecount, int ndatecount) {
-	struct datecount* merged = malloc((ndatecount / DAYSINMONTH + 1) * sizeof(struct datecount));
-	if (!merged) {
-		fprintf(stderr, "error: unable to allocate memory\n");
-		return 0;
-	}
+	// Initialize the first month with the first day
+	int writeptr = 0;
 
-	int       merged_index   = 0;
 	time_t    first_day_secs = datecount[0].day * SECONDSINDAY;
 	struct tm first_day;
+
+	if (ndatecount == 0)
+		return 0;
+
 	gmtime_r(&first_day_secs, &first_day);
 
-	merged[merged_index].day     = datecount[0].day;    // Initialize with the first day
-	merged[merged_index].count   = 0;
-	merged[merged_index].refs[0] = '\0';
-
-	for (int i = 0; i < ndatecount; i++) {
-		time_t    current_secs = datecount[i].day * SECONDSINDAY;
+	// Iterate through the rest of datecount
+	for (int readptr = 1; readptr < ndatecount; readptr++) {
+		time_t    current_secs = datecount[readptr].day * SECONDSINDAY;
 		struct tm current_day;
 		gmtime_r(&current_secs, &current_day);
 
 		if (current_day.tm_mon == first_day.tm_mon && current_day.tm_year == first_day.tm_year) {
-			// Same month, accumulate the counts
-			merged[merged_index].count += datecount[i].count;
-			if (*datecount[i].refs) {
-				if (*merged[merged_index].refs) {
-					strncat(merged[merged_index].refs, ", ",
-					        sizeof(merged[merged_index].refs) - strlen(merged[merged_index].refs) -
-					            1);
+			// Same month, accumulate counts
+			datecount[writeptr].count += datecount[readptr].count;
+
+			// Append references if present
+			if (*datecount[readptr].refs) {
+				if (*datecount[writeptr].refs) {
+					strncat(datecount[writeptr].refs, ", ",
+					        MAXREFS - strlen(datecount[writeptr].refs) - 1);
 				}
-				strncat(merged[merged_index].refs, datecount[i].refs,
-				        sizeof(merged[merged_index].refs) - strlen(merged[merged_index].refs) - 1);
+				strncat(datecount[writeptr].refs, datecount[readptr].refs,
+				        MAXREFS - strlen(datecount[writeptr].refs) - 1);
 			}
 		} else {
 			// Move to the next month
-			merged_index++;
-			merged[merged_index].day   = datecount[i].day;
-			merged[merged_index].count = datecount[i].count;
-			memcpy(merged[merged_index].refs, datecount[i].refs, MAXREFS);
+			writeptr++;
 
+			// Copy the new month entry to the next position
+			datecount[writeptr].day   = datecount[readptr].day;
+			datecount[writeptr].count = datecount[readptr].count;
+			strncpy(datecount[writeptr].refs, datecount[readptr].refs, MAXREFS - 1);
+			datecount[writeptr].refs[MAXREFS - 1] = '\0';
+
+			// Update first_day for the new month
 			first_day = current_day;
 		}
 	}
 
-	// Copy the merged results back into datecount
-	memcpy(datecount, merged, sizeof(struct datecount) * (merged_index + 1));
-	free(merged);
-
-	return merged_index + 1;    // Return the number of merged entries (per month)
+	return writeptr + 1;    // Return the number of merged entries
 }
 
 void writeshortlog(FILE* fp, const struct repoinfo* info, git_commit* head) {
@@ -197,7 +196,7 @@ void writeshortlog(FILE* fp, const struct repoinfo* info, git_commit* head) {
 	const git_signature*    author;
 	size_t                  previous;
 	git_reference_iterator* iter = NULL;
-	git_reference*          ref  = NULL;
+	git_reference *         ref = NULL, *newref = NULL;
 	size_t                  days;
 
 	git_revwalk_new(&w, info->repo);
@@ -208,8 +207,7 @@ void writeshortlog(FILE* fp, const struct repoinfo* info, git_commit* head) {
 			hprintf(stderr, "warn: unable to lookup commit: %gw\n");
 			continue;
 		}
-		if (!(author = git_commit_author(commit)))
-			continue;
+		author = git_commit_author(commit);
 
 		days = author->when.time / SECONDSINDAY;
 
@@ -230,19 +228,12 @@ void writeshortlog(FILE* fp, const struct repoinfo* info, git_commit* head) {
 		if (ndatecount == 0)
 			previous = days + 1;
 
-		// we expect that commits are in chronological order
-		if (previous < days)
-			continue;
-
-		size_t gap = previous - days;
-		for (size_t i = 0; i < gap; i++) {
+		while (previous-- > days) {
 			// make space for new author
 			if (!(datecount = realloc(datecount, (ndatecount + 1) * sizeof(*datecount)))) {
 				fprintf(stderr, "error: unable to allocate memory\n");
 				exit(100);
 			}
-
-			previous--;
 
 			// init new date
 			datecount[ndatecount].count   = 0;
@@ -251,7 +242,8 @@ void writeshortlog(FILE* fp, const struct repoinfo* info, git_commit* head) {
 			ndatecount++;
 		}
 
-		datecount[ndatecount - 1].count++;
+		if (previous == days)
+			datecount[ndatecount - 1].count++;
 
 		git_commit_free(commit);
 	}
@@ -269,8 +261,11 @@ void writeshortlog(FILE* fp, const struct repoinfo* info, git_commit* head) {
 			continue;
 		}
 
-		if (git_reference_resolve(&ref, ref))
+		if (git_reference_resolve(&newref, ref))
 			continue;
+
+		git_reference_free(ref);
+		ref = newref;
 
 		if (git_reference_peel((git_object**) &commit, ref, GIT_OBJECT_COMMIT))
 			continue;
@@ -280,14 +275,13 @@ void writeshortlog(FILE* fp, const struct repoinfo* info, git_commit* head) {
 		for (int i = 0; i < ndatecount; i++) {
 			if (datecount[i].day == days) {
 				if (*datecount[i].refs)
-					strncat(datecount[i].refs, ", ", sizeof(datecount[i].refs));
+					strncat(datecount[i].refs, ", ", MAXREFS);
 
 				if (git_reference_is_tag(ref))
-					strncat(datecount[i].refs, "[", sizeof(datecount[i].refs));
-				strncat(datecount[i].refs, git_reference_shorthand(ref),
-				        sizeof(datecount[i].refs) - 1);
+					strncat(datecount[i].refs, "[", MAXREFS);
+				strncat(datecount[i].refs, git_reference_shorthand(ref), MAXREFS - 1);
 				if (git_reference_is_tag(ref))
-					strncat(datecount[i].refs, "]", sizeof(datecount[i].refs));
+					strncat(datecount[i].refs, "]", MAXREFS);
 				break;
 			}
 		}
