@@ -1,7 +1,9 @@
 #include "gitin.h"
 
 #include <git2/commit.h>
+#include <git2/diff.h>
 #include <git2/oid.h>
+#include <git2/tree.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -147,6 +149,9 @@ int getdiff(struct commitstats* ci, const struct repoinfo* info, git_commit* com
 	}
 
 	git_diff_free(diff);
+	git_commit_free(parent);
+	git_tree_free(commit_tree);
+	git_tree_free(parent_tree);
 
 	if ((fp = xfopen("!.w", "%s/.cache/diffs/%s", info->destdir, oid))) {
 		dumpdiff(fp, ci);
@@ -157,6 +162,10 @@ int getdiff(struct commitstats* ci, const struct repoinfo* info, git_commit* com
 
 err:
 	git_diff_free(diff);
+	git_commit_free(parent);
+	git_tree_free(commit_tree);
+	git_tree_free(parent_tree);
+
 	freediff(ci);
 	return -1;
 }

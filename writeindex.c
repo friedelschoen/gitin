@@ -80,7 +80,7 @@ struct indexinfo* parsecache(char* buffer, int* count) {
 		*description++ = '\0';    // Null-terminate name field
 
 		// Allocate more space for the new index
-		indexes                     = realloc(indexes, (*count + 1) * sizeof(struct indexinfo));
+		indexes                     = realloc(indexes, (*count + 1) * sizeof(*indexes));
 		indexes[*count].repodir     = start;
 		indexes[*count].name        = name;
 		indexes[*count].description = description;
@@ -169,4 +169,5 @@ void writeindex(const char* destdir, char** repos, int nrepos) {
 	writefooter(fp);
 	fclose(fp);
 	free(cache);
+	free(indexes);
 }

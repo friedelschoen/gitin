@@ -116,7 +116,7 @@ int writerefs(FILE* fp, FILE* json, const struct repoinfo* info) {
 	size_t                  nbranches = 0, ntags = 0;
 	git_reference_iterator* iter   = NULL;
 	git_commit*             commit = NULL;
-	git_reference*          ref    = NULL;
+	git_reference *         ref = NULL, *newref = NULL;
 	FILE*                   atom;
 
 	if (git_reference_iterator_new(&iter, info->repo))
@@ -129,8 +129,11 @@ int writerefs(FILE* fp, FILE* json, const struct repoinfo* info) {
 			continue;
 		}
 
-		if (git_reference_resolve(&ref, ref))
+		if (git_reference_resolve(&newref, ref))
 			continue;
+
+		git_reference_free(ref);
+		ref = newref;
 
 		if (git_reference_peel((git_object**) &commit, ref, GIT_OBJECT_COMMIT))
 			continue;
