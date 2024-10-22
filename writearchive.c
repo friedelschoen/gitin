@@ -95,7 +95,7 @@ int writearchive(const struct repoinfo* info, int type, const char* refname, git
 	if (!force &&
 	    !bufferread(configoid, GIT_OID_SHA1_HEXSIZE, "%s/.cache/archives/%s", info->destdir,
 	                escapename) &&
-	    access(path, R_OK)) {
+	    !access(path, R_OK)) {
 		configoid[GIT_OID_SHA1_HEXSIZE] = '\0';
 		if (!strcmp(configoid, oid))
 			goto getsize;
