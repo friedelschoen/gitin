@@ -71,8 +71,8 @@ static void writediagram(FILE* file, struct datecount* datecount, int ndatecount
 	    width, height);
 
 	// Scaling factors for graph
-	float x_scale = (float) (width - 2 * xpadding) / (ndatecount - 1);
-	float y_scale = (float) (height - refpadding - textpadding) / max_commits;
+	double x_scale = (double) (width - 2 * xpadding) / (ndatecount - 1);
+	double y_scale = (double) (height - refpadding - textpadding) / max_commits;
 
 	// Draw the line graph from right to left
 	for (int i = 0; i < ndatecount - 1; i++) {

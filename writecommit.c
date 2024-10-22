@@ -203,9 +203,9 @@ void writecommitfile(const struct repoinfo* info, git_commit* commit, const stru
 		total   = sizeof(linestr) - 2;
 		if (changed > total) {
 			if (add)
-				add = ((float) total / changed * add) + 1;
+				add = ((double) total / changed * add) + 1;
 			if (del)
-				del = ((float) total / changed * del) + 1;
+				del = ((double) total / changed * del) + 1;
 		}
 		memset(&linestr, '+', add);
 		memset(&linestr[add], '-', del);
