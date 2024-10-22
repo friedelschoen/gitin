@@ -27,6 +27,7 @@ struct config config_keys[] = {
 	{ "archive/zip", ConfigBoolean, &archivezip },
 	{ "archive/tarball-gzip", ConfigBoolean, &archivetargz },
 	{ "archive/tarball-lzma", ConfigBoolean, &archivetarxz },
+	{ "archive/tarball-bzip2", ConfigBoolean, &archivetarbz2 },
 
 	/* Files and output configurations */
 	{ "files/tag-atom", ConfigString, &tagatomfile },
@@ -104,12 +105,13 @@ long long maxfilesize = 1e+5;    // 1MB
 /* Name of the file used for Atom feeds of tags or branches. */
 const char* tagatomfile = "tags.xml";
 
-int archivetypes = ArchiveTarGz | ArchiveTarXz | ArchiveZip;
+int archivetypes = 0;
 
 const char* archiveexts[] = {
-	[ArchiveTarGz] = "tar.gz",
-	[ArchiveTarXz] = "tar.xz",
-	[ArchiveZip]   = "zip",
+	[ArchiveTarGz]  = "tar.gz",
+	[ArchiveTarXz]  = "tar.xz",
+	[ArchiveTarBz2] = "tar.bz2",
+	[ArchiveZip]    = "zip",
 };
 
 size_t autofilelimit = 100;

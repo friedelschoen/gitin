@@ -7,7 +7,7 @@ PREFIX ?= /usr/local
 
 # flags
 CC 		 ?= gcc
-CFLAGS 	 += -Wall -Wextra -Wpedantic -Werror -O2 -g \
+CFLAGS 	 += -Wall -Wextra -Wpedantic -Werror \
 		    $(shell pkg-config --cflags $(LIBS))
 CPPFLAGS += -D_XOPEN_SOURCE=700 -D_GNU_SOURCE -DVERSION=\"$(VERSION)\" -DGIT_DEPRECATE_HARD
 LDFLAGS  += $(shell pkg-config --libs $(LIBS))
@@ -15,6 +15,13 @@ LDFLAGS  += $(shell pkg-config --libs $(LIBS))
 ifeq ($(CC),gcc)
 CFLAGS += -Wno-stringop-truncation \
 		  -Wno-format-truncation
+endif
+
+ifneq ($(DEBUG),)
+CFLAGS += -g -O0
+CPPFLAGS += -DDEBUG
+else
+CFLAGS += -O2
 endif
 
 BINS = gitin gitin-findrepos gitin-configtree

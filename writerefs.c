@@ -16,19 +16,12 @@ struct referenceinfo {
 static int refs_cmp(const void* v1, const void* v2) {
 	const struct referenceinfo *r1 = v1, *r2 = v2;
 	time_t                      t1, t2;
-	int                         r;
-	const git_signature *       author1, *author2;
 
-	if ((r = git_reference_is_tag(r1->ref) - git_reference_is_tag(r2->ref)))
-		return r;
+	t1 = git_commit_time(r1->commit);
+	t2 = git_commit_time(r2->commit);
 
-	author1 = git_commit_author(r1->commit);
-	author2 = git_commit_author(r2->commit);
-
-	t1 = author1 ? author1->when.time : 0;
-	t2 = author2 ? author2->when.time : 0;
-	if ((r = t1 > t2 ? -1 : (t1 == t2 ? 0 : 1)))
-		return r;
+	if (t1 != t2)
+		return t2 - t1;
 
 	return strcmp(git_reference_shorthand(r1->ref), git_reference_shorthand(r2->ref));
 }
@@ -36,8 +29,10 @@ static int refs_cmp(const void* v1, const void* v2) {
 static int writeref(FILE* fp, FILE* atom, FILE* json, const struct repoinfo* info,
                     struct referenceinfo* refs, size_t nrefs, const char* title) {
 	char                 escapename[NAME_MAX], oid[GIT_OID_SHA1_HEXSIZE + 1];
-	const char *         name, *summary;
+	const char *         name, *summary, *refname;
 	const git_signature* author;
+	git_reference*       ref;
+	git_commit*          commit;
 
 	fprintf(fp,
 	        "<h2>%s</h2><table>"
@@ -48,22 +43,26 @@ static int writeref(FILE* fp, FILE* atom, FILE* json, const struct repoinfo* inf
 	        title);
 
 	for (size_t i = 0; i < nrefs; i++) {
-		writelog(info, git_reference_shorthand(refs[i].ref), refs[i].commit);
-		writefiles(info, git_reference_shorthand(refs[i].ref), refs[i].commit);
-		writecommitatom(atom, refs[i].commit, git_reference_shorthand(refs[i].ref));
+		ref     = refs[i].ref;
+		commit  = refs[i].commit;
+		refname = git_reference_shorthand(ref);
+
+		writelog(info, refname, commit);
+		writefiles(info, refname, commit);
+		writecommitatom(atom, commit, refname);
 
 		FORMASK(type, archivetypes) {
-			writearchive(info, type, git_reference_shorthand(refs[i].ref), refs[i].commit);
+			writearchive(info, type, refname, commit);
 		}
 
 		if (i > 0)
 			fprintf(json, ",\n");
-		writejsonref(json, info, refs[i].ref, refs[i].commit);
+		writejsonref(json, info, ref, commit);
 
-		name    = git_reference_shorthand(refs[i].ref);
-		author  = git_commit_author(refs[i].commit);
-		summary = git_commit_summary(refs[i].commit);
-		git_oid_tostr(oid, sizeof(oid), git_commit_id(refs[i].commit));
+		name    = refname;
+		author  = git_commit_author(commit);
+		summary = git_commit_summary(commit);
+		git_oid_tostr(oid, sizeof(oid), git_commit_id(commit));
 
 		strlcpy(escapename, name, sizeof(escapename));
 		for (char* p = escapename; *p; p++)
@@ -91,14 +90,16 @@ static int writeref(FILE* fp, FILE* atom, FILE* json, const struct repoinfo* inf
 	return 0;
 }
 
-#define ADDREF(refs, nrefs)                                                      \
-	{                                                                            \
-		if (!(refs = realloc(refs, (nrefs + 1) * sizeof(struct referenceinfo)))) \
-			return -1;                                                           \
-                                                                                 \
-		refs[nrefs].ref    = ref;                                                \
-		refs[nrefs].commit = commit;                                             \
-		nrefs++;                                                                 \
+#define ADDREF(refs, nrefs)                                                     \
+	{                                                                           \
+		if (!(refs = realloc(refs, (nrefs + 1) * sizeof(*refs)))) {             \
+			hprintf(stderr, "error: unable to alloc memory for \"" #refs "\""); \
+			continue;                                                           \
+		}                                                                       \
+                                                                                \
+		refs[nrefs].ref    = ref;                                               \
+		refs[nrefs].commit = commit;                                            \
+		nrefs++;                                                                \
 	}
 
 static void freeref(struct referenceinfo* refs, size_t nrefs) {

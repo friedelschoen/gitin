@@ -15,9 +15,10 @@
 
 /* Enums */
 enum {
-	ArchiveTarGz = 1 << 0,
-	ArchiveTarXz = 1 << 1,
-	ArchiveZip   = 1 << 2,
+	ArchiveTarGz  = 1 << 0,
+	ArchiveTarXz  = 1 << 1,
+	ArchiveTarBz2 = 1 << 2,
+	ArchiveZip    = 1 << 3,
 };
 
 enum {
@@ -108,6 +109,7 @@ struct repoinfo {
 extern const char*   archiveexts[];
 extern int           archivetypes;
 extern int           archivezip;
+extern int           archivetarbz2;
 extern int           archivetargz;
 extern int           archivetarxz;
 extern size_t        autofilelimit;
