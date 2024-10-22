@@ -165,6 +165,7 @@ static void writeblob(const struct repoinfo* info, const char* refname, int relp
 
 	snprintf(hashpath + n, sizeof(hashpath) - n, ".cache/blobs/%x-%s", blob->hash, blob->name);
 	snprintf(destpath, sizeof(destpath), "%s/blob/%s/%s", info->destdir, refname, blob->path);
+	unhide_path(destpath);
 	unlink(destpath);
 	if (symlink(hashpath, destpath))
 		fprintf(stderr, "error: unable to create symlink %s -> %s\n", destpath, hashpath);
@@ -207,6 +208,7 @@ static void writefile(const struct repoinfo* info, const char* refname, int relp
 	}
 	snprintf(hashpath + n, sizeof(hashpath) - n, ".cache/files/%x-%s.html", blob->hash, blob->name);
 	snprintf(destpath, sizeof(destpath), "%s/file/%s/%s.html", info->destdir, refname, blob->path);
+	unhide_path(destpath);
 	unlink(destpath);
 	if (symlink(hashpath, destpath))
 		fprintf(stderr, "error: unable to create symlink %s -> %s\n", destpath, hashpath);
