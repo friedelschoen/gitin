@@ -10,7 +10,7 @@
 
 
 // Function to dump the commitstats struct into a file
-static void dumpdiff(FILE* fp, const struct commitstats* stats) {
+static void dumpdiff(FILE* fp, const struct commitinfo* stats) {
 	// Write commitstats fields
 	fwrite(&stats->addcount, sizeof(size_t), 1, fp);
 	fwrite(&stats->delcount, sizeof(size_t), 1, fp);
@@ -26,7 +26,7 @@ static void dumpdiff(FILE* fp, const struct commitstats* stats) {
 }
 
 // Function to parse the commitstats struct from a file
-static void loaddiff(FILE* fp, struct commitstats* stats) {
+static void loaddiff(FILE* fp, struct commitinfo* stats) {
 	// Read commitstats fields
 	fread(&stats->addcount, sizeof(size_t), 1, fp);
 	fread(&stats->delcount, sizeof(size_t), 1, fp);
@@ -52,7 +52,7 @@ static void loaddiff(FILE* fp, struct commitstats* stats) {
 	}
 }
 
-int getdiff(struct commitstats* ci, const struct repoinfo* info, git_commit* commit, int docache) {
+int getdiff(struct commitinfo* ci, const struct repoinfo* info, git_commit* commit, int docache) {
 	git_diff_options      opts;
 	git_diff_find_options fopts;
 	const git_diff_delta* delta;
@@ -68,7 +68,7 @@ int getdiff(struct commitstats* ci, const struct repoinfo* info, git_commit* com
 
 	git_oid_tostr(oid, sizeof(oid), git_commit_id(commit));
 
-	if (docache && (fp = xfopen("!.r", "%s/.cache/diffs/%s", info->destdir, oid))) {
+	if (docache && (fp = efopen("!.r", "%s/.cache/diffs/%s", info->destdir, oid))) {
 		loaddiff(fp, ci);
 		fclose(fp);
 		return 0;
@@ -153,7 +153,7 @@ int getdiff(struct commitstats* ci, const struct repoinfo* info, git_commit* com
 	git_tree_free(commit_tree);
 	git_tree_free(parent_tree);
 
-	if ((fp = xfopen("!.w", "%s/.cache/diffs/%s", info->destdir, oid))) {
+	if ((fp = efopen("!.w", "%s/.cache/diffs/%s", info->destdir, oid))) {
 		dumpdiff(fp, ci);
 		fclose(fp);
 	}
@@ -170,7 +170,7 @@ err:
 	return -1;
 }
 
-void freediff(struct commitstats* ci) {
+void freediff(struct commitinfo* ci) {
 	size_t i;
 
 	if (!ci)

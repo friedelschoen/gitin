@@ -9,7 +9,7 @@
 #include <string.h>
 #include <unistd.h>
 
-static void writelogline(FILE* fp, git_commit* commit, const struct commitstats* ci) {
+static void writelogline(FILE* fp, git_commit* commit, const struct commitinfo* ci) {
 	char                 oid[GIT_OID_SHA1_HEXSIZE + 1];
 	const git_signature* author  = git_commit_author(commit);
 	const char*          summary = git_commit_summary(commit);
@@ -38,11 +38,11 @@ static void writelogline(FILE* fp, git_commit* commit, const struct commitstats*
 static void writelogcommit(FILE* fp, FILE* json, FILE* atom, const struct repoinfo* info, int index,
                            git_oid* id, const char* refname) {
 
-	struct commitstats ci;
-	git_commit*        commit;
-	git_tree*          tree;
-	char               path[PATH_MAX], oid[GIT_OID_SHA1_HEXSIZE + 1];
-	int                cachedcommit;
+	struct commitinfo ci;
+	git_commit*       commit;
+	git_tree*         tree;
+	char              path[PATH_MAX], oid[GIT_OID_SHA1_HEXSIZE + 1];
+	int               cachedcommit;
 
 	// Lookup the current commit
 	if (git_commit_lookup(&commit, info->repo, id)) {
@@ -84,9 +84,9 @@ int writelog(const struct repoinfo* info, const char* refname, git_commit* head)
 	const char*  unit;
 
 	/* log for HEAD */
-	fp   = xfopen("w", "%s/%s.html", info->destdir, refname);
-	json = xfopen("w", "%s/%s.json", info->destdir, refname);
-	atom = xfopen("w", "%s/%s.xml", info->destdir, refname);
+	fp   = efopen("w", "%s/%s.html", info->destdir, refname);
+	json = efopen("w", "%s/%s.json", info->destdir, refname);
+	atom = efopen("w", "%s/%s.xml", info->destdir, refname);
 
 	writeheader(fp, info, 0, info->name, "%s", refname);
 	fprintf(json, "{");

@@ -133,7 +133,7 @@ int main(int argc, char** argv) {
 	signal(SIGPIPE, SIG_IGN);
 
 	if ((config = fopen(configfile, "r"))) {
-		configbuffer = parseconfig(config, config_keys);
+		configbuffer = parseconfig(config, configkeys);
 		fclose(config);
 	}
 

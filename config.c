@@ -1,7 +1,7 @@
 #include "gitin.h"
 
 /* Configuration keys for the configuration parser. */
-struct config config_keys[] = {
+struct configitem configkeys[] = {
 	/* Site information settings */
 	{ "name", ConfigString, &sitename },
 	{ "description", ConfigString, &sitedescription },

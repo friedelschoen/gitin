@@ -122,7 +122,7 @@ static const char* filemode(git_filemode_t m) {
 	return mode;
 }
 
-static ssize_t highlight(FILE* fp, const struct repoinfo* info, struct blob* blob) {
+static ssize_t highlight(FILE* fp, const struct repoinfo* info, struct blobinfo* blob) {
 
 	char* type;
 	if ((type = strrchr(blob->name, '.')) != NULL)
@@ -130,7 +130,7 @@ static ssize_t highlight(FILE* fp, const struct repoinfo* info, struct blob* blo
 	else
 		type = "txt";
 
-	struct callcached_param params = {
+	struct executeinfo params = {
 		.command     = highlightcmd,
 		.cachename   = "files",
 		.content     = blob->content,
@@ -142,11 +142,11 @@ static ssize_t highlight(FILE* fp, const struct repoinfo* info, struct blob* blo
 		.environ = (const char*[]){ "filename", blob->name, "type", type, "scheme", colorscheme },
 	};
 
-	return callcached(&params);
+	return execute(&params);
 }
 
 static void writeblob(const struct repoinfo* info, const char* refname, int relpath,
-                      struct blob* blob) {
+                      struct blobinfo* blob) {
 	char hashpath[PATH_MAX], destpath[PATH_MAX];
 	int  n;
 
@@ -154,7 +154,7 @@ static void writeblob(const struct repoinfo* info, const char* refname, int relp
 	         blob->name);
 
 	if (force || access(destpath, R_OK))
-		bufferwrite(blob->content, blob->length, "%s", destpath);
+		writebuffer(blob->content, blob->length, "%s", destpath);
 
 	n = 0;
 	for (int i = 0; i < relpath; i++) {
@@ -165,14 +165,14 @@ static void writeblob(const struct repoinfo* info, const char* refname, int relp
 
 	snprintf(hashpath + n, sizeof(hashpath) - n, ".cache/blobs/%x-%s", blob->hash, blob->name);
 	snprintf(destpath, sizeof(destpath), "%s/blob/%s/%s", info->destdir, refname, blob->path);
-	unhide_path(destpath);
+	pathunhide(destpath);
 	unlink(destpath);
 	if (symlink(hashpath, destpath))
 		fprintf(stderr, "error: unable to create symlink %s -> %s\n", destpath, hashpath);
 }
 
 static void writefile(const struct repoinfo* info, const char* refname, int relpath,
-                      struct blob* blob) {
+                      struct blobinfo* blob) {
 	FILE* fp;
 	char  hashpath[PATH_MAX], destpath[PATH_MAX];
 	int   n;
@@ -181,7 +181,7 @@ static void writefile(const struct repoinfo* info, const char* refname, int relp
 	         blob->name);
 
 	if (force || access(destpath, R_OK)) {
-		fp = xfopen(".w", "%s", destpath);
+		fp = efopen(".w", "%s", destpath);
 		writeheader(fp, info, relpath, info->name, "%y in %s", blob->path, refname);
 		hprintf(fp, "<p> %y (%zuB) <a href='%rblob/%s/%h'>download</a></p><hr/>", blob->name,
 		        blob->length, relpath, refname, blob->path);
@@ -208,7 +208,7 @@ static void writefile(const struct repoinfo* info, const char* refname, int relp
 	}
 	snprintf(hashpath + n, sizeof(hashpath) - n, ".cache/files/%x-%s.html", blob->hash, blob->name);
 	snprintf(destpath, sizeof(destpath), "%s/file/%s/%s.html", info->destdir, refname, blob->path);
-	unhide_path(destpath);
+	pathunhide(destpath);
 	unlink(destpath);
 	if (symlink(hashpath, destpath))
 		fprintf(stderr, "error: unable to create symlink %s -> %s\n", destpath, hashpath);
@@ -236,7 +236,7 @@ static const char* geticon(const git_blob* blob, const char* filename) {
 		return "readme";
 
 	for (int i = 0; filetypes[i][0] != NULL; i++) {
-		if (endswith(filename, filetypes[i][0])) {
+		if (isprefix(filename, filetypes[i][0])) {
 			return filetypes[i][1];
 		}
 	}
@@ -276,16 +276,16 @@ static int writefilestree(FILE* fp, const struct repoinfo* info, const char* ref
 	const char*           entryname;
 	char                  entrypath[PATH_MAX], oid[8];
 	size_t                count, i;
-	struct blob           blob;
+	struct blobinfo       blob;
 	int                   dosplit;
 
-	xmkdirf(0777, "%s/file/%s/%s", info->destdir, refname, basepath);
-	xmkdirf(0777, "%s/blob/%s/%s", info->destdir, refname, basepath);
+	emkdirf(0777, "%s/file/%s/%s", info->destdir, refname, basepath);
+	emkdirf(0777, "%s/blob/%s/%s", info->destdir, refname, basepath);
 
 	dosplit = splitdirectories == -1 ? maxfiles > autofilelimit : splitdirectories;
 
 	if (dosplit || !*basepath) {
-		fp = xfopen("w", "%s/file/%s/%s/index.html", info->destdir, refname, basepath);
+		fp = efopen("w", "%s/file/%s/%s/index.html", info->destdir, refname, basepath);
 		writeheader(fp, info, relpath, info->name, "%s in %s", basepath, refname);
 
 		fputs("<table id=\"files\"><thead>\n<tr>"
@@ -374,7 +374,7 @@ int writefiles(const struct repoinfo* info, const char* refname, git_commit* com
 
 	git_oid_tostr(headoid, sizeof(headoid), git_commit_id(commit));
 	if (!force) {
-		if (!bufferread(oid, GIT_OID_SHA1_HEXSIZE, "%s/.cache/filetree", info->destdir)) {
+		if (!loadbuffer(oid, GIT_OID_SHA1_HEXSIZE, "%s/.cache/filetree", info->destdir)) {
 			oid[GIT_OID_SHA1_HEXSIZE] = '\0';
 			if (!strcmp(oid, headoid))
 				return 0;
@@ -387,10 +387,10 @@ int writefiles(const struct repoinfo* info, const char* refname, git_commit* com
 	snprintf(path, sizeof(path), "%s/blob/%s", info->destdir, refname);
 	removedir(path);
 
-	xmkdirf(0777, "%s/file", info->destdir);
-	xmkdirf(0777, "%s/file/%s", info->destdir, refname);
-	xmkdirf(0777, "%s/blob", info->destdir);
-	xmkdirf(0777, "%s/blob/%s", info->destdir, refname);
+	emkdirf(0777, "%s/file", info->destdir);
+	emkdirf(0777, "%s/file/%s", info->destdir, refname);
+	emkdirf(0777, "%s/blob", info->destdir);
+	emkdirf(0777, "%s/blob/%s", info->destdir, refname);
 
 	if (!git_commit_tree(&tree, commit)) {
 		ret = writefilestree(NULL, info, refname, 2, tree, "", &indx, countfiles(info->repo, tree));
@@ -401,7 +401,7 @@ int writefiles(const struct repoinfo* info, const char* refname, git_commit* com
 
 	git_tree_free(tree);
 
-	bufferwrite(headoid, GIT_OID_SHA1_HEXSIZE, "%s/.cache/filetree", info->destdir);
+	writebuffer(headoid, GIT_OID_SHA1_HEXSIZE, "%s/.cache/filetree", info->destdir);
 
 	return ret;
 }

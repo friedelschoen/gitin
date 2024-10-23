@@ -32,8 +32,8 @@ static void writecategory(FILE* index, const char* name, int len) {
 	memcpy(category, name, len);
 	category[len] = '\0';
 
-	if ((fp = xfopen("!r", "%s/%s", category, configfile))) {
-		struct config keys[] = {
+	if ((fp = efopen("!r", "%s/%s", category, configfile))) {
+		struct configitem keys[] = {
 			{ "description", ConfigString, &description },
 			{ 0 },
 		};
@@ -102,12 +102,12 @@ void writeindex(const char* destdir, char** repos, int nrepos) {
 	size_t            cachesize = 0;
 	struct indexinfo* indexes   = NULL;
 	int               nindexes  = 0;
-	xmkdirf(0777, "%s", destdir);
-	xmkdirf(0777, "!%s/.cache", destdir);
+	emkdirf(0777, "%s", destdir);
+	emkdirf(0777, "!%s/.cache", destdir);
 
 	// parse cache
-	if ((cachefp = xfopen("!.r", "%s/.cache/index", destdir)) &&
-	    (cache = bufferreadmalloc(cachefp, &cachesize))) {
+	if ((cachefp = efopen("!.r", "%s/.cache/index", destdir)) &&
+	    (cache = loadbuffermalloc(cachefp, &cachesize))) {
 
 		indexes = parsecache(cache, &nindexes);
 
@@ -135,8 +135,8 @@ void writeindex(const char* destdir, char** repos, int nrepos) {
 
 	qsort(indexes, nindexes, sizeof(struct indexinfo), sortindex);
 
-	cachefp = xfopen(".w", "%s/.cache/index", destdir);
-	fp      = xfopen("w+", "%s/index.html", destdir);
+	cachefp = efopen(".w", "%s/.cache/index", destdir);
+	fp      = efopen("w+", "%s/index.html", destdir);
 	writeheader(fp, NULL, 0, sitename, "%y", sitedescription);
 	fputs("<table id=\"index\"><thead>\n"
 	      "<tr><td>Name</td><td class=\"expand\">Description</td><td>Last changes</td></tr>"

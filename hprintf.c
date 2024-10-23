@@ -144,7 +144,7 @@ void vhprintf(FILE* file, const char* format, va_list args) {
 			const char* path = va_arg(args, const char*);
 			char        dest[strlen(path) + 1];
 			strcpy(dest, path);
-			unhide_path(dest);
+			pathunhide(dest);
 			fprintf(file, "%s", dest);
 		} else if (*p == 'y') {
 			// Handle %y for xmlencoding

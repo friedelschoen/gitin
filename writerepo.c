@@ -71,14 +71,14 @@ void writerepo(struct indexinfo* indexinfo, const char* destination) {
 	else
 		printf("updating '%s' (at %s) -> %s\n", info.name, info.repodir, info.destdir);
 
-	xmkdirf(0777, "%s", info.destdir);
-	xmkdirf(0777, "!%s/.cache/archives", info.destdir);
-	xmkdirf(0777, "!%s/.cache/files", info.destdir);
-	xmkdirf(0777, "!%s/.cache/diffs", info.destdir);
-	xmkdirf(0777, "!%s/.cache/pandoc", info.destdir);
-	xmkdirf(0777, "!%s/.cache/blobs", info.destdir);
-	xmkdirf(0777, "%s/archive", info.destdir);
-	xmkdirf(0777, "%s/commit", info.destdir);
+	emkdirf(0777, "%s", info.destdir);
+	emkdirf(0777, "!%s/.cache/archives", info.destdir);
+	emkdirf(0777, "!%s/.cache/files", info.destdir);
+	emkdirf(0777, "!%s/.cache/diffs", info.destdir);
+	emkdirf(0777, "!%s/.cache/pandoc", info.destdir);
+	emkdirf(0777, "!%s/.cache/blobs", info.destdir);
+	emkdirf(0777, "%s/archive", info.destdir);
+	emkdirf(0777, "%s/commit", info.destdir);
 
 	if (git_repository_open_ext(&info.repo, info.repodir, GIT_REPOSITORY_OPEN_NO_SEARCH, NULL) <
 	    0) {
@@ -86,8 +86,8 @@ void writerepo(struct indexinfo* indexinfo, const char* destination) {
 		exit(100);
 	}
 
-	if ((fp = xfopen("!.r", "%s/%s", info.repodir, configfile))) {
-		struct config keys[] = {
+	if ((fp = efopen("!.r", "%s/%s", info.repodir, configfile))) {
+		struct configitem keys[] = {
 			{ "description", ConfigString, &info.description },
 			{ "url", ConfigString, &info.description },
 			{ "cloneurl", ConfigString, &info.description },
@@ -127,8 +127,8 @@ void writerepo(struct indexinfo* indexinfo, const char* destination) {
 
 	git_repository_head(&info.head, info.repo);
 
-	fp   = xfopen("w", "%s/index.html", info.destdir);
-	json = xfopen("w", "%s/index.json", info.destdir);
+	fp   = efopen("w", "%s/index.html", info.destdir);
+	json = efopen("w", "%s/index.json", info.destdir);
 	writeheader(fp, &info, 0, info.name, "%y", info.description);
 	writerefs(fp, json, &info);
 	writefooter(fp);

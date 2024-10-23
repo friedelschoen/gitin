@@ -6,8 +6,8 @@ static ssize_t writepandoc(FILE* fp, const struct repoinfo* info, const char* fi
                            const char* content, ssize_t len, uint32_t contenthash,
                            const char* type) {
 
-	ssize_t                 ret;
-	struct callcached_param params = {
+	ssize_t            ret;
+	struct executeinfo params = {
 		.command     = pandoccmd,
 		.cachename   = "preview",
 		.content     = content,
@@ -20,7 +20,7 @@ static ssize_t writepandoc(FILE* fp, const struct repoinfo* info, const char* fi
 	};
 
 	fprintf(fp, "<div id=\"preview\">\n");
-	ret = callcached(&params);
+	ret = execute(&params);
 	fprintf(fp, "</div>\n");
 
 	return ret;
@@ -29,8 +29,8 @@ static ssize_t writepandoc(FILE* fp, const struct repoinfo* info, const char* fi
 static ssize_t writetree(FILE* fp, const struct repoinfo* info, const char* content, ssize_t len,
                          uint32_t contenthash, const char* type) {
 
-	ssize_t                 ret;
-	struct callcached_param params = {
+	ssize_t            ret;
+	struct executeinfo params = {
 		.command     = configtreecmd,
 		.cachename   = "preview",
 		.content     = content,
@@ -43,7 +43,7 @@ static ssize_t writetree(FILE* fp, const struct repoinfo* info, const char* cont
 	};
 
 	fprintf(fp, "<div id=\"preview\">\n");
-	ret = callcached(&params);
+	ret = execute(&params);
 	fprintf(fp, "</div>\n");
 
 	return ret;
@@ -56,11 +56,11 @@ static void writeimage(FILE* fp, int relpath, const char* filename) {
 }
 
 
-void writepreview(FILE* fp, const struct repoinfo* info, int relpath, struct blob* blob) {
+void writepreview(FILE* fp, const struct repoinfo* info, int relpath, struct blobinfo* blob) {
 	char type[1024] = "", *param;
 
 	for (int i = 0; filetypes[i][0] != NULL; i++) {
-		if (endswith(blob->name, filetypes[i][0])) {
+		if (isprefix(blob->name, filetypes[i][0])) {
 			strlcpy(type, filetypes[i][2], sizeof(type));
 			break;
 		}

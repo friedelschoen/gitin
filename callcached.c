@@ -4,7 +4,7 @@
 #include <unistd.h>
 
 
-ssize_t callcached(struct callcached_param* params) {
+ssize_t execute(struct executeinfo* params) {
 	static char buffer[512];
 	ssize_t     n = 0;
 	FILE*       cache;
@@ -14,7 +14,7 @@ ssize_t callcached(struct callcached_param* params) {
 	ssize_t     readlen;
 	int         status;
 
-	if (!force && (cache = xfopen(".!r", "%s/.cache/%s/%x", params->info->destdir,
+	if (!force && (cache = efopen(".!r", "%s/.cache/%s/%x", params->info->destdir,
 	                              params->cachename, params->contenthash))) {
 		n = 0;
 		while ((readlen = fread(buffer, 1, sizeof(buffer), cache)) > 0) {
@@ -61,7 +61,7 @@ ssize_t callcached(struct callcached_param* params) {
 
 	close(outpipefd.write);
 
-	cache = xfopen(".!w+", "%s/.cache/%s/%x", params->info->destdir, params->cachename,
+	cache = efopen(".!w+", "%s/.cache/%s/%x", params->info->destdir, params->cachename,
 	               params->contenthash);
 
 	n = 0;

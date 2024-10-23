@@ -10,7 +10,7 @@
 #include <unistd.h>
 
 
-FILE* xfopen(const char* mode, const char* format, ...) {
+FILE* efopen(const char* mode, const char* format, ...) {
 	char    path[PATH_MAX];
 	FILE*   fp;
 	va_list list;
@@ -29,7 +29,7 @@ FILE* xfopen(const char* mode, const char* format, ...) {
 	}
 
 	if (!nounhide)
-		unhide_path(path);
+		pathunhide(path);
 
 	if (!(fp = fopen(path, mode))) {
 		if (ignoreerr)
@@ -44,7 +44,7 @@ FILE* xfopen(const char* mode, const char* format, ...) {
 	return fp;
 }
 
-void xmkdirf(int mode, const char* format, ...) {
+void emkdirf(int mode, const char* format, ...) {
 	char    path[PATH_MAX];
 	char*   p;
 	va_list args;
@@ -60,7 +60,7 @@ void xmkdirf(int mode, const char* format, ...) {
 	va_end(args);
 
 	if (!nounhide)
-		unhide_path(path);
+		pathunhide(path);
 
 	for (p = path + (path[0] == '/'); *p; p++) {
 		if (*p != '/')
@@ -125,14 +125,14 @@ void normalize_path(char* path) {
 	*dst = '\0';
 }
 
-void unhide_path(char* path) {
+void pathunhide(char* path) {
 	for (char* chr = path; *chr; chr++) {
 		if (*chr == '.' && (chr == path || chr[-1] == '/') && chr[1] != '/')
 			*chr = '-';
 	}
 }
 
-int bufferwrite(const char* buffer, size_t len, const char* format, ...) {
+int writebuffer(const char* buffer, size_t len, const char* format, ...) {
 	char    path[PATH_MAX];
 	FILE*   fp;
 	va_list list;
@@ -150,7 +150,7 @@ int bufferwrite(const char* buffer, size_t len, const char* format, ...) {
 	return 0;
 }
 
-int bufferread(char* buffer, size_t len, const char* format, ...) {
+int loadbuffer(char* buffer, size_t len, const char* format, ...) {
 	char    path[PATH_MAX];
 	FILE*   fp;
 	va_list list;
@@ -205,7 +205,7 @@ void printprogress(ssize_t indx, ssize_t ncommits, const char* what, ...) {
 	fflush(stdout);
 }
 
-int endswith(const char* str, const char* suffix) {
+int isprefix(const char* str, const char* suffix) {
 	size_t lenstr    = strlen(str);
 	size_t lensuffix = strlen(suffix);
 	if (lensuffix > lenstr)
@@ -234,7 +234,7 @@ const char* splitunit(ssize_t* size) {
 	return unit;
 }
 
-char* bufferreadmalloc(FILE* fp, size_t* pbuflen) {
+char* loadbuffermalloc(FILE* fp, size_t* pbuflen) {
 	size_t buflen;
 	char*  buffer;
 	fseek(fp, 0, SEEK_END);

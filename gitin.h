@@ -29,7 +29,7 @@ enum {
 };
 
 /* Structs */
-struct blob {
+struct blobinfo {
 	const char* name;
 	const char* path;
 
@@ -39,7 +39,7 @@ struct blob {
 	int         is_binary;
 };
 
-struct callcached_param {
+struct executeinfo {
 	const char*            command;
 	FILE*                  fp;
 	const struct repoinfo* info;
@@ -52,7 +52,7 @@ struct callcached_param {
 	int                    nenviron;
 };
 
-struct commitstats {
+struct commitinfo {
 	size_t addcount;
 	size_t delcount;
 
@@ -60,7 +60,7 @@ struct commitstats {
 	size_t            ndeltas;
 };
 
-struct config {
+struct configitem {
 	const char* name;
 	int         type;
 	void*       target;
@@ -106,68 +106,78 @@ struct repoinfo {
 };
 
 /* Variables */
-extern const char*   archiveexts[];
-extern int           archivetypes;
-extern int           archivezip;
-extern int           archivetarbz2;
-extern int           archivetargz;
-extern int           archivetarxz;
-extern size_t        autofilelimit;
-extern struct config config_keys[];
-extern const char*   colorscheme;
-extern const char*   configfile;
-extern const char*   configtreecmd;
-extern const char*   extrapinfiles;
-extern const char*   favicon;
-extern const char*   favicontype;
-extern const char*   filetypes[][3];
-extern int           force, verbose, columnate;
-extern const char*   footertext;
-extern const char*   highlightcmd;
-extern const char*   logoicon;
-extern long long     maxcommits;
-extern long long     maxfilesize;
-extern const char*   pandoccmd;
-extern const char*   pinfiles[];
-extern const char*   sitedescription;
-extern const char*   sitename;
-extern int           splitdirectories;
-extern const char*   stylesheet;
-extern const char*   tagatomfile;
+extern const char*       archiveexts[];
+extern int               archivetypes;
+extern int               archivezip;
+extern int               archivetarbz2;
+extern int               archivetargz;
+extern int               archivetarxz;
+extern size_t            autofilelimit;
+extern struct configitem configkeys[];
+extern const char*       colorscheme;
+extern const char*       configfile;
+extern const char*       configtreecmd;
+extern const char*       extrapinfiles;
+extern const char*       favicon;
+extern const char*       favicontype;
+extern const char*       filetypes[][3];
+extern int               force, verbose, columnate;
+extern const char*       footertext;
+extern const char*       highlightcmd;
+extern const char*       logoicon;
+extern long long         maxcommits;
+extern long long         maxfilesize;
+extern const char*       pandoccmd;
+extern const char*       pinfiles[];
+extern const char*       sitedescription;
+extern const char*       sitename;
+extern int               splitdirectories;
+extern const char*       stylesheet;
+extern const char*       tagatomfile;
 
-/* Methods */
-int     bufferread(char* buffer, size_t len, const char* format, ...) FORMAT(3, 4);
-char*   bufferreadmalloc(FILE* fp, size_t* pbuflen);
-int     bufferwrite(const char* buffer, size_t len, const char* format, ...) FORMAT(3, 4);
-ssize_t callcached(struct callcached_param* params);
-int     endswith(const char* str, const char* suffix);
-void    freediff(struct commitstats* ci);
-int   getdiff(struct commitstats* ci, const struct repoinfo* info, git_commit* commit, int docache);
-void  hprintf(FILE* file, const char* format, ...);
-void  normalize_path(char* path);
-char* parseconfig(FILE* file, struct config* keys);
-void  printprogress(ssize_t indx, ssize_t ncommits, const char* what, ...) FORMAT(3, 4);
-int   removedir(char* path);
+/* loading/writing buffer */
+int   loadbuffer(char* buffer, size_t len, const char* format, ...) FORMAT(3, 4);
+char* loadbuffermalloc(FILE* fp, size_t* pbuflen);
+int   writebuffer(const char* buffer, size_t len, const char* format, ...) FORMAT(3, 4);
+
+/* helpers */
+ssize_t     execute(struct executeinfo* params);
+int         isprefix(const char* str, const char* suffix);
+char*       parseconfig(FILE* file, struct configitem* keys);
+void        printprogress(ssize_t indx, ssize_t ncommits, const char* what, ...) FORMAT(3, 4);
+int         removedir(char* path);
 const char* splitunit(ssize_t* size);
-void        unhide_path(char* path);
-void        vhprintf(FILE* file, const char* format, va_list args);
-int   writearchive(const struct repoinfo* info, int type, const char* refname, git_commit* commit);
-void  writeatomfooter(FILE* fp);
-void  writeatomheader(FILE* fp, const struct repoinfo* info);
-void  writecommitatom(FILE* fp, git_commit* commit, const char* tag);
-void  writecommitfile(const struct repoinfo* info, git_commit* commit, const struct commitstats* ci,
-                      int parentlink, const char* refname);
-void  writefooter(FILE* fp);
-int   writefiles(const struct repoinfo* info, const char* refname, git_commit* commit);
-void  writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char* name,
-                  const char* description, ...);
-void  writeindex(const char* destdir, char** repos, int nrepos);
-void  writejsoncommit(FILE* fp, git_commit* commit, int first);
-void  writejsonref(FILE* fp, const struct repoinfo* info, git_reference* ref, git_commit* commit);
-int   writelog(const struct repoinfo* info, const char* refname, git_commit* commit);
-void  writepreview(FILE* fp, const struct repoinfo* info, int relpath, struct blob* blob);
-void  writerepo(struct indexinfo* indexinfo, const char* destination);
-int   writerefs(FILE* fp, FILE* json, const struct repoinfo* info);
-void  writeshortlog(FILE* fp, const struct repoinfo* info, git_commit* head);
-FILE* xfopen(const char* mode, const char* format, ...) FORMAT(2, 3);
-void  xmkdirf(int mode, const char* format, ...) FORMAT(2, 3);
+FILE*       efopen(const char* mode, const char* format, ...) FORMAT(2, 3);
+void        emkdirf(int mode, const char* format, ...) FORMAT(2, 3);
+
+/* paths */
+void pathnormalize(char* path);
+void pathunhide(char* path);
+
+/* hprintf */
+void hprintf(FILE* file, const char* format, ...);
+void vhprintf(FILE* file, const char* format, va_list args);
+
+/* diffs */
+int  getdiff(struct commitinfo* ci, const struct repoinfo* info, git_commit* commit, int docache);
+void freediff(struct commitinfo* ci);
+
+/* writers */
+int  writearchive(const struct repoinfo* info, int type, const char* refname, git_commit* commit);
+void writeatomfooter(FILE* fp);
+void writeatomheader(FILE* fp, const struct repoinfo* info);
+void writecommitatom(FILE* fp, git_commit* commit, const char* tag);
+void writecommitfile(const struct repoinfo* info, git_commit* commit, const struct commitinfo* ci,
+                     int parentlink, const char* refname);
+void writefooter(FILE* fp);
+int  writefiles(const struct repoinfo* info, const char* refname, git_commit* commit);
+void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char* name,
+                 const char* description, ...);
+void writeindex(const char* destdir, char** repos, int nrepos);
+void writejsoncommit(FILE* fp, git_commit* commit, int first);
+void writejsonref(FILE* fp, const struct repoinfo* info, git_reference* ref, git_commit* commit);
+int  writelog(const struct repoinfo* info, const char* refname, git_commit* commit);
+void writepreview(FILE* fp, const struct repoinfo* info, int relpath, struct blobinfo* blob);
+void writerepo(struct indexinfo* indexinfo, const char* destination);
+int  writerefs(FILE* fp, FILE* json, const struct repoinfo* info);
+void writeshortlog(FILE* fp, const struct repoinfo* info, git_commit* head);

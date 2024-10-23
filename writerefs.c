@@ -150,7 +150,7 @@ int writerefs(FILE* fp, FILE* json, const struct repoinfo* info) {
 	qsort(branches, nbranches, sizeof(*branches), refs_cmp);
 	qsort(tags, ntags, sizeof(*tags), refs_cmp);
 
-	atom = xfopen("w", "%s/%s", info->destdir, tagatomfile);
+	atom = efopen("w", "%s/%s", info->destdir, tagatomfile);
 	writeatomheader(atom, info);
 
 	fprintf(json, "\"branches\":[");
