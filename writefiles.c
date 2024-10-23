@@ -181,7 +181,7 @@ static void writefile(const struct repoinfo* info, const char* refname, int relp
 	         blob->name);
 
 	if (force || access(destpath, R_OK)) {
-		fp = xfopen(".w", "%s", destpath);
+		fp = efopen(".w", "%s", destpath);
 		writeheader(fp, info, relpath, info->name, "%y in %s", blob->path, refname);
 		hprintf(fp, "<p> %y (%zuB) <a href='%rblob/%s/%h'>download</a></p><hr/>", blob->name,
 		        blob->length, relpath, refname, blob->path);
@@ -279,13 +279,13 @@ static int writefilestree(FILE* fp, const struct repoinfo* info, const char* ref
 	struct blob           blob;
 	int                   dosplit;
 
-	xmkdirf(0777, "%s/file/%s/%s", info->destdir, refname, basepath);
-	xmkdirf(0777, "%s/blob/%s/%s", info->destdir, refname, basepath);
+	emkdirf(0777, "%s/file/%s/%s", info->destdir, refname, basepath);
+	emkdirf(0777, "%s/blob/%s/%s", info->destdir, refname, basepath);
 
 	dosplit = splitdirectories == -1 ? maxfiles > autofilelimit : splitdirectories;
 
 	if (dosplit || !*basepath) {
-		fp = xfopen("w", "%s/file/%s/%s/index.html", info->destdir, refname, basepath);
+		fp = efopen("w", "%s/file/%s/%s/index.html", info->destdir, refname, basepath);
 		writeheader(fp, info, relpath, info->name, "%s in %s", basepath, refname);
 
 		fputs("<table id=\"files\"><thead>\n<tr>"
@@ -387,10 +387,10 @@ int writefiles(const struct repoinfo* info, const char* refname, git_commit* com
 	snprintf(path, sizeof(path), "%s/blob/%s", info->destdir, refname);
 	removedir(path);
 
-	xmkdirf(0777, "%s/file", info->destdir);
-	xmkdirf(0777, "%s/file/%s", info->destdir, refname);
-	xmkdirf(0777, "%s/blob", info->destdir);
-	xmkdirf(0777, "%s/blob/%s", info->destdir, refname);
+	emkdirf(0777, "%s/file", info->destdir);
+	emkdirf(0777, "%s/file/%s", info->destdir, refname);
+	emkdirf(0777, "%s/blob", info->destdir);
+	emkdirf(0777, "%s/blob/%s", info->destdir, refname);
 
 	if (!git_commit_tree(&tree, commit)) {
 		ret = writefilestree(NULL, info, refname, 2, tree, "", &indx, countfiles(info->repo, tree));

@@ -10,7 +10,7 @@
 #include <unistd.h>
 
 
-FILE* xfopen(const char* mode, const char* format, ...) {
+FILE* efopen(const char* mode, const char* format, ...) {
 	char    path[PATH_MAX];
 	FILE*   fp;
 	va_list list;
@@ -44,7 +44,7 @@ FILE* xfopen(const char* mode, const char* format, ...) {
 	return fp;
 }
 
-void xmkdirf(int mode, const char* format, ...) {
+void emkdirf(int mode, const char* format, ...) {
 	char    path[PATH_MAX];
 	char*   p;
 	va_list args;
