@@ -70,7 +70,9 @@ OBJECTS = \
 	writerepo.o \
 	writeshortlog.o
 
-.PHONY: all clean install uninstall
+.PHONY: all clean \
+	install install-bins install-man1 install-man5 install-assets install-icons \
+	uninstall uninstall-bins uninstall-man1 uninstall-man5 uninstall-assets
 
 # default target, make everything
 all: $(BINS) $(MAN1) $(MAN5) compile_flags.txt
@@ -96,7 +98,7 @@ gitin-findrepos: gitin-findrepos.o config.o
 
 gitin-configtree:
 gitin-configtree: gitin-configtree.py
-	cp $^ $@
+	install -m755 $^ $@
 
 compile_flags.txt: LIBS = libgit2 libarchive
 compile_flags.txt: Makefile
@@ -112,24 +114,38 @@ filetypes.c: filetypes.txt
 clean:
 	rm -f $(BINS) $(BINS:=.o) $(OBJECTS) $(MAN1) $(MAN5) compile_flags.txt filetypes.c
 
-install: $(BINS) $(MAN1) $(MAN5) $(DOCS) $(ICONS)
+install: install-bins install-man1 install-man5 install-assets install-icons
+
+install-bins: $(BINS)
 	install -d $(PREFIX)/bin
 	install -m 755 $(BINS) $(PREFIX)/bin
 
+install-man1: $(MAN1)
 	install -d $(PREFIX)/share/man/man1
 	install -m 644 $(MAN1) $(PREFIX)/share/man/man1
 
+install-man5: $(MAN5)
 	install -d $(PREFIX)/share/man/man5
 	install -m 644 $(MAN5) $(PREFIX)/share/man/man5
 
+install-assets: $(DOCS)
 	install -d $(PREFIX)/share/doc/$(NAME)
 	install -m 644 $(DOCS) $(PREFIX)/share/doc/$(NAME)
 
+install-icons: $(ICONS)
 	install -d $(PREFIX)/share/doc/$(NAME)/icons
 	install -m 644 $(ICONS) $(PREFIX)/share/doc/$(NAME)/icons
 
-uninstall:
+uninstall: uninstall-bins uninstall-man1 uninstall-man5 uninstall-assets
+
+uninstall-bins:
 	rm -f $(addprefix $(PREFIX)/bin/, $(BINS))
+
+uninstall-man1:
 	rm -f $(addprefix $(PREFIX)/share/man/man1/, $(MAN1))
+
+uninstall-man5:
 	rm -f $(addprefix $(PREFIX)/share/man/man5/, $(MAN5))
+
+uninstall-assets:
 	rm -rf $(PREFIX)/share/doc/$(NAME)
