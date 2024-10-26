@@ -3,7 +3,7 @@
 #include <archive.h>
 #include <archive_entry.h>
 #include <git2/blob.h>
-#include <git2/deprecated.h>
+#include <git2/commit.h>
 #include <git2/types.h>
 #include <libgen.h>
 #include <limits.h>
