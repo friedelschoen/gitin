@@ -1,11 +1,11 @@
-#include "gitin.h"
+#include "buffer.h"
+#include "common.h"
+#include "config.h"
+#include "hprintf.h"
+#include "writer.h"
 
-#include <git2/commit.h>
-#include <git2/revwalk.h>
 #include <limits.h>
-#include <stdio.h>
 #include <string.h>
-#include <unistd.h>
 
 
 static int writeindexline(FILE* fp, FILE* cachefp, struct indexinfo* info) {

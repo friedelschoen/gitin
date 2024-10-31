@@ -1,10 +1,11 @@
-#include "gitin.h"
+#include "common.h"
+#include "hprintf.h"
+#include "writer.h"
 
 #include <assert.h>
 #include <ctype.h>
 #include <git2/commit.h>
 #include <string.h>
-#include <unistd.h>
 
 
 /* Escape characters below as HTML 2.0 / XML 1.0, ignore printing '\r', '\n' */

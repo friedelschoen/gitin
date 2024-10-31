@@ -1,7 +1,7 @@
-#include "gitin.h"
+#include "hprintf.h"
+#include "writer.h"
 
 #include <git2/commit.h>
-#include <stdio.h>
 
 static void writesignature(FILE* fp, const git_signature* sig) {
 	fprintf(fp, "{");

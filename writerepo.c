@@ -1,14 +1,12 @@
-#include "gitin.h"
+#include "common.h"
+#include "config.h"
+#include "hprintf.h"
+#include "writer.h"
 
-#include <git2/commit.h>
-#include <git2/object.h>
-#include <git2/refs.h>
 #include <git2/repository.h>
 #include <git2/revparse.h>
-#include <git2/types.h>
 #include <limits.h>
 #include <string.h>
-#include <unistd.h>
 
 
 void freeheadfiles(struct repoinfo* info) {
@@ -100,7 +98,7 @@ void writerepo(struct indexinfo* indexinfo, const char* destination) {
 	}
 
 	/* check pinfiles */
-	for (int i = 0; pinfiles[i] && info.pinfileslen < MAXPINS; i++) {
+	for (int i = 0; pinfiles[i] && info.pinfileslen < (int) LEN(info.pinfiles); i++) {
 		addpinfile(&info, pinfiles[i]);
 	}
 
@@ -108,7 +106,7 @@ void writerepo(struct indexinfo* indexinfo, const char* destination) {
 		start = extrapinfiles;
 
 		// Loop through the string, finding each space and treating it as a delimiter
-		while (info.pinfileslen < MAXPINS && (end = strchr(start, ' ')) != NULL) {
+		while (info.pinfileslen < (int) LEN(info.pinfiles) && (end = strchr(start, ' ')) != NULL) {
 			*end = '\0';    // Replace the space with a null terminator to isolate the token
 			addpinfile(&info, start);
 			start = end + 1;

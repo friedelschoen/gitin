@@ -1,4 +1,4 @@
-#include "gitin.h"
+#include "writer.h"
 
 void writeredirect(FILE* fp, const char* to) {
 	fprintf(

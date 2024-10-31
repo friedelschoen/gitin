@@ -1,4 +1,9 @@
-#include "gitin.h"
+#include "execute.h"
+
+#include "common.h"
+#include "config.h"
+#include "hprintf.h"
+#include "writer.h"
 
 #include <sys/wait.h>
 #include <unistd.h>

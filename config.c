@@ -1,4 +1,4 @@
-#include "gitin.h"
+#include "config.h"
 
 /* Configuration keys for the configuration parser. */
 struct configitem configkeys[] = {

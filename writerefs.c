@@ -1,9 +1,7 @@
-#include "gitin.h"
+#include "hprintf.h"
+#include "writer.h"
 
 #include <git2/commit.h>
-#include <git2/oid.h>
-#include <git2/refs.h>
-#include <git2/types.h>
 #include <limits.h>
 #include <string.h>
 

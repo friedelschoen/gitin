@@ -1,6 +1,7 @@
-#include "gitin.h"
+#include "config.h"
+#include "hprintf.h"
+#include "writer.h"
 
-#include <git2/refs.h>
 #include <stdarg.h>
 
 
@@ -36,7 +37,9 @@ void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char*
 	}
 	fputs("<tr><td></td><td class=\"expand\">\n", fp);
 	if (info) {
-		hprintf(fp, "<a href=\"%rfiles/\">Files</a>", relpath - 1);
+		hprintf(fp, "<a href=\"%r\">Repositories</a> ", indexrelpath);
+		hprintf(fp, "| <a href=\"%r\">Log</a> ", relpath - 1);
+		hprintf(fp, "| <a href=\"%rfiles/\">Files</a> ", relpath - 1);
 		if (info->submodules)
 			hprintf(fp, " | <a href=\"%rfile/%s/%s.html\">Submodules</a>", relpath,
 			        git_reference_shorthand(info->branch), info->submodules);

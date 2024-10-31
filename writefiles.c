@@ -1,15 +1,16 @@
-#include "gitin.h"
+#include "buffer.h"
+#include "common.h"
+#include "config.h"
+#include "execute.h"
+#include "hprintf.h"
+#include "path.h"
+#include "writer.h"
 
 #include <git2/blob.h>
 #include <git2/commit.h>
-#include <git2/refs.h>
-#include <git2/types.h>
-#include <libgen.h>
 #include <limits.h>
-#include <stdint.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <sys/wait.h>
 #include <unistd.h>
 
 #define MURMUR_SEED 0xCAFE5EED    // cafeseed

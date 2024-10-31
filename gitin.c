@@ -1,14 +1,14 @@
-#include "gitin.h"
 
 #include "arg.h"
+#include "config.h"
+#include "hprintf.h"
+#include "writer.h"
 
 #include <dirent.h>
 #include <git2/config.h>
 #include <git2/global.h>
 #include <limits.h>
 #include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>

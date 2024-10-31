@@ -1,4 +1,6 @@
-#include "gitin.h"
+#include "config.h"
+#include "hprintf.h"
+#include "path.h"
 
 #include <errno.h>
 #include <ftw.h>
@@ -91,83 +93,6 @@ int removedir(char* path) {
 	return nftw(path, unlink_cb, 64, FTW_DEPTH | FTW_PHYS);
 }
 
-void normalize_path(char* path) {
-	char* src = path;
-	char* dst = path;
-
-	while (*src) {
-		// Handle "//" by skipping over it
-		if (src[0] == '/' && src[1] == '/') {
-			src++;
-			continue;
-		}
-		// Handle "/./" by skipping over it
-		if (src[0] == '/' && src[1] == '.' && src[2] == '/') {
-			src += 2;
-			continue;
-		}
-		// Handle "/../" by removing the last component
-		if (src[0] == '/' && src[1] == '.' && src[2] == '.' && src[3] == '/') {
-			// Backtrack to the previous directory in dst
-			if (dst != path) {
-				dst--;
-				while (dst > path && *dst != '/') {
-					dst--;
-				}
-			}
-			src += 3;
-			continue;
-		}
-		// Copy the current character to the destination
-		*dst++ = *src++;
-	}
-	// Null-terminate the result
-	*dst = '\0';
-}
-
-void pathunhide(char* path) {
-	for (char* chr = path; *chr; chr++) {
-		if (*chr == '.' && (chr == path || chr[-1] == '/') && chr[1] != '/')
-			*chr = '-';
-	}
-}
-
-int writebuffer(const char* buffer, size_t len, const char* format, ...) {
-	char    path[PATH_MAX];
-	FILE*   fp;
-	va_list list;
-
-	va_start(list, format);
-	vsnprintf(path, sizeof(path), format, list);
-	va_end(list);
-
-	if (!(fp = fopen(path, "w+")))
-		return -1;
-
-	fwrite(buffer, len, 1, fp);
-	fclose(fp);
-
-	return 0;
-}
-
-int loadbuffer(char* buffer, size_t len, const char* format, ...) {
-	char    path[PATH_MAX];
-	FILE*   fp;
-	va_list list;
-
-	va_start(list, format);
-	vsnprintf(path, sizeof(path), format, list);
-	va_end(list);
-
-	if (!(fp = fopen(path, "r")))
-		return -1;
-
-	fread(buffer, len, 1, fp);
-	fclose(fp);
-
-	return 0;
-}
-
 void printprogress(ssize_t indx, ssize_t ncommits, const char* what, ...) {
 	va_list args;
 	if (verbose)
@@ -232,33 +157,4 @@ const char* splitunit(ssize_t* size) {
 		}
 	}
 	return unit;
-}
-
-char* loadbuffermalloc(FILE* fp, size_t* pbuflen) {
-	size_t buflen;
-	char*  buffer;
-	fseek(fp, 0, SEEK_END);
-	buflen = ftell(fp);
-	rewind(fp);
-
-	if (!(buffer = malloc(buflen + 1)))    // +1 for null terminator
-		return NULL;
-
-	if (fread(buffer, 1, buflen, fp) != buflen) {
-		free(buffer);
-		return NULL;
-	}
-
-	for (size_t i = 0; i < buflen; i++) {
-		if (!buffer[i]) {
-			errno = EINVAL;
-			free(buffer);
-			return NULL;
-		}
-	}
-
-	buffer[buflen] = '\0';    // Null-terminate the buffer
-	if (pbuflen)
-		*pbuflen = buflen;
-	return buffer;
 }

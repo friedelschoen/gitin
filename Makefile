@@ -47,17 +47,27 @@ ICONS = \
 
 HEADER = \
 	arg.h \
-	gitin.h
+	buffer.h \
+	common.h \
+	config.h \
+	execute.h \
+	hprintf.h \
+	macro.h \
+	parseconfig.h \
+	path.h \
+	writer.h
 
 OBJECTS = \
-	callcached.o \
+	buffer.o \
 	common.o \
 	config.o \
+	execute.o \
 	filetypes.o \
 	getdiff.o \
 	getrefs.o \
 	hprintf.o \
 	parseconfig.o \
+	path.o \
 	writearchive.o \
 	writeatom.o \
 	writecommit.o \

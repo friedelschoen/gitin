@@ -1,12 +1,11 @@
-#include "gitin.h"
+#include "common.h"
+#include "config.h"
+#include "hprintf.h"
+#include "writer.h"
 
 #include <git2/commit.h>
-#include <git2/oid.h>
-#include <git2/refs.h>
 #include <git2/revwalk.h>
-#include <git2/types.h>
 #include <limits.h>
-#include <string.h>
 #include <unistd.h>
 
 static void writelogline(FILE* fp, git_commit* commit, const struct commitinfo* ci) {

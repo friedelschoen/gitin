@@ -1,15 +1,14 @@
-#include "gitin.h"
+#include "buffer.h"
+#include "config.h"
+#include "hprintf.h"
+#include "writer.h"
 
 #include <archive.h>
 #include <archive_entry.h>
 #include <git2/blob.h>
 #include <git2/commit.h>
-#include <git2/refs.h>
-#include <git2/types.h>
-#include <libgen.h>
 #include <limits.h>
 #include <string.h>
-#include <sys/stat.h>
 
 // Function to write a blob (file) from the repository to the archive
 static int write_blob_to_archive(git_blob* blob, const char* path, const git_tree_entry* gitentry,

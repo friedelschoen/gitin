@@ -1,4 +1,8 @@
-#include "gitin.h"
+#include "common.h"
+#include "config.h"
+#include "execute.h"
+#include "hprintf.h"
+#include "writer.h"
 
 #include <string.h>
 

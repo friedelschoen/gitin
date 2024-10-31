@@ -1,12 +1,9 @@
-#include "gitin.h"
+#include "common.h"
+#include "hprintf.h"
+#include "writer.h"
 
 #include <git2/commit.h>
-#include <git2/diff.h>
-#include <git2/oid.h>
-#include <git2/tree.h>
-#include <stdio.h>
 #include <string.h>
-#include <unistd.h>
 
 
 // Function to dump the commitstats struct into a file

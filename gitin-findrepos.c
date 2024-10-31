@@ -1,8 +1,8 @@
-#include "gitin.h"
+
+#include "config.h"
 
 #include <dirent.h>
 #include <limits.h>
-#include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
 

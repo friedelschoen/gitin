@@ -1,11 +1,9 @@
-#include "gitin.h"
+#include "hprintf.h"
+#include "writer.h"
 
 #include <git2/commit.h>
-#include <git2/refs.h>
 #include <git2/revwalk.h>
-#include <git2/types.h>
 #include <string.h>
-#include <time.h>
 
 #define MAXREFS      64
 #define SECONDSINDAY (60 * 60 * 24)

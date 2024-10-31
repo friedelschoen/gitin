@@ -1,8 +1,9 @@
-#include "gitin.h"
+#include "parseconfig.h"
+
+#include "buffer.h"
 
 #include <ctype.h>
 #include <limits.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 

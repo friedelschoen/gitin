@@ -1,4 +1,6 @@
-#include "gitin.h"
+#include "hprintf.h"
+
+#include "path.h"
 
 #include <assert.h>
 #include <errno.h>
@@ -8,7 +10,6 @@
 #include <string.h>
 
 #define RELPATHMAX 50
-
 
 static void printtime(FILE* fp, const git_time* intime) {
 	struct tm* intm;

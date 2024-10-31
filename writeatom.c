@@ -1,8 +1,7 @@
-#include "gitin.h"
+#include "hprintf.h"
+#include "writer.h"
 
 #include <git2/commit.h>
-#include <git2/refs.h>
-#include <stdio.h>
 
 void writecommitatom(FILE* fp, git_commit* commit, git_reference* tag) {
 	char                 oid[GIT_OID_SHA1_HEXSIZE + 1], parentoid[GIT_OID_SHA1_HEXSIZE + 1];

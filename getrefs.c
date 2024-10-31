@@ -1,7 +1,7 @@
-#include "gitin.h"
+#include "hprintf.h"
+#include "writer.h"
 
 #include <git2/commit.h>
-#include <git2/types.h>
 #include <string.h>
 
 #define ADDREF(refs, nrefs)                                                     \
