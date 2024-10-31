@@ -91,7 +91,8 @@ int writearchive(const struct repoinfo* info, int type, git_reference* ref, git_
 		if (*p == '/')
 			*p = '-';
 
-	snprintf(path, sizeof(path), "%s/archive/%s.%s", info->destdir, escapename, archiveexts[type]);
+	snprintf(path, sizeof(path), "%s/%s/%s.%s", info->destdir, escapename, escapename,
+	         archiveexts[type]);
 
 	if (!force &&
 	    !loadbuffer(configoid, GIT_OID_SHA1_HEXSIZE, "%s/.cache/archives/%s", info->destdir,
