@@ -194,5 +194,5 @@ int  writelog(const struct repoinfo* info, git_reference* ref, git_commit* commi
 void writepreview(FILE* fp, const struct repoinfo* info, int relpath, struct blobinfo* blob);
 void writerepo(struct indexinfo* indexinfo, const char* destination);
 void writeredirect(FILE* fp, const char* to);
-int  writerefs(FILE* fp, const struct repoinfo* info, git_reference* current);
+int  writerefs(FILE* fp, const struct repoinfo* info, int relpath, git_reference* current);
 void writeshortlog(FILE* fp, const struct repoinfo* info, git_commit* head);

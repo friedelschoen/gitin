@@ -7,8 +7,8 @@
 #include <limits.h>
 #include <string.h>
 
-static int writerefhtml(FILE* fp, struct referenceinfo* refs, size_t nrefs, const char* title,
-                        git_reference* current) {
+static int writerefhtml(FILE* fp, int relpath, struct referenceinfo* refs, size_t nrefs,
+                        const char* title, git_reference* current) {
 	char                 escapename[NAME_MAX], oid[GIT_OID_SHA1_HEXSIZE + 1];
 	const char *         name, *summary;
 	const git_signature* author;
@@ -46,11 +46,11 @@ static int writerefhtml(FILE* fp, struct referenceinfo* refs, size_t nrefs, cons
 			hprintf(fp, "<b>%y</b>", name);
 		else
 			hprintf(fp, "%y", name);
-		fprintf(fp,
-		        " <small>at \"<a href=\"commit/%s.html\">%s</a>\"</small>"
-		        " <a href=\"%s.html\">log</a>"
-		        " <a href=\"file/%s/index.html\">files</a>",
-		        oid, summary, name, name);
+		hprintf(fp,
+		        " <small>at \"<a href=\"%rcommit/%s.html\">%s</a>\"</small>"
+		        " <a href=\"%r%s\">log</a>"
+		        " <a href=\"%r%s/files\">files</a>",
+		        relpath, oid, summary, relpath, name, relpath, name);
 
 		fputs("</td><td>", fp);
 		if (author)
@@ -66,11 +66,10 @@ static int writerefhtml(FILE* fp, struct referenceinfo* refs, size_t nrefs, cons
 	return 0;
 }
 
-int writerefs(FILE* fp, const struct repoinfo* info, git_reference* current) {
+int writerefs(FILE* fp, const struct repoinfo* info, int relpath, git_reference* current) {
 
-	writerefhtml(fp, info->branches, info->nbranches, "Branches", current);
-
-	writerefhtml(fp, info->tags, info->ntags, "Tags", current);
+	writerefhtml(fp, relpath, info->branches, info->nbranches, "Branches", current);
+	writerefhtml(fp, relpath, info->tags, info->ntags, "Tags", current);
 
 	return 0;
 }

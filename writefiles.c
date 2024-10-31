@@ -164,7 +164,7 @@ static void writeblob(const struct repoinfo* info, const char* refname, int relp
 	}
 
 	snprintf(hashpath + n, sizeof(hashpath) - n, ".cache/blobs/%x-%s", blob->hash, blob->name);
-	snprintf(destpath, sizeof(destpath), "%s/blob/%s/%s", info->destdir, refname, blob->path);
+	snprintf(destpath, sizeof(destpath), "%s/%s/blobs/%s", info->destdir, refname, blob->path);
 	pathunhide(destpath);
 	unlink(destpath);
 	if (symlink(hashpath, destpath))
@@ -207,7 +207,7 @@ static void writefile(const struct repoinfo* info, const char* refname, int relp
 		hashpath[n++] = '/';
 	}
 	snprintf(hashpath + n, sizeof(hashpath) - n, ".cache/files/%x-%s.html", blob->hash, blob->name);
-	snprintf(destpath, sizeof(destpath), "%s/file/%s/%s.html", info->destdir, refname, blob->path);
+	snprintf(destpath, sizeof(destpath), "%s/%s/files/%s.html", info->destdir, refname, blob->path);
 	pathunhide(destpath);
 	unlink(destpath);
 	if (symlink(hashpath, destpath))
@@ -279,13 +279,13 @@ static int writefilestree(FILE* fp, const struct repoinfo* info, const char* ref
 	struct blobinfo       blob;
 	int                   dosplit;
 
-	emkdirf(0777, "%s/file/%s/%s", info->destdir, refname, basepath);
-	emkdirf(0777, "%s/blob/%s/%s", info->destdir, refname, basepath);
+	emkdirf(0777, "%s/%s/files/%s", info->destdir, refname, basepath);
+	emkdirf(0777, "%s/%s/blobs/%s", info->destdir, refname, basepath);
 
 	dosplit = splitdirectories == -1 ? maxfiles > autofilelimit : splitdirectories;
 
 	if (dosplit || !*basepath) {
-		fp = efopen("w", "%s/file/%s/%s/index.html", info->destdir, refname, basepath);
+		fp = efopen("w", "%s/%s/files/%s/index.html", info->destdir, refname, basepath);
 		writeheader(fp, info, relpath, info->name, "%s in %s", basepath, refname);
 
 		fputs("<table id=\"files\"><thead>\n<tr>"
@@ -385,15 +385,13 @@ int writefiles(const struct repoinfo* info, git_reference* ref, git_commit* comm
 	}
 
 	// Clean /file and /blob directories since they will be rewritten
-	snprintf(path, sizeof(path), "%s/file/%s", info->destdir, refname);
+	snprintf(path, sizeof(path), "%s/%s/files", info->destdir, refname);
 	removedir(path);
-	snprintf(path, sizeof(path), "%s/blob/%s", info->destdir, refname);
+	snprintf(path, sizeof(path), "%s/%s/blobs", info->destdir, refname);
 	removedir(path);
 
-	emkdirf(0777, "%s/file", info->destdir);
-	emkdirf(0777, "%s/file/%s", info->destdir, refname);
-	emkdirf(0777, "%s/blob", info->destdir);
-	emkdirf(0777, "%s/blob/%s", info->destdir, refname);
+	emkdirf(0777, "%s/%s/files", info->destdir, refname);
+	emkdirf(0777, "%s/%s/blobs", info->destdir, refname);
 
 	if (!git_commit_tree(&tree, commit)) {
 		ret = writefilestree(NULL, info, refname, 2, tree, "", &indx, countfiles(info->repo, tree));

@@ -36,7 +36,7 @@ void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char*
 	}
 	fputs("<tr><td></td><td class=\"expand\">\n", fp);
 	if (info) {
-		hprintf(fp, "<a href=\"%r\">Branches</a>", relpath);
+		hprintf(fp, "<a href=\"%rfiles/\">Files</a>", relpath - 1);
 		if (info->submodules)
 			hprintf(fp, " | <a href=\"%rfile/%s/%s.html\">Submodules</a>", relpath,
 			        git_reference_shorthand(info->branch), info->submodules);

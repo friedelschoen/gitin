@@ -85,8 +85,6 @@ int writelog(const struct repoinfo* info, git_reference* ref, git_commit* head) 
 
 	refname = git_reference_shorthand(ref);
 
-	emkdirf(0777, "%s/%s", info->destdir, refname);
-
 	/* log for HEAD */
 	fp   = efopen("w", "%s/%s/index.html", info->destdir, refname);
 	json = efopen("w", "%s/%s/branch.json", info->destdir, refname);
@@ -95,7 +93,7 @@ int writelog(const struct repoinfo* info, git_reference* ref, git_commit* head) 
 	writeheader(fp, info, 1, info->name, "%s", refname);
 	fprintf(json, "{");
 
-	writerefs(fp, info, ref);
+	writerefs(fp, info, 1, ref);
 	fputs("<hr>", fp);
 
 	fputs("<h2>Archives</h2>", fp);
