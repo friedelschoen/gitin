@@ -90,13 +90,14 @@ struct referenceinfo {
 
 struct repoinfo {
 	git_repository* repo;
-	git_reference*  head;
+	git_reference*  branch;
 
 	const char* repodir;
 	char        destdir[1024];
 	int         relpath;
 
 	char        name[100];
+	const char* branchname;
 	const char* description;
 	const char* cloneurl;
 

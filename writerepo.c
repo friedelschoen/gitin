@@ -44,7 +44,6 @@ void writerepo(struct indexinfo* indexinfo, const char* destination) {
 	FILE*           fp;
 	const char*     start;
 	char *          confbuffer = NULL, *end;
-	char            path[PATH_MAX];
 
 	memset(&info, 0, sizeof(info));
 	info.repodir     = indexinfo->repodir;
@@ -89,8 +88,9 @@ void writerepo(struct indexinfo* indexinfo, const char* destination) {
 	if ((fp = efopen("!.r", "%s/%s", info.repodir, configfile))) {
 		struct configitem keys[] = {
 			{ "description", ConfigString, &info.description },
-			{ "url", ConfigString, &info.description },
-			{ "cloneurl", ConfigString, &info.description },
+			{ "url", ConfigString, &info.cloneurl },
+			{ "cloneurl", ConfigString, &info.cloneurl },
+			{ "branch", ConfigString, &info.branchname },
 			//			{ "revision", ConfigString, &info.revision },
 			{ 0 },
 		};
@@ -123,7 +123,11 @@ void writerepo(struct indexinfo* indexinfo, const char* destination) {
 		git_object_free(obj);
 	}
 
-	git_repository_head(&info.head, info.repo);
+	if (info.branchname) {
+		git_reference_lookup(&info.branch, info.repo, info.branchname);
+	} else {
+		git_repository_head(&info.branch, info.repo);
+	}
 
 	getrefs(&info);
 
@@ -138,7 +142,7 @@ void writerepo(struct indexinfo* indexinfo, const char* destination) {
 	}
 
 	fp = efopen("w", "%s/index.html", info.destdir);
-	writeredirect(fp, "master");
+	writeredirect(fp, git_reference_shorthand(info.branch));
 	fclose(fp);
 
 	fp = efopen("w", "%s/atom.html", info.destdir);
@@ -149,16 +153,13 @@ void writerepo(struct indexinfo* indexinfo, const char* destination) {
 	writejsonrefs(fp, &info);
 	fclose(fp);
 
-	snprintf(path, sizeof(path), "%s/file/HEAD", info.destdir);
-	symlink(git_reference_shorthand(info.head), path);
-
 	// expect it to be malloced
 	indexinfo->name        = strdup(info.name);
 	indexinfo->description = strdup(info.description);
 
 	/* cleanup */
 	freerefs(&info);
-	git_reference_free(info.head);
+	git_reference_free(info.branch);
 	git_repository_free(info.repo);
 	free(confbuffer);
 	freeheadfiles(&info);

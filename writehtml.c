@@ -39,10 +39,10 @@ void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char*
 		hprintf(fp, "<a href=\"%r\">Branches</a>", relpath);
 		if (info->submodules)
 			hprintf(fp, " | <a href=\"%rfile/%s/%s.html\">Submodules</a>", relpath,
-			        git_reference_shorthand(info->head), info->submodules);
+			        git_reference_shorthand(info->branch), info->submodules);
 		for (int i = 0; i < info->pinfileslen; i++)
 			hprintf(fp, " | <a href=\"%rfile/%s/%s.html\">%s</a>", relpath,
-			        git_reference_shorthand(info->head), info->pinfiles[i], info->pinfiles[i]);
+			        git_reference_shorthand(info->branch), info->pinfiles[i], info->pinfiles[i]);
 	} else {
 		fputs("</td><td>", fp);
 	}
