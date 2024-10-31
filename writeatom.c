@@ -1,9 +1,10 @@
 #include "gitin.h"
 
 #include <git2/commit.h>
+#include <git2/refs.h>
 #include <stdio.h>
 
-void writecommitatom(FILE* fp, git_commit* commit, const char* tag) {
+void writecommitatom(FILE* fp, git_commit* commit, git_reference* tag) {
 	char                 oid[GIT_OID_SHA1_HEXSIZE + 1], parentoid[GIT_OID_SHA1_HEXSIZE + 1];
 	const git_signature* author    = git_commit_author(commit);
 	const git_signature* committer = git_commit_committer(commit);
@@ -25,7 +26,7 @@ void writecommitatom(FILE* fp, git_commit* commit, const char* tag) {
 	if (summary) {
 		fputs("<title>", fp);
 		if (tag) {
-			hprintf(fp, "[%y] ", tag);
+			hprintf(fp, "[%y] ", git_reference_shorthand(tag));
 		}
 		hprintf(fp, "%y</title>", summary);
 	}
@@ -60,4 +61,18 @@ void writeatomheader(FILE* fp, const struct repoinfo* info) {
 
 void writeatomfooter(FILE* fp) {
 	fputs("</feed>\n", fp);
+}
+
+void writeatomrefs(FILE* atom, const struct repoinfo* info) {
+	writeatomheader(atom, info);
+
+	for (int i = 0; i < info->nbranches; i++) {
+		writecommitatom(atom, info->branches[i].commit, info->branches[i].ref);
+	}
+
+	for (int i = 0; i < info->ntags; i++) {
+		writecommitatom(atom, info->tags[i].commit, info->tags[i].ref);
+	}
+
+	writeatomfooter(atom);
 }

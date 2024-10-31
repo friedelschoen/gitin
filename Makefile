@@ -54,8 +54,9 @@ OBJECTS = \
 	common.o \
 	config.o \
 	filetypes.o \
-	hprintf.o \
 	getdiff.o \
+	getrefs.o \
+	hprintf.o \
 	parseconfig.o \
 	writearchive.o \
 	writeatom.o \
@@ -66,6 +67,7 @@ OBJECTS = \
 	writejson.o \
 	writelog.o \
 	writepreview.o \
+	writeredirect.o \
 	writerefs.o \
 	writerepo.o \
 	writeshortlog.o

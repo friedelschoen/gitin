@@ -83,6 +83,11 @@ struct indexinfo {
 	char*       description;
 };
 
+struct referenceinfo {
+	git_reference* ref;
+	git_commit*    commit;
+};
+
 struct repoinfo {
 	git_repository* repo;
 	git_reference*  head;
@@ -103,6 +108,11 @@ struct repoinfo {
 	char** headfiles;
 	int    headfileslen;
 	int    headfilesalloc;
+
+	struct referenceinfo* branches;
+	int                   nbranches;
+	struct referenceinfo* tags;
+	int                   ntags;
 };
 
 /* Variables */
@@ -161,23 +171,27 @@ void vhprintf(FILE* file, const char* format, va_list args);
 /* diffs */
 int  getdiff(struct commitinfo* ci, const struct repoinfo* info, git_commit* commit, int docache);
 void freediff(struct commitinfo* ci);
+int  getrefs(struct repoinfo* info);
+void freerefs(struct repoinfo* info);
 
 /* writers */
-int  writearchive(const struct repoinfo* info, int type, const char* refname, git_commit* commit);
+int writearchive(const struct repoinfo* info, int type, git_reference* refname, git_commit* commit);
 void writeatomfooter(FILE* fp);
 void writeatomheader(FILE* fp, const struct repoinfo* info);
-void writecommitatom(FILE* fp, git_commit* commit, const char* tag);
+void writeatomrefs(FILE* atom, const struct repoinfo* info);
+void writecommitatom(FILE* fp, git_commit* commit, git_reference* tag);
 void writecommitfile(const struct repoinfo* info, git_commit* commit, const struct commitinfo* ci,
                      int parentlink, const char* refname);
 void writefooter(FILE* fp);
-int  writefiles(const struct repoinfo* info, const char* refname, git_commit* commit);
+int  writefiles(const struct repoinfo* info, git_reference* refname, git_commit* commit);
 void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char* name,
                  const char* description, ...);
 void writeindex(const char* destdir, char** repos, int nrepos);
 void writejsoncommit(FILE* fp, git_commit* commit, int first);
-void writejsonref(FILE* fp, const struct repoinfo* info, git_reference* ref, git_commit* commit);
-int  writelog(const struct repoinfo* info, const char* refname, git_commit* commit);
+void writejsonrefs(FILE* json, const struct repoinfo* info);
+int  writelog(const struct repoinfo* info, git_reference* ref, git_commit* commit);
 void writepreview(FILE* fp, const struct repoinfo* info, int relpath, struct blobinfo* blob);
 void writerepo(struct indexinfo* indexinfo, const char* destination);
-int  writerefs(FILE* fp, FILE* json, const struct repoinfo* info);
+void writeredirect(FILE* fp, const char* to);
+int  writerefs(FILE* fp, const struct repoinfo* info, git_reference* current);
 void writeshortlog(FILE* fp, const struct repoinfo* info, git_commit* head);

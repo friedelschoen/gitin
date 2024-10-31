@@ -56,15 +56,30 @@ void writejsoncommit(FILE* fp, git_commit* commit, int first) {
 	fprintf(fp, "}");
 }
 
-void writejsonref(FILE* fp, const struct repoinfo* info, git_reference* ref, git_commit* commit) {
-	(void) info;
-	int ishead = 0;
-	// !git_oid_cmp(git_reference_target(ref), git_commit_id(info->commit));
-
+static void writejsonref(FILE* fp, git_reference* ref, git_commit* commit) {
 	fprintf(fp, "{");
 	hprintf(fp, "\"name\":\"%j\",", git_reference_shorthand(ref));
-	hprintf(fp, "\"head\":%j,", ishead ? "true" : "false");
 	fprintf(fp, "\"commit\":");
 	writejsoncommit(fp, commit, 0);
 	fprintf(fp, "}");
+}
+
+void writejsonrefs(FILE* json, const struct repoinfo* info) {
+	fprintf(json, "\"branches\":[");
+
+	for (int i = 0; i < info->nbranches; i++) {
+		if (i > 0)
+			fprintf(json, ",\n");
+		writejsonref(json, info->branches[i].ref, info->branches[i].commit);
+	}
+
+	fprintf(json, "],\"tags\":[");
+
+	for (int i = 0; i < info->ntags; i++) {
+		if (i > 0)
+			fprintf(json, ",\n");
+		writejsonref(json, info->tags[i].ref, info->tags[i].commit);
+	}
+
+	fprintf(json, "]");
 }

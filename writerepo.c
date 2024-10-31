@@ -41,7 +41,7 @@ void addpinfile(struct repoinfo* info, const char* pinfile) {
 void writerepo(struct indexinfo* indexinfo, const char* destination) {
 	struct repoinfo info;
 	git_object*     obj = NULL;
-	FILE *          fp, *json;
+	FILE*           fp;
 	const char*     start;
 	char *          confbuffer = NULL, *end;
 	char            path[PATH_MAX];
@@ -122,18 +122,32 @@ void writerepo(struct indexinfo* indexinfo, const char* destination) {
 			info.submodules = ".gitmodules";
 		git_object_free(obj);
 	}
-	//	writefiles(&info);
-
 
 	git_repository_head(&info.head, info.repo);
 
-	fp   = efopen("w", "%s/index.html", info.destdir);
-	json = efopen("w", "%s/index.json", info.destdir);
-	writeheader(fp, &info, 0, info.name, "%y", info.description);
-	writerefs(fp, json, &info);
-	writefooter(fp);
+	getrefs(&info);
+
+	for (int i = 0; i < info.nbranches; i++) {
+		writelog(&info, info.branches[i].ref, info.branches[i].commit);
+		writefiles(&info, info.branches[i].ref, info.branches[i].commit);
+	}
+
+	for (int i = 0; i < info.ntags; i++) {
+		writelog(&info, info.tags[i].ref, info.tags[i].commit);
+		writefiles(&info, info.tags[i].ref, info.tags[i].commit);
+	}
+
+	fp = efopen("w", "%s/index.html", info.destdir);
+	writeredirect(fp, "master");
 	fclose(fp);
-	fclose(json);
+
+	fp = efopen("w", "%s/atom.html", info.destdir);
+	writeatomrefs(fp, &info);
+	fclose(fp);
+
+	fp = efopen("w", "%s/index.json", info.destdir);
+	writejsonrefs(fp, &info);
+	fclose(fp);
 
 	snprintf(path, sizeof(path), "%s/file/HEAD", info.destdir);
 	symlink(git_reference_shorthand(info.head), path);
@@ -143,6 +157,7 @@ void writerepo(struct indexinfo* indexinfo, const char* destination) {
 	indexinfo->description = strdup(info.description);
 
 	/* cleanup */
+	freerefs(&info);
 	git_reference_free(info.head);
 	git_repository_free(info.repo);
 	free(confbuffer);

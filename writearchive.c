@@ -4,6 +4,7 @@
 #include <archive_entry.h>
 #include <git2/blob.h>
 #include <git2/commit.h>
+#include <git2/refs.h>
 #include <git2/types.h>
 #include <libgen.h>
 #include <limits.h>
@@ -75,7 +76,7 @@ static int process_tree(git_repository* repo, git_tree* tree, const char* base_p
 }
 
 // Updated function to accept git_reference instead of branch/tag name
-int writearchive(const struct repoinfo* info, int type, const char* refname, git_commit* commit) {
+int writearchive(const struct repoinfo* info, int type, git_reference* ref, git_commit* commit) {
 	git_tree*       tree = NULL;
 	char            path[PATH_MAX];
 	char            oid[GIT_OID_SHA1_HEXSIZE + 1], configoid[GIT_OID_SHA1_HEXSIZE + 1];
@@ -85,7 +86,7 @@ int writearchive(const struct repoinfo* info, int type, const char* refname, git
 
 	git_oid_tostr(oid, sizeof(oid), git_commit_id(commit));
 
-	strlcpy(escapename, refname, sizeof(escapename));
+	strlcpy(escapename, git_reference_shorthand(ref), sizeof(escapename));
 	for (char* p = escapename; *p; p++)
 		if (*p == '/')
 			*p = '-';

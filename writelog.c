@@ -76,27 +76,35 @@ static void writelogcommit(FILE* fp, FILE* json, FILE* atom, const struct repoin
 	git_tree_free(tree);
 }
 
-int writelog(const struct repoinfo* info, const char* refname, git_commit* head) {
+int writelog(const struct repoinfo* info, git_reference* ref, git_commit* head) {
 	git_revwalk* w = NULL;
 	git_oid      id;
 	ssize_t      ncommits = 0, arsize;
 	FILE *       fp, *atom, *json;
-	const char*  unit;
+	const char * unit, *refname;
+
+	refname = git_reference_shorthand(ref);
+
+	emkdirf(0777, "%s/%s", info->destdir, refname);
 
 	/* log for HEAD */
-	fp   = efopen("w", "%s/%s.html", info->destdir, refname);
-	json = efopen("w", "%s/%s.json", info->destdir, refname);
-	atom = efopen("w", "%s/%s.xml", info->destdir, refname);
+	fp   = efopen("w", "%s/%s/index.html", info->destdir, refname);
+	json = efopen("w", "%s/%s/branch.json", info->destdir, refname);
+	atom = efopen("w", "%s/%s/atom.xml", info->destdir, refname);
 
-	writeheader(fp, info, 0, info->name, "%s", refname);
+	writeheader(fp, info, 1, info->name, "%s", refname);
 	fprintf(json, "{");
+
+	writerefs(fp, info, ref);
+	fputs("<hr>", fp);
 
 	fputs("<h2>Archives</h2>", fp);
 	fputs("<table><thead>\n<tr><td class=\"expand\">Name</td>"
 	      "<td class=\"num\">Size</td></tr>\n</thead><tbody>\n",
 	      fp);
+
 	FORMASK(type, archivetypes) {
-		arsize = writearchive(info, type, refname, head);
+		arsize = writearchive(info, type, ref, head);
 		unit   = splitunit(&arsize);
 		fprintf(fp, "<tr><td><a href=\"archive/%s.tar.gz\">%s.%s</a></td><td>%zd%s</td></tr>",
 		        refname, refname, archiveexts[type], arsize, unit);

@@ -365,12 +365,15 @@ static int writefilestree(FILE* fp, const struct repoinfo* info, const char* ref
 	return 0;
 }
 
-int writefiles(const struct repoinfo* info, const char* refname, git_commit* commit) {
-	git_tree* tree = NULL;
-	size_t    indx = 0;
-	int       ret  = -1;
-	char      path[PATH_MAX];
-	char      headoid[GIT_OID_SHA1_HEXSIZE + 1], oid[GIT_OID_SHA1_HEXSIZE + 1];
+int writefiles(const struct repoinfo* info, git_reference* ref, git_commit* commit) {
+	git_tree*   tree = NULL;
+	size_t      indx = 0;
+	int         ret  = -1;
+	char        path[PATH_MAX];
+	char        headoid[GIT_OID_SHA1_HEXSIZE + 1], oid[GIT_OID_SHA1_HEXSIZE + 1];
+	const char* refname;
+
+	refname = git_reference_shorthand(ref);
 
 	git_oid_tostr(headoid, sizeof(headoid), git_commit_id(commit));
 	if (!force) {
