@@ -56,8 +56,6 @@ int writesummary(FILE* fp, const struct repoinfo* info, git_reference* ref, git_
 	refname = git_reference_shorthand(ref);
 
 	/* log for HEAD */
-	fp = efopen("w", "%s/%s/index.html", info->destdir, refname);
-
 	writeheader(fp, info, 1, info->name, "%s", refname);
 
 	fprintf(fp, "<div id=\"refcontainer\">");
