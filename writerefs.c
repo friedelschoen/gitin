@@ -5,29 +5,35 @@
 #include <limits.h>
 #include <string.h>
 
-static int writerefhtml(FILE* fp, int relpath, struct referenceinfo* refs, size_t nrefs,
-                        const char* title, git_reference* current) {
+int writerefs(FILE* fp, const struct repoinfo* info, int relpath, git_reference* current) {
 	char                 escapename[NAME_MAX], oid[GIT_OID_SHA1_HEXSIZE + 1];
 	const char *         name, *summary;
 	const git_signature* author;
 	git_reference*       ref;
 	git_commit*          commit;
+	int                  isbranch = 1;
 
-	if (!nrefs)
-		return 0;
+	fprintf(fp, "<h2>Branches</h2><table>"
+	            "<thead>\n<tr><td class=\"expand\">Name</td>"
+	            "<td>Last commit date</td>"
+	            "<td>Author</td>\n</tr>\n"
+	            "</thead><tbody>\n");
 
-	fprintf(fp,
-	        "<h2>%s</h2><table>"
-	        "<thead>\n<tr><td class=\"expand\">Name</td>"
-	        "<td>Last commit date</td>"
-	        "<td>Author</td>\n</tr>\n"
-	        "</thead><tbody>\n",
-	        title);
-
-	for (size_t i = 0; i < nrefs; i++) {
-		ref    = refs[i].ref;
-		commit = refs[i].commit;
+	for (int i = 0; i < info->nrefs; i++) {
+		ref    = info->refs[i].ref;
+		commit = info->refs[i].commit;
 		name   = git_reference_shorthand(ref);
+
+		if (isbranch && info->refs[i].istag) {
+			fputs("</tbody></table>\n", fp);
+			fprintf(fp, "<h2>Tags</h2><table>"
+			            "<thead>\n<tr><td class=\"expand\">Name</td>"
+			            "<td>Last commit date</td>"
+			            "<td>Author</td>\n</tr>\n"
+			            "</thead><tbody>\n");
+
+			isbranch = 0;
+		}
 
 		author  = git_commit_author(commit);
 		summary = git_commit_summary(commit);
@@ -60,14 +66,6 @@ static int writerefhtml(FILE* fp, int relpath, struct referenceinfo* refs, size_
 	}
 
 	fputs("</tbody></table>\n", fp);
-
-	return 0;
-}
-
-int writerefs(FILE* fp, const struct repoinfo* info, int relpath, git_reference* current) {
-
-	writerefhtml(fp, relpath, info->branches, info->nbranches, "Branches", current);
-	writerefhtml(fp, relpath, info->tags, info->ntags, "Tags", current);
 
 	return 0;
 }

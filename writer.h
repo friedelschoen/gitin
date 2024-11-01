@@ -21,6 +21,7 @@ struct deltainfo {
 struct referenceinfo {
 	git_reference* ref;
 	git_commit*    commit;
+	int            istag;
 };
 
 struct indexinfo {
@@ -61,10 +62,8 @@ struct repoinfo {
 	int    headfileslen;
 	int    headfilesalloc;
 
-	struct referenceinfo* branches;
-	int                   nbranches;
-	struct referenceinfo* tags;
-	int                   ntags;
+	struct referenceinfo* refs;
+	int                   nrefs;
 };
 
 /* diffs/refs */

@@ -65,20 +65,21 @@ static void writejsonref(FILE* fp, git_reference* ref, git_commit* commit) {
 }
 
 void writejsonrefs(FILE* json, const struct repoinfo* info) {
+	int isbranch = 1, first = 1;
 	fprintf(json, "\"branches\":[");
 
-	for (int i = 0; i < info->nbranches; i++) {
-		if (i > 0)
-			fprintf(json, ",\n");
-		writejsonref(json, info->branches[i].ref, info->branches[i].commit);
-	}
+	for (int i = 0; i < info->nrefs; i++) {
+		if (isbranch && info->refs[i].istag) {
+			fprintf(json, "],\"tags\":[");
+			isbranch = 0;
+			first    = 1;
+		}
 
-	fprintf(json, "],\"tags\":[");
-
-	for (int i = 0; i < info->ntags; i++) {
-		if (i > 0)
+		if (!first) {
 			fprintf(json, ",\n");
-		writejsonref(json, info->tags[i].ref, info->tags[i].commit);
+			first = 0;
+		}
+		writejsonref(json, info->refs[i].ref, info->refs[i].commit);
 	}
 
 	fprintf(json, "]");

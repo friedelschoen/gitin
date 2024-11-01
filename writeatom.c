@@ -65,12 +65,8 @@ void writeatomfooter(FILE* fp) {
 void writeatomrefs(FILE* atom, const struct repoinfo* info) {
 	writeatomheader(atom, info);
 
-	for (int i = 0; i < info->nbranches; i++) {
-		writeatomcommit(atom, info->branches[i].commit, info->branches[i].ref);
-	}
-
-	for (int i = 0; i < info->ntags; i++) {
-		writeatomcommit(atom, info->tags[i].commit, info->tags[i].ref);
+	for (int i = 0; i < info->nrefs; i++) {
+		writeatomcommit(atom, info->refs[i].commit, info->refs[i].ref);
 	}
 
 	writeatomfooter(atom);
