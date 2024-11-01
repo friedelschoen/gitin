@@ -154,6 +154,10 @@ pre {
     width: 100%; /* Ensure the tables are responsive */
 }
 
+.current-ref {
+	font-weight: bold;
+	background-color: #eee;
+}
 
 @media (prefers-color-scheme: dark) {
 	body {

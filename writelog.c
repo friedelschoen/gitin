@@ -95,8 +95,11 @@ int writelog(const struct repoinfo* info, git_reference* ref, git_commit* head) 
 	writeheader(fp, info, 1, info->name, "%s", refname);
 	fprintf(json, "{");
 
+	fprintf(fp, "<div id=\"refcontainer\">");
 	writerefs(fp, info, 1, ref);
-	fputs("<hr>", fp);
+	fprintf(fp, "</div>");
+
+	fputs("<hr />", fp);
 
 	fputs("<h2>Archives</h2>", fp);
 	fputs("<table><thead>\n<tr><td class=\"expand\">Name</td>"
