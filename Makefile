@@ -65,6 +65,7 @@ OBJECTS = \
 	execute.o \
 	filetypes.o \
 	getdiff.o \
+	getindex.o \
 	getrefs.o \
 	getrepo.o \
 	hprintf.o \

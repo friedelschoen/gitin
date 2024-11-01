@@ -1,4 +1,3 @@
-#include "buffer.h"
 #include "common.h"
 #include "config.h"
 #include "hprintf.h"
@@ -8,17 +7,17 @@
 #include <string.h>
 
 
-static int writeindexline(FILE* fp, FILE* cachefp, struct indexinfo* info) {
+static int writeindexline(FILE* fp, FILE* cachefp, const char* repodir, const char* name,
+                          const char* description) {
 	const git_signature* author = NULL;
 	int                  ret    = 0;
 
-	hprintf(fp, "<tr><td><a href=\"%s/\">%y</a></td><td>%y</td><td>", info->repodir, info->name,
-	        info->description);
+	hprintf(fp, "<tr><td><a href=\"%s/\">%y</a></td><td>%y</td><td>", repodir, name, description);
 	if (author)
 		hprintf(fp, "%t", &author->when);
 	fputs("</td></tr>", fp);
 
-	fprintf(cachefp, "%s,%s,%s\n", info->repodir, info->name, info->description);
+	fprintf(cachefp, "%s,%s,%s\n", repodir, name, description);
 
 	return ret;
 }
@@ -50,130 +49,56 @@ static void writecategory(FILE* index, const char* name, int len) {
 	free(confbuffer);
 }
 
-static int sortindex(const void* leftp, const void* rightp) {
-	const struct indexinfo* left  = (struct indexinfo*) leftp;
-	const struct indexinfo* right = (struct indexinfo*) rightp;
+static int iscategory(const char* repodir, const char** category, int* categorylen) {
+	int curlen = 0;
 
-	return strcmp(left->repodir, right->repodir);
+	if (strchr(repodir, '/'))
+		curlen = strrchr(repodir, '/') - repodir;
+
+	if (!*category || curlen != *categorylen || strncmp(*category, repodir, *categorylen) != 0) {
+		*category    = repodir;
+		*categorylen = curlen;
+		return 1;
+	}
+	return 0;
 }
 
-struct indexinfo* parsecache(char* buffer, int* count) {
-	struct indexinfo* indexes = NULL;
-	char*             start   = buffer;
+void writeindex(const struct gitininfo* info) {
+	FILE *          fp, *cachefp;
+	const char*     category    = NULL;
+	int             categorylen = 0;
+	struct repoinfo repoinfo;
 
-	while (start) {
-		// Find the end of the line (newline or end of buffer)
-		char* end = strchr(start, '\n');
-		if (end)
-			*end = '\0';    // Replace newline with null terminator
 
-		// Parse the repodir
-		char* name = strchr(start, ',');
-		if (!name)
-			break;         // Invalid line, no comma found
-		*name++ = '\0';    // Null-terminate repodir field
+	emkdirf(0777, "%s", info->destdir);
+	emkdirf(0777, "!%s/.cache", info->destdir);
 
-		// Parse the name
-		char* description = strchr(name, ',');
-		if (!description)
-			break;                // Invalid line, no second comma
-		*description++ = '\0';    // Null-terminate name field
-
-		// Allocate more space for the new index
-		indexes                     = realloc(indexes, (*count + 1) * sizeof(*indexes));
-		indexes[*count].repodir     = start;
-		indexes[*count].name        = name;
-		indexes[*count].description = description;
-		(*count)++;
-
-		// Move to the next line if there is one
-		if (!end)
-			break;
-
-		start = end + 1;
-	}
-
-	return indexes;
-}
-
-void writeindex(const char* destdir, char** repos, int nrepos) {
-	FILE *            fp, *cachefp;
-	char*             cache       = NULL;
-	size_t            cachesize   = 0;
-	struct indexinfo* indexes     = NULL;
-	int               nindexes    = 0;
-	const char*       category    = NULL;
-	int               categorylen = 0, curlen;
-	struct repoinfo   info;
-
-	emkdirf(0777, "%s", destdir);
-	emkdirf(0777, "!%s/.cache", destdir);
-
-	// parse cache
-	if ((cachefp = efopen("!.r", "%s/.cache/index", destdir)) &&
-	    (cache = loadbuffermalloc(cachefp, &cachesize))) {
-
-		indexes = parsecache(cache, &nindexes);
-
-		fclose(cachefp);
-	}
-
-	// fill cache with to update repos
-	for (int i = 0; i < nrepos; i++) {
-		for (int j = 0; j < nindexes; j++) {
-			if (!strcmp(repos[i], indexes[j].repodir)) {
-				indexes[j].name        = NULL;    // to be filled
-				indexes[j].description = NULL;    // to be filled
-				goto nextrepo;
-			}
-		}
-		// not cached
-		indexes                       = realloc(indexes, (nindexes + 1) * sizeof(struct indexinfo));
-		indexes[nindexes].repodir     = repos[i];
-		indexes[nindexes].name        = NULL;
-		indexes[nindexes].description = NULL;
-		nindexes++;
-
-	nextrepo:;
-	}
-
-	qsort(indexes, nindexes, sizeof(struct indexinfo), sortindex);
-
-	cachefp = efopen(".w", "%s/.cache/index", destdir);
-	fp      = efopen("w+", "%s/index.html", destdir);
+	cachefp = efopen(".w", "%s/.cache/index", info->destdir);
+	fp      = efopen("w+", "%s/index.html", info->destdir);
 	writeheader(fp, NULL, 0, sitename, "%y", sitedescription);
 	fputs("<table id=\"index\"><thead>\n"
 	      "<tr><td>Name</td><td class=\"expand\">Description</td><td>Last changes</td></tr>"
 	      "</thead><tbody>\n",
 	      fp);
 
-	for (int i = 0; i < nindexes; i++) {
-		curlen = strchr(indexes[i].repodir, '/')
-		           ? strrchr(indexes[i].repodir, '/') - indexes[i].repodir
-		           : 0;
-		if (!category || curlen != categorylen ||
-		    strncmp(category, indexes[i].repodir, categorylen) != 0) {
-			category    = indexes[i].repodir;
-			categorylen = curlen;
+	for (int i = 0; i < info->nindexes; i++) {
+		if (iscategory(info->indexes[i].repodir, &category, &categorylen))
 			writecategory(fp, category, categorylen);
-		}
 
-		if (!indexes[i].name) {
-			getrepo(&info, destdir, indexes[i].repodir);
-			indexes[i].name        = info.name;
-			indexes[i].description = info.description;
+		if (!info->indexes[i].name) {
+			getrepo(&repoinfo, info->destdir, info->indexes[i].repodir);
 
-			writeindexline(fp, cachefp, &indexes[i]);
-			writerepo(&info);
+			writeindexline(fp, cachefp, info->indexes[i].repodir, repoinfo.name,
+			               repoinfo.description);
+			writerepo(&repoinfo);
 
-			freeinfo(&info);
+			freeinfo(&repoinfo);
 		} else {
-			writeindexline(fp, cachefp, &indexes[i]);
+			writeindexline(fp, cachefp, info->indexes[i].repodir, info->indexes[i].name,
+			               info->indexes[i].description);
 		}
 	}
 	fputs("</tbody>\n</table>", fp);
 	writefooter(fp);
 	fclose(fp);
-	free(cache);
-	free(indexes);
 }

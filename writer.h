@@ -27,7 +27,7 @@ void writefooter(FILE* fp);
 int  writefiletree(const struct repoinfo* info, git_reference* refname, git_commit* commit);
 void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char* name,
                  const char* description, ...);
-void writeindex(const char* destdir, char** repos, int nrepos);
+void writeindex(const struct gitininfo* info);
 int  writelog(const struct repoinfo* info, git_reference* ref, git_commit* commit);
 void writepreview(FILE* fp, const struct repoinfo* info, int relpath, struct blobinfo* blob);
 void writerepo(const struct repoinfo* info);

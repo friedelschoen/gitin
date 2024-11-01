@@ -27,6 +27,14 @@ struct deltainfo {
 	size_t     delcount;
 };
 
+struct gitininfo {
+	const char* destdir;
+	char*       cache;
+
+	struct indexinfo* indexes;
+	int               nindexes;
+};
+
 struct indexinfo {
 	const char* repodir;
 	const char* name;
@@ -69,6 +77,9 @@ struct repoinfo {
 /* commitinfo */
 int  getdiff(struct commitinfo* ci, const struct repoinfo* info, git_commit* commit, int docache);
 void freediff(struct commitinfo* ci);
+
+int  getindex(struct gitininfo* info, const char* destdir, const char** repos, int nrepos);
+void freeindex(struct gitininfo* info);
 
 /* refinfo */
 int  getrefs(struct repoinfo* info);

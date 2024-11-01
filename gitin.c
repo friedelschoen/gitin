@@ -1,6 +1,7 @@
 
 #include "arg.h"
 #include "config.h"
+#include "getinfo.h"
 #include "hprintf.h"
 #include "writer.h"
 
@@ -84,13 +85,14 @@ static __attribute__((noreturn)) void usage(const char* argv0, int exitcode) {
 }
 
 int main(int argc, char** argv) {
-	const char* self    = argv[0];
-	const char *destdir = ".", *pwd = NULL;
-	int         recursive    = 0;
-	char**      repos        = NULL;
-	int         nrepos       = 0;
-	char*       configbuffer = NULL;
-	FILE*       config;
+	const char*      self    = argv[0];
+	const char *     destdir = ".", *pwd = NULL;
+	int              recursive    = 0;
+	char**           repos        = NULL;
+	int              nrepos       = 0;
+	char*            configbuffer = NULL;
+	FILE*            config;
+	struct gitininfo info;
 
 	ARGBEGIN
 	switch (OPT) {
@@ -172,7 +174,9 @@ int main(int argc, char** argv) {
 	/* do not require the git repository to be owned by the current user */
 	git_libgit2_opts(GIT_OPT_SET_OWNER_VALIDATION, 0);
 
-	writeindex(destdir, repos, nrepos);
+	getindex(&info, destdir, (const char**) repos, nrepos);
+	writeindex(&info);
+	freeindex(&info);
 
 	git_libgit2_shutdown();
 
