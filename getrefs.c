@@ -1,5 +1,5 @@
+#include "getinfo.h"
 #include "hprintf.h"
-#include "writer.h"
 
 #include <git2/commit.h>
 #include <git2/refs.h>

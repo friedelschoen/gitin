@@ -1,7 +1,7 @@
 #include "common.h"
 #include "config.h"
+#include "getinfo.h"
 #include "hprintf.h"
-#include "writer.h"
 
 #include <git2/repository.h>
 #include <git2/revparse.h>
