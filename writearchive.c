@@ -10,7 +10,7 @@
 #include <limits.h>
 #include <string.h>
 
-// Function to write a blob (file) from the repository to the archive
+/* Function to write a blob (file) from the repository to the archive */
 static int write_blob_to_archive(git_blob* blob, const char* path, const git_tree_entry* gitentry,
                                  struct archive* a) {
 	struct archive_entry* entry;
@@ -40,7 +40,7 @@ static int write_blob_to_archive(git_blob* blob, const char* path, const git_tre
 	return 0;
 }
 
-// Recursively process the tree to archive files
+/* Recursively process the tree to archive files */
 static int process_tree(git_repository* repo, git_tree* tree, const char* base_path,
                         struct archive* a) {
 	size_t count = git_tree_entrycount(tree);
@@ -74,7 +74,7 @@ static int process_tree(git_repository* repo, git_tree* tree, const char* base_p
 	return 0;
 }
 
-// Updated function to accept git_reference instead of branch/tag name
+/* Updated function to accept git_reference instead of branch/tag name */
 int writearchive(const struct repoinfo* info, int type, git_reference* ref, git_commit* commit) {
 	git_tree*       tree = NULL;
 	char            path[PATH_MAX];
@@ -102,7 +102,7 @@ int writearchive(const struct repoinfo* info, int type, git_reference* ref, git_
 			goto getsize;
 	}
 
-	// Get the tree associated with the commit
+	/* Get the tree associated with the commit */
 	if (git_commit_tree(&tree, commit)) {
 		hprintf(stderr, "error: unable to get tree from commit: %gw\n");
 		git_commit_free(commit);
@@ -137,7 +137,7 @@ int writearchive(const struct repoinfo* info, int type, git_reference* ref, git_
 		return -1;
 	}
 
-	// Process the tree to archive it
+	/* Process the tree to archive it */
 	if (process_tree(info->repo, tree, "", a) != 0) {
 		hprintf(stderr, "error: unable to process tree: %gw\n");
 		git_tree_free(tree);

@@ -44,13 +44,13 @@ static void writelogcommit(FILE* fp, FILE* json, FILE* atom, const struct repoin
 	int               cachedcommit;
 	FILE*             commitfile;
 
-	// Lookup the current commit
+	/* Lookup the current commit */
 	if (git_commit_lookup(&commit, info->repo, id)) {
 		hprintf(stderr, "error: unable to lookup commit: %gw\n");
 		return;
 	}
 
-	// Get the tree for the current commit
+	/* Get the tree for the current commit */
 	if (git_commit_tree(&tree, commit)) {
 		hprintf(stderr, "error: unable to get tree for commit: %gw\n");
 		git_commit_free(commit);
@@ -122,21 +122,21 @@ int writelog(const struct repoinfo* info, git_reference* ref, git_commit* head) 
 
 	writeatomheader(atom, info);
 
-	// Create a revwalk to iterate through the commits
+	/* Create a revwalk to iterate through the commits */
 	if (git_revwalk_new(&w, info->repo)) {
 		hprintf(stderr, "error: unable to initialize revwalk: %gw\n");
 		return -1;
 	}
 	git_revwalk_push(w, git_commit_id(head));
 
-	// Iterate through the commits
+	/* Iterate through the commits */
 	while (!git_revwalk_next(&id, w))
 		ncommits++;
 
 	git_revwalk_reset(w);
 	git_revwalk_push(w, git_commit_id(head));
 
-	// Iterate through the commits
+	/* Iterate through the commits */
 	ssize_t indx = 0;
 	while ((maxcommits <= 0 || indx < maxcommits) && !git_revwalk_next(&id, w)) {
 		writelogcommit(fp, json, atom, info, indx, &id, refname);

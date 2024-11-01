@@ -6,33 +6,33 @@
 #include <string.h>
 
 
-// Function to dump the commitstats struct into a file
+/* Function to dump the commitstats struct into a file */
 static void dumpdiff(FILE* fp, const struct commitinfo* stats) {
-	// Write commitstats fields
+	/* Write commitstats fields */
 	fwrite(&stats->addcount, sizeof(size_t), 1, fp);
 	fwrite(&stats->delcount, sizeof(size_t), 1, fp);
 
-	// Write the number of deltas
+	/* Write the number of deltas */
 	fwrite(&stats->ndeltas, sizeof(size_t), 1, fp);
 
-	// Write each delta (if any)
+	/* Write each delta (if any) */
 	for (size_t i = 0; i < stats->ndeltas; i++) {
 		fwrite(&stats->deltas[i].addcount, sizeof(size_t), 1, fp);
 		fwrite(&stats->deltas[i].delcount, sizeof(size_t), 1, fp);
 	}
 }
 
-// Function to parse the commitstats struct from a file
+/* Function to parse the commitstats struct from a file */
 static void loaddiff(FILE* fp, struct commitinfo* stats) {
-	// Read commitstats fields
+	/* Read commitstats fields */
 	fread(&stats->addcount, sizeof(size_t), 1, fp);
 	fread(&stats->delcount, sizeof(size_t), 1, fp);
 
-	// Read the number of deltas
+	/* Read the number of deltas */
 	fread(&stats->ndeltas, sizeof(size_t), 1, fp);
 
-	// Allocate memory for the deltas array
-	stats->deltas = NULL;    // No deltas to store
+	/* Allocate memory for the deltas array */
+	stats->deltas = NULL; /* No deltas to store */
 	if (stats->ndeltas > 0) {
 		stats->deltas = malloc(stats->ndeltas * sizeof(struct deltainfo));
 		if (!stats->deltas) {
@@ -40,7 +40,7 @@ static void loaddiff(FILE* fp, struct commitinfo* stats) {
 			exit(100);
 		}
 
-		// Read each delta
+		/* Read each delta */
 		for (size_t i = 0; i < stats->ndeltas; i++) {
 			stats->deltas[i].patch = NULL;
 			fread(&stats->deltas[i].addcount, sizeof(size_t), 1, fp);
@@ -107,7 +107,7 @@ int getdiff(struct commitinfo* ci, const struct repoinfo* info, git_commit* comm
 	ci->ndeltas = git_diff_num_deltas(diff);
 	if (ci->ndeltas && !(ci->deltas = calloc(ci->ndeltas, sizeof(struct deltainfo)))) {
 		hprintf(stderr, "error: unable to allocate memory for deltas: %w\n");
-		exit(100);    // Fatal error
+		exit(100); /* Fatal error */
 	}
 
 	for (size_t i = 0; i < ci->ndeltas; i++) {
@@ -180,5 +180,5 @@ void freediff(struct commitinfo* ci) {
 		free(ci->deltas);
 	}
 
-	memset(ci, 0, sizeof(*ci));    // Reset structure
+	memset(ci, 0, sizeof(*ci)); /* Reset structure */
 }

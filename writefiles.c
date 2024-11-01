@@ -159,7 +159,7 @@ static void writefile(const struct repoinfo* info, const char* refname, int relp
 }
 
 static void addheadfile(struct repoinfo* info, const char* filename) {
-	// Reallocate more space if needed
+	/* Reallocate more space if needed */
 	if (info->headfileslen >= info->headfilesalloc) {
 		int    new_alloc = info->headfilesalloc == 0 ? 4 : info->headfilesalloc * 2;
 		char** temp      = realloc(info->headfiles, new_alloc * sizeof(char*));
@@ -171,7 +171,7 @@ static void addheadfile(struct repoinfo* info, const char* filename) {
 		info->headfilesalloc = new_alloc;
 	}
 
-	// Copy the string and store it in the list
+	/* Copy the string and store it in the list */
 	info->headfiles[info->headfileslen++] = strdup(filename);
 }
 
@@ -199,13 +199,13 @@ static size_t countfiles(git_repository* repo, git_tree* tree) {
 
 		git_object* object = NULL;
 		if (git_tree_entry_type(entry) == GIT_OBJECT_BLOB) {
-			// If it's a blob (file), increment the file count
+			/* If it's a blob (file), increment the file count */
 			file_count++;
 		} else if (git_tree_entry_type(entry) == GIT_OBJECT_TREE) {
-			// If it's a subdirectory (tree), recurse into it
+			/* If it's a subdirectory (tree), recurse into it */
 			if (git_tree_entry_to_object(&object, repo, entry) == 0) {
 				git_tree* subtree = (git_tree*) object;
-				file_count += countfiles(repo, subtree);    // Recurse into the subtree
+				file_count += countfiles(repo, subtree); /* Recurse into the subtree */
 				git_tree_free(subtree);
 			}
 		}
@@ -249,7 +249,7 @@ static int writetree(FILE* fp, const struct repoinfo* info, const char* refname,
 			strlcpy(entrypath, entryname, sizeof(entrypath));
 
 		if (!git_tree_entry_to_object(&obj, info->repo, entry)) {
-			// addheadfile(info, entrypath);
+			/* addheadfile(info, entrypath); */
 			(void) addheadfile;
 
 			if (git_object_type(obj) == GIT_OBJECT_BLOB) {
@@ -327,7 +327,7 @@ int writefiletree(const struct repoinfo* info, git_reference* ref, git_commit* c
 		}
 	}
 
-	// Clean /file and /blob directories since they will be rewritten
+	/* Clean /file and /blob directories since they will be rewritten */
 	snprintf(path, sizeof(path), "%s/%s/files", info->destdir, refname);
 	removedir(path);
 	snprintf(path, sizeof(path), "%s/%s/blobs", info->destdir, refname);

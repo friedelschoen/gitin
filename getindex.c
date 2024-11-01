@@ -16,31 +16,31 @@ static struct indexinfo* parsecache(char* buffer, int* count) {
 	char*             start   = buffer;
 
 	while (start) {
-		// Find the end of the line (newline or end of buffer)
+		/* Find the end of the line (newline or end of buffer) */
 		char* end = strchr(start, '\n');
 		if (end)
-			*end = '\0';    // Replace newline with null terminator
+			*end = '\0'; /* Replace newline with null terminator */
 
-		// Parse the repodir
+		/* Parse the repodir */
 		char* name = strchr(start, ',');
 		if (!name)
-			break;         // Invalid line, no comma found
-		*name++ = '\0';    // Null-terminate repodir field
+			break;      /* Invalid line, no comma found */
+		*name++ = '\0'; /* Null-terminate repodir field */
 
-		// Parse the name
+		/* Parse the name */
 		char* description = strchr(name, ',');
 		if (!description)
-			break;                // Invalid line, no second comma
-		*description++ = '\0';    // Null-terminate name field
+			break;             /* Invalid line, no second comma */
+		*description++ = '\0'; /* Null-terminate name field */
 
-		// Allocate more space for the new index
+		/* Allocate more space for the new index */
 		indexes                     = realloc(indexes, (*count + 1) * sizeof(*indexes));
 		indexes[*count].repodir     = start;
 		indexes[*count].name        = name;
 		indexes[*count].description = description;
 		(*count)++;
 
-		// Move to the next line if there is one
+		/* Move to the next line if there is one */
 		if (!end)
 			break;
 
@@ -57,7 +57,7 @@ int getindex(struct gitininfo* info, const char* destdir, const char** repos, in
 	memset(info, 0, sizeof(*info));
 	info->destdir = destdir;
 
-	// parse cache
+	/* parse cache */
 	if ((cachefp = efopen("!.r", "%s/.cache/index", info->destdir)) &&
 	    (cache = loadbuffermalloc(cachefp, NULL))) {
 
@@ -66,16 +66,16 @@ int getindex(struct gitininfo* info, const char* destdir, const char** repos, in
 		fclose(cachefp);
 	}
 
-	// fill cache with to update repos
+	/* fill cache with to update repos */
 	for (int i = 0; i < nrepos; i++) {
 		for (int j = 0; j < info->nindexes; j++) {
 			if (!strcmp(repos[i], info->indexes[j].repodir)) {
-				info->indexes[j].name        = NULL;    // to be filled
-				info->indexes[j].description = NULL;    // to be filled
+				info->indexes[j].name        = NULL; /* to be filled */
+				info->indexes[j].description = NULL; /* to be filled */
 				goto nextrepo;
 			}
 		}
-		// not cached
+		/* not cached */
 		info->indexes = realloc(info->indexes, (info->nindexes + 1) * sizeof(struct indexinfo));
 		info->indexes[info->nindexes].repodir     = repos[i];
 		info->indexes[info->nindexes].name        = NULL;

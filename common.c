@@ -12,7 +12,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define MURMUR_SEED 0xCAFE5EED    // cafeseed
+#define MURMUR_SEED 0xCAFE5EED /* cafeseed */
 #define fallthrough __attribute__((fallthrough));
 
 
@@ -108,7 +108,7 @@ void printprogress(ssize_t indx, ssize_t ncommits, const char* what, ...) {
 	va_end(args);
 	printf(" [");
 
-	// Handle zero commits case
+	/* Handle zero commits case */
 	if (ncommits == 0) {
 		printf("##################################################] 100.0%% (0 / 0)");
 		fflush(stdout);
@@ -116,21 +116,21 @@ void printprogress(ssize_t indx, ssize_t ncommits, const char* what, ...) {
 	}
 
 	double progress  = (double) indx / ncommits;
-	int    bar_width = 50;    // The width of the progress bar
+	int    bar_width = 50; /* The width of the progress bar */
 
-	// Print the progress bar
+	/* Print the progress bar */
 	int pos = (int) (bar_width * progress);
 	for (int i = 0; i < bar_width; ++i) {
 		if (i < pos)
-			fputc('#', stdout);    // Filled part of the bar
+			fputc('#', stdout); /* Filled part of the bar */
 		else
-			fputc('-', stdout);    // Unfilled part of the bar
+			fputc('-', stdout); /* Unfilled part of the bar */
 	}
 
-	// Print the progress percentage and counts
+	/* Print the progress percentage and counts */
 	printf("] %5.1f%% (%zd / %zd)", progress * 100, indx, ncommits);
 
-	// Ensure the line is flushed and fully updated in the terminal
+	/* Ensure the line is flushed and fully updated in the terminal */
 	fflush(stdout);
 }
 
@@ -172,7 +172,7 @@ u_int32_t filehash(const void* key, int len) {
 	const uint32_t c1 = 0xcc9e2d51;
 	const uint32_t c2 = 0x1b873593;
 
-	// Body
+	/* Body */
 	const uint32_t* blocks = (const uint32_t*) (data + nblocks * 4);
 	for (int i = -nblocks; i; i++) {
 		uint32_t k1 = blocks[i];
@@ -186,7 +186,7 @@ u_int32_t filehash(const void* key, int len) {
 		h1 = h1 * 5 + 0xe6546b64;
 	}
 
-	// Tail
+	/* Tail */
 	const uint8_t* tail = (const uint8_t*) (data + nblocks * 4);
 	uint32_t       k1   = 0;
 
@@ -205,7 +205,7 @@ u_int32_t filehash(const void* key, int len) {
 			h1 ^= k1;
 	}
 
-	// Finalization
+	/* Finalization */
 	h1 ^= len;
 	h1 ^= h1 >> 16;
 	h1 *= 0x85ebca6b;

@@ -13,7 +13,7 @@ typedef int bool;
 static char* strip(char* str) {
 	char* end;
 
-	while (isspace((unsigned char) *str))    // Cast to unsigned char for isspace
+	while (isspace((unsigned char) *str)) /* Cast to unsigned char for isspace */
 		str++;
 
 	end = strchr(str, '\0') - 1;
@@ -85,11 +85,11 @@ char* parseconfig(FILE* file, struct configitem* keys) {
 
 	current = buffer;
 	while ((line = strsep(&current, "\n"))) {
-		// Skip empty lines
+		/* Skip empty lines */
 		if (*line == '\0')
 			continue;
 
-		// Handle comments
+		/* Handle comments */
 		value = strchr(line, '#');
 		if (value)
 			*value = '\0';
@@ -98,9 +98,9 @@ char* parseconfig(FILE* file, struct configitem* keys) {
 		if (value)
 			*value = '\0';
 
-		// Handle sections: [section]
+		/* Handle sections: [section] */
 		if (*line == '[' && line[strlen(line) - 1] == ']') {
-			// Extract the section name
+			/* Extract the section name */
 			line[strlen(line) - 1] = '\0';
 
 			section = strip(line + 1);
@@ -111,15 +111,15 @@ char* parseconfig(FILE* file, struct configitem* keys) {
 		if (!value)
 			continue;
 
-		*value++ = '\0';    // Split key and value
+		*value++ = '\0'; /* Split key and value */
 		key      = strip(line);
 		value    = strip(value);
 
-		// Skip lines without a valid key-value pair
+		/* Skip lines without a valid key-value pair */
 		if (*key == '\0' || *value == '\0')
 			continue;
 
-		// Handle the key-value pair
+		/* Handle the key-value pair */
 		if (!handle(keys, section, key, value)) {
 			fprintf(stderr, "warn: ignoring unknown key '%s'\n", key);
 		}

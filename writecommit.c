@@ -17,7 +17,7 @@ static void xmlencodeline(FILE* fp, const char* s, size_t len) {
 	while (i < len && *s) {
 		c = (unsigned char) *s;
 
-		// Handle ASCII characters
+		/* Handle ASCII characters */
 		if (c < 0x80) {
 			switch (c) {
 				case '<':
@@ -50,42 +50,42 @@ static void xmlencodeline(FILE* fp, const char* s, size_t len) {
 			s++;
 			i++;
 		}
-		// Handle multi-byte UTF-8 sequences
+		/* Handle multi-byte UTF-8 sequences */
 		else if (c < 0xC0) {
-			// Invalid continuation byte at start, print as is
+			/* Invalid continuation byte at start, print as is */
 			fprintf(fp, "&#%d;", c);
 			s++;
 			i++;
 		} else {
-			// Decode UTF-8 sequence
+			/* Decode UTF-8 sequence */
 			const unsigned char* start     = (unsigned char*) s;
 			int                  remaining = 0;
 
 			if (c < 0xE0) {
-				// 2-byte sequence
+				/* 2-byte sequence */
 				remaining = 1;
 				codepoint = c & 0x1F;
 			} else if (c < 0xF0) {
-				// 3-byte sequence
+				/* 3-byte sequence */
 				remaining = 2;
 				codepoint = c & 0x0F;
 			} else if (c < 0xF8) {
-				// 4-byte sequence
+				/* 4-byte sequence */
 				remaining = 3;
 				codepoint = c & 0x07;
 			} else {
-				// Invalid start byte, print as is
+				/* Invalid start byte, print as is */
 				fprintf(fp, "&#%d;", c);
 				s++;
 				i++;
 				continue;
 			}
 
-			// Process continuation bytes
+			/* Process continuation bytes */
 			while (remaining-- && *(++s)) {
 				c = (unsigned char) *s;
 				if ((c & 0xC0) != 0x80) {
-					// Invalid continuation byte, print original bytes as is
+					/* Invalid continuation byte, print original bytes as is */
 					while (start <= (unsigned char*) s) {
 						fprintf(fp, "&#%d;", *start++);
 					}
@@ -97,7 +97,7 @@ static void xmlencodeline(FILE* fp, const char* s, size_t len) {
 			}
 
 			if (remaining < 0) {
-				// Successfully decoded UTF-8 character, output as numeric reference
+				/* Successfully decoded UTF-8 character, output as numeric reference */
 				fprintf(fp, "&#%u;", codepoint);
 				s++;
 				i++;

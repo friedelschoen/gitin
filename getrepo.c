@@ -11,11 +11,11 @@
 
 static void freeheadfiles(struct repoinfo* info) {
 	if (info->headfiles != NULL) {
-		// Free each string in the list
+		/* Free each string in the list */
 		for (int i = 0; i < info->headfileslen; i++) {
 			free(info->headfiles[i]);
 		}
-		// Free the list itself
+		/* Free the list itself */
 		free(info->headfiles);
 		info->headfiles = NULL;
 	}
@@ -74,7 +74,7 @@ void getrepo(struct repoinfo* info, const char* destination, const char* repodir
 			{ "url", ConfigString, &info->cloneurl },
 			{ "cloneurl", ConfigString, &info->cloneurl },
 			{ "branch", ConfigString, &info->branchname },
-			//			{ "revision", ConfigString, &info->revision },
+			/* { "revision", ConfigString, &info->revision }, */
 			{ 0 },
 		};
 
@@ -90,10 +90,10 @@ void getrepo(struct repoinfo* info, const char* destination, const char* repodir
 	if (extrapinfiles) {
 		start = extrapinfiles;
 
-		// Loop through the string, finding each space and treating it as a delimiter
+		/* Loop through the string, finding each space and treating it as a delimiter */
 		while (info->pinfileslen < (int) LEN(info->pinfiles) &&
 		       (end = strchr(start, ' ')) != NULL) {
-			*end = '\0';    // Replace the space with a null terminator to isolate the token
+			*end = '\0'; /* Replace the space with a null terminator to isolate the token */
 			addpinfile(info, start);
 			start = end + 1;
 		}

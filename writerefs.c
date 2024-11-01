@@ -70,7 +70,7 @@ int writerefs(FILE* fp, const struct repoinfo* info, int relpath, git_reference*
 			fprintf(fp, "<tr class=\"current-ref\"><td>");
 		else
 			fprintf(fp, "<tr><td>");
-		// is current
+		/* is current */
 		hprintf(fp, "<a href=\"%r%s\">%y</a>", relpath, name, name);
 		hprintf(fp, " <small>at \"<a href=\"%rcommit/%s.html\">%s</a>\"</small>", relpath, oid,
 		        summary);

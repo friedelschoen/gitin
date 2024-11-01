@@ -36,13 +36,13 @@ ssize_t execute(struct executeinfo* params) {
 
 	if ((process = fork()) == -1) {
 		hprintf(stderr, "error: unable to fork process: %w\n");
-		exit(100);    // Fatal error, exit with 100
+		exit(100); /* Fatal error, exit with 100 */
 	} else if (process == 0) {
-		// Child
+		/* Child */
 		dup2(outpipefd.read, STDIN_FILENO);
 		dup2(inpipefd.write, STDOUT_FILENO);
 
-		// close unused pipe ends
+		/* close unused pipe ends */
 		close(outpipefd.write);
 		close(inpipefd.read);
 
@@ -52,7 +52,7 @@ ssize_t execute(struct executeinfo* params) {
 		execlp("sh", "sh", "-c", params->command, NULL);
 
 		hprintf(stderr, "error: unable to exec highlight: %w\n");
-		_exit(100);    // Fatal error inside child
+		_exit(100); /* Fatal error inside child */
 	}
 
 	close(outpipefd.read);
@@ -60,7 +60,7 @@ ssize_t execute(struct executeinfo* params) {
 
 	if (write(outpipefd.write, params->content, params->ncontent) == -1) {
 		hprintf(stderr, "error: unable to write to pipe: %w\n");
-		exit(100);    // Fatal error, exit with 100
+		exit(100); /* Fatal error, exit with 100 */
 		goto wait;
 	}
 

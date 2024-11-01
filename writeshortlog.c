@@ -56,7 +56,7 @@ static int compareauthor(const void* leftp, const void* rightp) {
 }
 
 static void writediagram(FILE* file, struct loginfo* li) {
-	// Constants for the SVG size and scaling
+	/* Constants for the SVG size and scaling */
 	const int width  = 1200;
 	const int height = 500;
 
@@ -78,17 +78,17 @@ static void writediagram(FILE* file, struct loginfo* li) {
 		}
 	}
 
-	// SVG header
+	/* SVG header */
 	fprintf(
 	    file,
 	    "<svg id=\"shortlog-graph\" xmlns=\"http://www.w3.org/2000/svg\" viewbox=\"0 0 %d %d\" width=\"100%%\">\n",
 	    width, height);
 
-	// Scaling factors for graph
+	/* Scaling factors for graph */
 	double x_scale = (double) (width - padding_left - padding_right) / (li->ndatecount - 1);
 	double y_scale = (double) (height - padding_top - padding_bottom) / max_commits;
 
-	// Draw the line graph from right to left
+	/* Draw the line graph from right to left */
 	for (int i = 0; i < li->ndatecount - 1; i++) {
 		int x1 = width - padding_right - i * x_scale;
 		int y1 = height - padding_bottom - li->datecount[i].count * y_scale;
@@ -101,10 +101,10 @@ static void writediagram(FILE* file, struct loginfo* li) {
 		    x1, y1, x2, y2, color);
 	}
 
-	// Add vertical labels for months, also right to left
+	/* Add vertical labels for months, also right to left */
 	for (int i = 0; i < li->ndatecount; i++) {
-		int x  = width - padding_right - i * x_scale;    // Reversed X
-		int y  = height - padding_bottom + 10;           // Adjust for spacing below the graph
+		int x  = width - padding_right - i * x_scale; /* Reversed X */
+		int y  = height - padding_bottom + 10;        /* Adjust for spacing below the graph */
 		int ty = height - padding_bottom - li->datecount[i].count * y_scale;
 
 		time_t    secs;
@@ -147,12 +147,12 @@ static void writediagram(FILE* file, struct loginfo* li) {
 		}
 	}
 
-	// SVG footer
+	/* SVG footer */
 	fprintf(file, "</svg>\n");
 }
 
 static void mergedatecount(struct loginfo* li) {
-	// Initialize the first month with the first day
+	/* Initialize the first month with the first day */
 	int       writeptr = 0;
 	time_t    first_day_secs, current_secs;
 	struct tm first_day, current_day;
@@ -165,16 +165,16 @@ static void mergedatecount(struct loginfo* li) {
 	first_day_secs = li->datecount[0].day * SECONDSINDAY;
 	gmtime_r(&first_day_secs, &first_day);
 
-	// Iterate through the rest of datecount
+	/* Iterate through the rest of datecount */
 	for (int readptr = 1; readptr < li->ndatecount; readptr++) {
 		current_secs = li->datecount[readptr].day * SECONDSINDAY;
 		gmtime_r(&current_secs, &current_day);
 
 		if (current_day.tm_mon == first_day.tm_mon && current_day.tm_year == first_day.tm_year) {
-			// Same month, accumulate counts
+			/* Same month, accumulate counts */
 			li->datecount[writeptr].count += li->datecount[readptr].count;
 
-			// Append references if present
+			/* Append references if present */
 			if (li->datecount[readptr].refs[0]) {
 				if (li->datecount[writeptr].refs[0]) {
 					strncat(li->datecount[writeptr].refs, ", ",
@@ -184,21 +184,21 @@ static void mergedatecount(struct loginfo* li) {
 				        MAXREFS - strlen(li->datecount[writeptr].refs) - 1);
 			}
 		} else {
-			// Move to the next month
+			/* Move to the next month */
 			writeptr++;
 
-			// Copy the new month entry to the next position
+			/* Copy the new month entry to the next position */
 			li->datecount[writeptr].day   = li->datecount[readptr].day;
 			li->datecount[writeptr].count = li->datecount[readptr].count;
 			strncpy(li->datecount[writeptr].refs, li->datecount[readptr].refs, MAXREFS - 1);
 			li->datecount[writeptr].refs[MAXREFS - 1] = '\0';
 
-			// Update first_day for the new month
+			/* Update first_day for the new month */
 			first_day = current_day;
 		}
 	}
 
-	li->ndatecount = writeptr + 1;    // Return the number of merged entries
+	li->ndatecount = writeptr + 1; /* Return the number of merged entries */
 }
 
 static void countlog(const struct repoinfo* info, git_commit* head, struct loginfo* li) {
@@ -221,15 +221,15 @@ static void countlog(const struct repoinfo* info, git_commit* head, struct login
 		days = author->when.time / SECONDSINDAY;
 
 		if (!incrementauthor(li->authorcount, li->nauthorcount, author)) {
-			// make space for new author
+			/* make space for new author */
 			if (!(li->authorcount = realloc(li->authorcount,
 			                                (li->nauthorcount + 1) * sizeof(*li->authorcount)))) {
 				fprintf(stderr, "error: unable to allocate memory\n");
 				exit(100);
 			}
 
-			// set new author
-			li->authorcount[li->nauthorcount].count = 1;    // including this commit
+			/* set new author */
+			li->authorcount[li->nauthorcount].count = 1; /* including this commit */
 			li->authorcount[li->nauthorcount].name  = strdup(author->name);
 			li->authorcount[li->nauthorcount].email = strdup(author->email);
 			li->nauthorcount++;
@@ -241,14 +241,14 @@ static void countlog(const struct repoinfo* info, git_commit* head, struct login
 		while (previous > days) {
 			previous--;
 
-			// make space for new date
+			/* make space for new date */
 			if (!(li->datecount =
 			          realloc(li->datecount, (li->ndatecount + 1) * sizeof(*li->datecount)))) {
 				fprintf(stderr, "error: unable to allocate memory\n");
 				exit(100);
 			}
 
-			// init new date
+			/* init new date */
 			li->datecount[li->ndatecount].count   = 0;
 			li->datecount[li->ndatecount].day     = previous;
 			li->datecount[li->ndatecount].refs[0] = '\0';

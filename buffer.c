@@ -30,7 +30,7 @@ char* loadbuffermalloc(FILE* fp, size_t* pbuflen) {
 	buflen = ftell(fp);
 	rewind(fp);
 
-	if (!(buffer = malloc(buflen + 1)))    // +1 for null terminator
+	if (!(buffer = malloc(buflen + 1))) /* +1 for null terminator */
 		return NULL;
 
 	if (fread(buffer, 1, buflen, fp) != buflen) {
@@ -46,7 +46,7 @@ char* loadbuffermalloc(FILE* fp, size_t* pbuflen) {
 		}
 	}
 
-	buffer[buflen] = '\0';    // Null-terminate the buffer
+	buffer[buflen] = '\0'; /* Null-terminate the buffer */
 	if (pbuflen)
 		*pbuflen = buflen;
 	return buffer;
