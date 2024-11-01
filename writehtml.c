@@ -38,7 +38,7 @@ void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char*
 	fputs("<tr><td></td><td class=\"expand\">\n", fp);
 	if (info) {
 		hprintf(fp, "<a href=\"%r\">Repositories</a> ", indexrelpath);
-		hprintf(fp, "| <a href=\"%r\">Summary</a> ", relpath - 1);
+		hprintf(fp, "| <a href=\"%rindex.html\">Summary</a> ", relpath - 1);
 		hprintf(fp, "| <a href=\"%rlog.html\">Log</a> ", relpath - 1);
 		hprintf(fp, "| <a href=\"%rfiles/\">Files</a> ", relpath - 1);
 		if (info->submodules)
