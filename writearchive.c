@@ -11,8 +11,8 @@
 #include <string.h>
 
 /* Function to write a blob (file) from the repository to the archive */
-static int write_blob_to_archive(git_blob* blob, const char* path, const git_tree_entry* gitentry,
-                                 struct archive* a) {
+static int writearchiveblob(git_blob* blob, const char* path, const git_tree_entry* gitentry,
+                            struct archive* a) {
 	struct archive_entry* entry;
 	entry = archive_entry_new();
 	archive_entry_set_pathname(entry, path);
@@ -41,8 +41,8 @@ static int write_blob_to_archive(git_blob* blob, const char* path, const git_tre
 }
 
 /* Recursively process the tree to archive files */
-static int process_tree(git_repository* repo, git_tree* tree, const char* base_path,
-                        struct archive* a) {
+static int walktree(git_repository* repo, git_tree* tree, const char* base_path,
+                    struct archive* a) {
 	size_t count = git_tree_entrycount(tree);
 	for (size_t i = 0; i < count; ++i) {
 		const git_tree_entry* entry = git_tree_entry_byindex(tree, i);
@@ -56,7 +56,7 @@ static int process_tree(git_repository* repo, git_tree* tree, const char* base_p
 				hprintf(stderr, "error: unable to load git-tree: %gw\n");
 				return -1;
 			}
-			process_tree(repo, subtree, full_path, a);
+			walktree(repo, subtree, full_path, a);
 			git_tree_free(subtree);
 		} else if (git_tree_entry_type(entry) == GIT_OBJECT_BLOB) {
 			git_blob* blob;
@@ -64,7 +64,7 @@ static int process_tree(git_repository* repo, git_tree* tree, const char* base_p
 				hprintf(stderr, "error: unable to load blob: %gw\n");
 				return -1;
 			}
-			if (write_blob_to_archive(blob, full_path, entry, a) != 0) {
+			if (writearchiveblob(blob, full_path, entry, a) != 0) {
 				git_blob_free(blob);
 				return -1;
 			}
@@ -138,7 +138,7 @@ int writearchive(const struct repoinfo* info, int type, git_reference* ref, git_
 	}
 
 	/* Process the tree to archive it */
-	if (process_tree(info->repo, tree, "", a) != 0) {
+	if (walktree(info->repo, tree, "", a) != 0) {
 		hprintf(stderr, "error: unable to process tree: %gw\n");
 		git_tree_free(tree);
 		archive_write_close(a);

@@ -4,8 +4,9 @@
 
 #include <stdio.h>
 
-/* please order arguments: FILE* fp, (const) struct repoinfo* info, int relpath */
 /* naming: write + <type if not html> + <what is writing> */
+/* please order arguments: FILE* fp, (const) struct repoinfo* info, int relpath */
+/* if a function writes a whole file, it must include writeheader() and writefooter() */
 
 /* archive */
 int writearchive(const struct repoinfo* info, int type, git_reference* refname, git_commit* commit);

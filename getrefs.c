@@ -14,7 +14,7 @@ void freerefs(struct repoinfo* info) {
 	free(info->refs);
 }
 
-static int refs_cmp(const void* v1, const void* v2) {
+static int comparerefs(const void* v1, const void* v2) {
 	const struct referenceinfo *r1 = v1, *r2 = v2;
 	time_t                      t1, t2;
 
@@ -66,7 +66,7 @@ int getrefs(struct repoinfo* info) {
 	git_reference_iterator_free(iter);
 
 	/* sort by type, date then shorthand name */
-	qsort(info->refs, info->nrefs, sizeof(*info->refs), refs_cmp);
+	qsort(info->refs, info->nrefs, sizeof(*info->refs), comparerefs);
 
 	return 0;
 }

@@ -2,8 +2,8 @@
 
 #include "common.h"
 #include "config.h"
+#include "getinfo.h"
 #include "hprintf.h"
-#include "writer.h"
 
 #include <sys/wait.h>
 #include <unistd.h>

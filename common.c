@@ -85,7 +85,8 @@ err:
 	exit(100);
 }
 
-static int unlink_cb(const char* fpath, const struct stat* sb, int typeflag, struct FTW* ftwbuf) {
+static int removecallback(const char* fpath, const struct stat* sb, int typeflag,
+                          struct FTW* ftwbuf) {
 	(void) sb;
 	(void) typeflag;
 	(void) ftwbuf;
@@ -94,7 +95,7 @@ static int unlink_cb(const char* fpath, const struct stat* sb, int typeflag, str
 }
 
 int removedir(char* path) {
-	return nftw(path, unlink_cb, 64, FTW_DEPTH | FTW_PHYS);
+	return nftw(path, removecallback, 64, FTW_DEPTH | FTW_PHYS);
 }
 
 void printprogress(ssize_t indx, ssize_t ncommits, const char* what, ...) {
