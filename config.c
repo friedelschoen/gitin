@@ -94,6 +94,13 @@ const char* pinfiles[] = {
 
 const char* extrapinfiles = NULL;
 
+const char* aboutfiles[] = {
+	"README",
+	"README.md",
+	"README.rst",
+	NULL,
+};
+
 /* --- Commit and log settings --- */
 
 /* Maximum number of commits to display in the log view. A value of -1 means no limit. */

@@ -10,6 +10,7 @@ enum {
 	ArchiveZip    = 1 << 3,
 };
 
+extern const char*       aboutfiles[];
 extern const char*       archiveexts[];
 extern int               archivetypes;
 extern int               archivezip;

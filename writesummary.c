@@ -42,12 +42,6 @@ git_blob* getcommitblob(git_commit* commit, const char* path) {
 	return blob;
 }
 
-static const char* aboutfiles[] = {
-	"README",
-	"README.md",
-	"README.rst",
-};
-
 int writesummary(FILE* fp, const struct repoinfo* info, git_reference* ref, git_commit* head) {
 	const char *    refname, *readmename;
 	git_blob*       readme = NULL;
@@ -81,7 +75,7 @@ int writesummary(FILE* fp, const struct repoinfo* info, git_reference* ref, git_
 		}
 	}
 
-	for (int i = 0; i < (int) LEN(aboutfiles); i++) {
+	for (int i = 0; aboutfiles[i]; i++) {
 		readmename = aboutfiles[i];
 		if ((readme = getcommitblob(head, aboutfiles[i])))
 			break;
