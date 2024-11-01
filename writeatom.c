@@ -3,7 +3,7 @@
 
 #include <git2/commit.h>
 
-void writecommitatom(FILE* fp, git_commit* commit, git_reference* tag) {
+void writeatomcommit(FILE* fp, git_commit* commit, git_reference* tag) {
 	char                 oid[GIT_OID_SHA1_HEXSIZE + 1], parentoid[GIT_OID_SHA1_HEXSIZE + 1];
 	const git_signature* author    = git_commit_author(commit);
 	const git_signature* committer = git_commit_committer(commit);
@@ -66,11 +66,11 @@ void writeatomrefs(FILE* atom, const struct repoinfo* info) {
 	writeatomheader(atom, info);
 
 	for (int i = 0; i < info->nbranches; i++) {
-		writecommitatom(atom, info->branches[i].commit, info->branches[i].ref);
+		writeatomcommit(atom, info->branches[i].commit, info->branches[i].ref);
 	}
 
 	for (int i = 0; i < info->ntags; i++) {
-		writecommitatom(atom, info->tags[i].commit, info->tags[i].ref);
+		writeatomcommit(atom, info->tags[i].commit, info->tags[i].ref);
 	}
 
 	writeatomfooter(atom);

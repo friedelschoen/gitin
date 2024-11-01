@@ -132,13 +132,13 @@ void writerepo(struct indexinfo* indexinfo, const char* destination) {
 	for (int i = 0; i < info.nbranches; i++) {
 		emkdirf(0777, "%s/%s", info.destdir, git_reference_shorthand(info.branches[i].ref));
 		writelog(&info, info.branches[i].ref, info.branches[i].commit);
-		writefiles(&info, info.branches[i].ref, info.branches[i].commit);
+		writefiletree(&info, info.branches[i].ref, info.branches[i].commit);
 	}
 
 	for (int i = 0; i < info.ntags; i++) {
 		emkdirf(0777, "%s/%s", info.destdir, git_reference_shorthand(info.tags[i].ref));
 		writelog(&info, info.tags[i].ref, info.tags[i].commit);
-		writefiles(&info, info.tags[i].ref, info.tags[i].commit);
+		writefiletree(&info, info.tags[i].ref, info.tags[i].commit);
 	}
 
 	fp = efopen("w", "%s/index.html", info.destdir);

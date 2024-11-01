@@ -115,9 +115,8 @@ static int hasheadfile(const struct repoinfo* info, const char* filename) {
 	return 0;
 }
 
-void writecommitfile(const struct repoinfo* info, git_commit* commit, const struct commitinfo* ci,
-                     int parentlink, const char* refname) {
-	FILE*                 fp;
+void writecommit(FILE* fp, const struct repoinfo* info, git_commit* commit,
+                 const struct commitinfo* ci, int parentlink, const char* refname) {
 	const git_diff_delta* delta;
 	const git_diff_hunk*  hunk;
 	const git_diff_line*  line;
@@ -133,7 +132,6 @@ void writecommitfile(const struct repoinfo* info, git_commit* commit, const stru
 	git_oid_tostr(oid, sizeof(oid), git_commit_id(commit));
 	git_oid_tostr(parentoid, sizeof(parentoid), git_commit_parent_id(commit, 0));
 
-	fp = efopen("w", "%s/commit/%s.html", info->destdir, oid);
 	writeheader(fp, info, 1, info->name, "%y in %s", summary, refname);
 	fputs("<pre>", fp);
 
@@ -274,5 +272,4 @@ void writecommitfile(const struct repoinfo* info, git_commit* commit, const stru
 
 	fputs("</pre>\n", fp);
 	writefooter(fp);
-	fclose(fp);
 }

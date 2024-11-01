@@ -63,11 +63,13 @@ static void writelogcommit(FILE* fp, FILE* json, FILE* atom, const struct repoin
 	if (getdiff(&ci, info, commit, cachedcommit) == -1)
 		return;
 
-	if (!cachedcommit)
-		writecommitfile(info, commit, &ci, index == maxcommits, refname);
-
+	if (!cachedcommit) {
+		fp = efopen("w", "%s/commit/%s.html", info->destdir, oid);
+		writecommit(fp, info, commit, &ci, index == maxcommits, refname);
+		fclose(fp);
+	}
 	writelogline(fp, commit, &ci);
-	writecommitatom(atom, commit, NULL);
+	writeatomcommit(atom, commit, NULL);
 	writejsoncommit(json, commit, index == 0);
 
 	freediff(&ci);

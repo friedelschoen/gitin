@@ -270,8 +270,8 @@ static size_t countfiles(git_repository* repo, git_tree* tree) {
 	return file_count;
 }
 
-static int writefilestree(FILE* fp, const struct repoinfo* info, const char* refname, int relpath,
-                          git_tree* tree, const char* basepath, size_t* index, size_t maxfiles) {
+static int writetree(FILE* fp, const struct repoinfo* info, const char* refname, int relpath,
+                     git_tree* tree, const char* basepath, size_t* index, size_t maxfiles) {
 	const git_tree_entry* entry = NULL;
 	git_object*           obj   = NULL;
 	const char*           entryname;
@@ -342,8 +342,8 @@ static int writefilestree(FILE* fp, const struct repoinfo* info, const char* ref
 					    "<tr><td><img src=\"%ricons/directory.svg\" /></td><td>d---------</td><td colspan=\"2\"><a href=\"%h/\">%y</a></td></tr>\n",
 					    info->relpath + relpath, entrypath, entrypath);
 				}
-				writefilestree(fp, info, refname, relpath + 1, (git_tree*) obj, entrypath, index,
-				               maxfiles);
+				writetree(fp, info, refname, relpath + 1, (git_tree*) obj, entrypath, index,
+				          maxfiles);
 			}
 
 			git_object_free(obj);
@@ -366,7 +366,7 @@ static int writefilestree(FILE* fp, const struct repoinfo* info, const char* ref
 	return 0;
 }
 
-int writefiles(const struct repoinfo* info, git_reference* ref, git_commit* commit) {
+int writefiletree(const struct repoinfo* info, git_reference* ref, git_commit* commit) {
 	git_tree*   tree = NULL;
 	size_t      indx = 0;
 	int         ret  = -1;
@@ -395,7 +395,7 @@ int writefiles(const struct repoinfo* info, git_reference* ref, git_commit* comm
 	emkdirf(0777, "%s/%s/blobs", info->destdir, refname);
 
 	if (!git_commit_tree(&tree, commit)) {
-		ret = writefilestree(NULL, info, refname, 2, tree, "", &indx, countfiles(info->repo, tree));
+		ret = writetree(NULL, info, refname, 2, tree, "", &indx, countfiles(info->repo, tree));
 
 		if (!verbose)
 			fputc('\n', stdout);

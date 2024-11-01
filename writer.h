@@ -73,21 +73,30 @@ void freediff(struct commitinfo* ci);
 int  getrefs(struct repoinfo* info);
 void freerefs(struct repoinfo* info);
 
-/* writers */
+/* please order arguments: FILE* fp, (const) struct repoinfo* info, int relpath */
+/* naming: write + <type if not html> + <what is writing> */
+
+/* archive */
 int writearchive(const struct repoinfo* info, int type, git_reference* refname, git_commit* commit);
+
+/* XML atom */
 void writeatomfooter(FILE* fp);
 void writeatomheader(FILE* fp, const struct repoinfo* info);
-void writeatomrefs(FILE* atom, const struct repoinfo* info);
-void writecommitatom(FILE* fp, git_commit* commit, git_reference* tag);
-void writecommitfile(const struct repoinfo* info, git_commit* commit, const struct commitinfo* ci,
-                     int parentlink, const char* refname);
+void writeatomrefs(FILE* fp, const struct repoinfo* info);
+void writeatomcommit(FILE* fp, git_commit* commit, git_reference* tag);
+
+/* JSON */
+void writejsoncommit(FILE* fp, git_commit* commit, int first);
+void writejsonrefs(FILE* fp, const struct repoinfo* info);
+
+/* HTML */
+void writecommit(FILE* fp, const struct repoinfo* info, git_commit* commit,
+                 const struct commitinfo* ci, int parentlink, const char* refname);
 void writefooter(FILE* fp);
-int  writefiles(const struct repoinfo* info, git_reference* refname, git_commit* commit);
+int  writefiletree(const struct repoinfo* info, git_reference* refname, git_commit* commit);
 void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char* name,
                  const char* description, ...);
 void writeindex(const char* destdir, char** repos, int nrepos);
-void writejsoncommit(FILE* fp, git_commit* commit, int first);
-void writejsonrefs(FILE* json, const struct repoinfo* info);
 int  writelog(const struct repoinfo* info, git_reference* ref, git_commit* commit);
 void writepreview(FILE* fp, const struct repoinfo* info, int relpath, struct blobinfo* blob);
 void writerepo(struct indexinfo* indexinfo, const char* destination);
