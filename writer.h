@@ -26,8 +26,8 @@ struct referenceinfo {
 
 struct indexinfo {
 	const char* repodir;
-	char*       name;
-	char*       description;
+	const char* name;
+	const char* description;
 };
 
 struct blobinfo {
@@ -48,6 +48,7 @@ struct repoinfo {
 	char        destdir[1024];
 	int         relpath;
 
+	char*       confbuffer;
 	char        name[100];
 	const char* branchname;
 	const char* description;
@@ -71,6 +72,8 @@ int  getdiff(struct commitinfo* ci, const struct repoinfo* info, git_commit* com
 void freediff(struct commitinfo* ci);
 int  getrefs(struct repoinfo* info);
 void freerefs(struct repoinfo* info);
+void getrepo(struct repoinfo* info, const char* destination, const char* repodir);
+void freeinfo(struct repoinfo* info);
 
 /* please order arguments: FILE* fp, (const) struct repoinfo* info, int relpath */
 /* naming: write + <type if not html> + <what is writing> */
@@ -98,7 +101,7 @@ void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char*
 void writeindex(const char* destdir, char** repos, int nrepos);
 int  writelog(const struct repoinfo* info, git_reference* ref, git_commit* commit);
 void writepreview(FILE* fp, const struct repoinfo* info, int relpath, struct blobinfo* blob);
-void writerepo(struct indexinfo* indexinfo, const char* destination);
+void writerepo(const struct repoinfo* info);
 void writeredirect(FILE* fp, const char* to);
 int  writerefs(FILE* fp, const struct repoinfo* info, int relpath, git_reference* current);
 void writeshortlog(FILE* fp, const struct repoinfo* info, git_commit* head);

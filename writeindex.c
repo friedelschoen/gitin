@@ -98,10 +98,14 @@ struct indexinfo* parsecache(char* buffer, int* count) {
 
 void writeindex(const char* destdir, char** repos, int nrepos) {
 	FILE *            fp, *cachefp;
-	char*             cache     = NULL;
-	size_t            cachesize = 0;
-	struct indexinfo* indexes   = NULL;
-	int               nindexes  = 0;
+	char*             cache       = NULL;
+	size_t            cachesize   = 0;
+	struct indexinfo* indexes     = NULL;
+	int               nindexes    = 0;
+	const char*       category    = NULL;
+	int               categorylen = 0, curlen;
+	struct repoinfo   info;
+
 	emkdirf(0777, "%s", destdir);
 	emkdirf(0777, "!%s/.cache", destdir);
 
@@ -143,8 +147,6 @@ void writeindex(const char* destdir, char** repos, int nrepos) {
 	      "</thead><tbody>\n",
 	      fp);
 
-	const char* category    = NULL;
-	int         categorylen = 0, curlen;
 	for (int i = 0; i < nindexes; i++) {
 		curlen = strchr(indexes[i].repodir, '/')
 		           ? strrchr(indexes[i].repodir, '/') - indexes[i].repodir
@@ -157,10 +159,14 @@ void writeindex(const char* destdir, char** repos, int nrepos) {
 		}
 
 		if (!indexes[i].name) {
-			writerepo(&indexes[i], destdir);
+			getrepo(&info, destdir, indexes[i].repodir);
+			indexes[i].name        = info.name;
+			indexes[i].description = info.description;
+
 			writeindexline(fp, cachefp, &indexes[i]);
-			free(indexes[i].name);
-			free(indexes[i].description);
+			writerepo(&info);
+
+			freeinfo(&info);
 		} else {
 			writeindexline(fp, cachefp, &indexes[i]);
 		}

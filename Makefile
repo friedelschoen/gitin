@@ -65,6 +65,7 @@ OBJECTS = \
 	filetypes.o \
 	getdiff.o \
 	getrefs.o \
+	getrepo.o \
 	hprintf.o \
 	parseconfig.o \
 	path.o \
