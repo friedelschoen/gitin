@@ -13,63 +13,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#define MURMUR_SEED 0xCAFE5EED    // cafeseed
-
-#define fallthrough __attribute__((fallthrough));
-
-
-/* hash file using murmur3 */
-static uint32_t filehash(const void* key, int len) {
-	const uint8_t* data    = (const uint8_t*) key;
-	const int      nblocks = len / 4;
-	uint32_t       h1      = MURMUR_SEED;
-
-	const uint32_t c1 = 0xcc9e2d51;
-	const uint32_t c2 = 0x1b873593;
-
-	// Body
-	const uint32_t* blocks = (const uint32_t*) (data + nblocks * 4);
-	for (int i = -nblocks; i; i++) {
-		uint32_t k1 = blocks[i];
-
-		k1 *= c1;
-		k1 = (k1 << 15) | (k1 >> (32 - 15));
-		k1 *= c2;
-
-		h1 ^= k1;
-		h1 = (h1 << 13) | (h1 >> (32 - 13));
-		h1 = h1 * 5 + 0xe6546b64;
-	}
-
-	// Tail
-	const uint8_t* tail = (const uint8_t*) (data + nblocks * 4);
-	uint32_t       k1   = 0;
-
-	switch (len & 3) {
-		case 3:
-			k1 ^= tail[2] << 16;
-			fallthrough;
-		case 2:
-			k1 ^= tail[1] << 8;
-			fallthrough;
-		case 1:
-			k1 ^= tail[0];
-			k1 *= c1;
-			k1 = (k1 << 15) | (k1 >> (32 - 15));
-			k1 *= c2;
-			h1 ^= k1;
-	}
-
-	// Finalization
-	h1 ^= len;
-	h1 ^= h1 >> 16;
-	h1 *= 0x85ebca6b;
-	h1 ^= h1 >> 13;
-	h1 *= 0xc2b2ae35;
-	h1 ^= h1 >> 16;
-
-	return h1;
-}
 
 static const char* filemode(git_filemode_t m) {
 	static char mode[11];
@@ -134,8 +77,8 @@ static ssize_t highlight(FILE* fp, const struct repoinfo* info, struct blobinfo*
 	struct executeinfo params = {
 		.command     = highlightcmd,
 		.cachename   = "files",
-		.content     = blob->content,
-		.ncontent    = blob->length,
+		.content     = git_blob_rawcontent(blob->blob),
+		.ncontent    = git_blob_rawsize(blob->blob),
 		.contenthash = blob->hash,
 		.fp          = fp,
 		.info        = info,
@@ -155,7 +98,7 @@ static void writeblob(const struct repoinfo* info, const char* refname, int relp
 	         blob->name);
 
 	if (force || access(destpath, R_OK))
-		writebuffer(blob->content, blob->length, "%s", destpath);
+		writebuffer(git_blob_rawcontent(blob->blob), git_blob_rawsize(blob->blob), "%s", destpath);
 
 	n = 0;
 	for (int i = 0; i < relpath; i++) {
@@ -185,15 +128,15 @@ static void writefile(const struct repoinfo* info, const char* refname, int relp
 		fp = efopen(".w", "%s", destpath);
 		writeheader(fp, info, relpath, info->name, "%y in %s", blob->path, refname);
 		hprintf(fp, "<p> %y (%zuB) <a href='%rblob/%s/%h'>download</a></p><hr/>", blob->name,
-		        blob->length, relpath, refname, blob->path);
+		        git_blob_rawsize(blob->blob), relpath, refname, blob->path);
 
-		writepreview(fp, info, relpath, blob);
+		writepreview(fp, info, relpath, blob, 0);
 
-		if (blob->is_binary) {
+		if (git_blob_is_binary(blob->blob)) {
 			fputs("<p>Binary file.</p>\n", fp);
-		} else if (maxfilesize != -1 && blob->length >= maxfilesize) {
+		} else if (maxfilesize != -1 && git_blob_rawsize(blob->blob) >= (size_t) maxfilesize) {
 			fputs("<p>File too big.</p>\n", fp);
-		} else if (blob->length > 0) {
+		} else if (git_blob_rawsize(blob->blob) > 0) {
 			highlight(fp, info, blob);
 		}
 
@@ -314,12 +257,11 @@ static int writetree(FILE* fp, const struct repoinfo* info, const char* refname,
 				        info->relpath + relpath, geticon((git_blob*) obj, entryname),
 				        filemode(git_tree_entry_filemode(entry)));
 
-				blob.name      = entryname;
-				blob.path      = entrypath;
-				blob.content   = git_blob_rawcontent((git_blob*) obj);
-				blob.length    = git_blob_rawsize((git_blob*) obj);
-				blob.is_binary = git_blob_is_binary((git_blob*) obj);
-				blob.hash      = filehash(blob.content, blob.length);
+				blob.name = entryname;
+				blob.path = entrypath;
+				blob.blob = (git_blob*) obj;
+				blob.hash = filehash(git_blob_rawcontent((git_blob*) obj),
+				                     git_blob_rawsize((git_blob*) obj));
 
 				writefile(info, refname, relpath, &blob);
 				writeblob(info, refname, relpath, &blob);
@@ -329,7 +271,7 @@ static int writetree(FILE* fp, const struct repoinfo* info, const char* refname,
 				else
 					hprintf(fp, "<td><a href=\"%h.html\">%y</a></td>", entrypath, entrypath);
 				fputs("<td class=\"num\" align=\"right\">", fp);
-				fprintf(fp, "%zuB", blob.length);
+				fprintf(fp, "%zuB", git_blob_rawsize((git_blob*) obj));
 				fputs("</td></tr>\n", fp);
 
 				(*index)++;

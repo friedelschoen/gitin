@@ -17,6 +17,8 @@ extern int               archivetarbz2;
 extern int               archivetargz;
 extern int               archivetarxz;
 extern size_t            autofilelimit;
+extern const char*       clonepull;
+extern const char*       clonepush;
 extern struct configitem configkeys[];
 extern const char*       colorscheme;
 extern const char*       configfile;

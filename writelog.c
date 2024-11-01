@@ -88,18 +88,12 @@ int writelog(const struct repoinfo* info, git_reference* ref, git_commit* head) 
 	refname = git_reference_shorthand(ref);
 
 	/* log for HEAD */
-	fp   = efopen("w", "%s/%s/index.html", info->destdir, refname);
+	fp   = efopen("w", "%s/%s/log.html", info->destdir, refname);
 	json = efopen("w", "%s/%s/branch.json", info->destdir, refname);
 	atom = efopen("w", "%s/%s/atom.xml", info->destdir, refname);
 
 	writeheader(fp, info, 1, info->name, "%s", refname);
 	fprintf(json, "{");
-
-	fprintf(fp, "<div id=\"refcontainer\">");
-	writerefs(fp, info, 1, ref);
-	fprintf(fp, "</div>");
-
-	fputs("<hr />", fp);
 
 	fputs("<h2>Archives</h2>", fp);
 	fputs("<table><thead>\n<tr><td class=\"expand\">Name</td>"

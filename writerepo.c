@@ -3,7 +3,8 @@
 #include "writer.h"
 
 void writerepo(const struct repoinfo* info) {
-	FILE* fp;
+	FILE*       fp;
+	const char* refname;
 
 	if (columnate)
 		printf("%s\t%s\t%s\n", info->name, info->repodir, info->destdir);
@@ -20,7 +21,13 @@ void writerepo(const struct repoinfo* info) {
 	emkdirf(0777, "%s/commit", info->destdir);
 
 	for (int i = 0; i < info->nrefs; i++) {
-		emkdirf(0777, "%s/%s", info->destdir, git_reference_shorthand(info->refs[i].ref));
+		refname = git_reference_shorthand(info->refs[i].ref);
+		emkdirf(0777, "%s/%s", info->destdir, refname);
+
+		fp = efopen("w", "%s/%s/index.html", info->destdir, refname);
+		writesummary(fp, info, info->refs[i].ref, info->refs[i].commit);
+		fclose(fp);
+
 		writelog(info, info->refs[i].ref, info->refs[i].commit);
 		writefiletree(info, info->refs[i].ref, info->refs[i].commit);
 	}

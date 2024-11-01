@@ -1,6 +1,8 @@
 #pragma once
 
 #include "macro.h"
+
+#include <stdint.h>
 #include <stdio.h>
 typedef struct {
 	int read;
@@ -13,3 +15,4 @@ int         removedir(char* path);
 const char* splitunit(ssize_t* size);
 FILE*       efopen(const char* mode, const char* format, ...) FORMAT(2, 3);
 void        emkdirf(int mode, const char* format, ...) FORMAT(2, 3);
+uint32_t    filehash(const void* key, int len);

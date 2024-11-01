@@ -1,5 +1,7 @@
 #include "config.h"
 
+#include "parseconfig.h"
+
 /* Configuration keys for the configuration parser. */
 struct configitem configkeys[] = {
 	/* Site information settings */
@@ -31,6 +33,9 @@ struct configitem configkeys[] = {
 
 	/* Files and output configurations */
 	{ "files/tag-atom", ConfigString, &tagatomfile },
+
+	{ "clone/pull", ConfigString, &clonepull },
+	{ "clone/push", ConfigString, &clonepush },
 
 	{ 0 },
 };
@@ -115,3 +120,6 @@ const char* archiveexts[] = {
 };
 
 size_t autofilelimit = 100;
+
+const char* clonepull = NULL;
+const char* clonepush = NULL;

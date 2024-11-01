@@ -7,10 +7,8 @@ struct blobinfo {
 	const char* name;
 	const char* path;
 
-	const char* content;
-	ssize_t     length;
-	uint32_t    hash;
-	int         is_binary;
+	const git_blob* blob;
+	uint32_t        hash;
 };
 
 struct commitinfo {

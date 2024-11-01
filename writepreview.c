@@ -4,6 +4,7 @@
 #include "hprintf.h"
 #include "writer.h"
 
+#include <git2/blob.h>
 #include <string.h>
 
 static ssize_t writepandoc(FILE* fp, const struct repoinfo* info, const char* filename,
@@ -59,8 +60,14 @@ static void writeimage(FILE* fp, int relpath, const char* filename) {
 	fprintf(fp, "</div>\n");
 }
 
+static void writeplain(FILE* fp, const char* content, size_t size) {
+	fprintf(fp, "<div id=\"preview\">\n<pre>\n");
+	fwrite(content, size, 1, fp);
+	fprintf(fp, "</pre>\n</div>\n");
+}
 
-void writepreview(FILE* fp, const struct repoinfo* info, int relpath, struct blobinfo* blob) {
+void writepreview(FILE* fp, const struct repoinfo* info, int relpath, struct blobinfo* blob,
+                  int printplain) {
 	char type[1024] = "", *param;
 
 	for (int i = 0; filetypes[i][0] != NULL; i++) {
@@ -70,27 +77,26 @@ void writepreview(FILE* fp, const struct repoinfo* info, int relpath, struct blo
 		}
 	}
 
-	if (!*type)
-		return;
-
 	if ((param = strchr(type, ':')))
 		*param++ = '\0';
 
 	if (!strcmp(type, "pandoc")) {
-		if (!param && (param = strchr(blob->name, '.'))) {
+		if (!param && (param = strchr(blob->name, '.')))
 			param++;
-		}
 
 		if (param)
-			writepandoc(fp, info, blob->name, blob->content, blob->length, blob->hash, param);
+			writepandoc(fp, info, blob->name, git_blob_rawcontent(blob->blob),
+			            git_blob_rawsize(blob->blob), blob->hash, param);
 	} else if (!strcmp(type, "configtree")) {
-		if (!param && (param = strchr(blob->name, '.'))) {
+		if (!param && (param = strchr(blob->name, '.')))
 			param++;
-		}
 
 		if (param)
-			writetree(fp, info, blob->content, blob->length, blob->hash, param);
+			writetree(fp, info, git_blob_rawcontent(blob->blob), git_blob_rawsize(blob->blob),
+			          blob->hash, param);
 	} else if (!strcmp(type, "image")) {
 		writeimage(fp, relpath, blob->name);
+	} else if (printplain && !git_blob_is_binary(blob->blob)) {
+		writeplain(fp, git_blob_rawcontent(blob->blob), git_blob_rawsize(blob->blob));
 	}
 }

@@ -83,7 +83,8 @@ OBJECTS = \
 	writeredirect.o \
 	writerefs.o \
 	writerepo.o \
-	writeshortlog.o
+	writeshortlog.o \
+	writesummary.o
 
 .PHONY: all clean \
 	install install-bins install-man1 install-man5 install-assets install-icons \
