@@ -51,6 +51,7 @@ HEADER = \
 	common.h \
 	config.h \
 	execute.h \
+	getinfo.h \
 	hprintf.h \
 	macro.h \
 	parseconfig.h \
