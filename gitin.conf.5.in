@@ -1,4 +1,4 @@
-.TH GITIN.CONF 5 "October 2024" "Version %VERSION%" "File Formats"
+.TH GITIN.CONF 5 "Version %VERSION%" "File Formats"
 .SH NAME
 gitin.conf \- Configuration file for gitin static Git page generator
 .SH DESCRIPTION

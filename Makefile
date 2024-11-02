@@ -25,7 +25,7 @@ CFLAGS += -O2
 endif
 
 BINS = gitin gitin-findrepos gitin-configtree
-MAN1 = gitin.1 gitin-findrepos.1
+MAN1 = gitin.1 gitin-findrepos.1 gitin-configtree.1
 MAN5 = gitin.conf.5
 
 DOCS = \

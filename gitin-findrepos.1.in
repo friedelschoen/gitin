@@ -1,4 +1,4 @@
-.TH GITIN-FINDREPOS 1 "October 2024" "Version %VERSION%" "User Commands"
+.TH GITIN-FINDREPOS 1 "Version %VERSION%" "User Commands"
 .SH NAME
 gitin-findrepos \- Recursively search for Git repositories
 

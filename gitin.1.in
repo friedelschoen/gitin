@@ -1,4 +1,4 @@
-.TH GITIN 1 "October 2024" "Version %VERSION%" "User Commands"
+.TH GITIN 1 "Version %VERSION%" "User Commands"
 .SH NAME
 gitin \- A Git repository browser and HTML generator
 
