@@ -86,6 +86,16 @@ OBJECTS = \
 	writeshortlog.o \
 	writesummary.o
 
+CLEAN = \
+	$(BINS) \
+	$(BINS:=.o) \
+	$(OBJECTS) \
+	$(MAN1) \
+	$(MAN5) \
+	compile_flags.txt \
+	filetypes.c
+	
+
 .PHONY: all clean \
 	install install-bins install-man1 install-man5 install-assets install-icons \
 	uninstall uninstall-bins uninstall-man1 uninstall-man5 uninstall-assets
@@ -98,7 +108,7 @@ all: $(BINS) $(MAN1) $(MAN5) compile_flags.txt
 %.o: %.c $(HEADER)
 	$(CC) -c -o $@ $< $(CFLAGS) $(CPPFLAGS)
 
-%: %.in Makefile
+%: %.in
 	sed 's/%VERSION%/$(VERSION)/g;s|%HOMEPAGE%|$(HOMEPAGE)|g' $< > $@
 
 %: %.o
@@ -127,8 +137,8 @@ filetypes.c: filetypes.txt
 
 # pseudo targets
 
-clean:
-	rm -f $(BINS) $(BINS:=.o) $(OBJECTS) $(MAN1) $(MAN5) compile_flags.txt filetypes.c
+clean: 
+	rm -f $(CLEAN)
 
 install: install-bins install-man1 install-man5 install-assets install-icons
 
