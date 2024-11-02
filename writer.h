@@ -23,17 +23,17 @@ void writejsonrefs(FILE* fp, const struct repoinfo* info);
 
 /* HTML */
 void writecommit(FILE* fp, const struct repoinfo* info, git_commit* commit,
-                 const struct commitinfo* ci, int parentlink, const char* refname);
+                 const struct commitinfo* ci, int parentlink);
 void writefooter(FILE* fp);
 int  writefiletree(const struct repoinfo* info, git_reference* refname, git_commit* commit);
-void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char* name,
+void writeheader(FILE* fp, const struct repoinfo* info, int relpath, int inbranch, const char* name,
                  const char* description, ...);
 void writeindex(const struct gitininfo* info);
 int  writelog(const struct repoinfo* info, git_reference* ref, git_commit* commit);
 void writepreview(FILE* fp, const struct repoinfo* info, int relpath, struct blobinfo* blob,
                   int printplain);
 void writerepo(const struct repoinfo* info);
-void writeredirect(FILE* fp, const char* to);
+void writeredirect(FILE* fp, const char* to, ...);
 int  writerefs(FILE* fp, const struct repoinfo* info, int relpath, git_reference* current);
 void writeshortlog(FILE* fp, const struct repoinfo* info, git_commit* head);
 int  writesummary(FILE* fp, const struct repoinfo* info, git_reference* ref, git_commit* head);

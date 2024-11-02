@@ -7,6 +7,32 @@
 #include <git2/blob.h>
 #include <string.h>
 
+
+static void xmlencode(FILE* fp, const char* s, size_t size) {
+	while (*s && --size > 0) {
+		switch (*s) {
+			case '<':
+				fputs("&lt;", fp);
+				break;
+			case '>':
+				fputs("&gt;", fp);
+				break;
+			case '\'':
+				fputs("&#39;", fp);
+				break;
+			case '&':
+				fputs("&amp;", fp);
+				break;
+			case '"':
+				fputs("&quot;", fp);
+				break;
+			default:
+				putc(*s, fp);
+		}
+		s++;
+	}
+}
+
 static ssize_t writepandoc(FILE* fp, const struct repoinfo* info, const char* filename,
                            const char* content, ssize_t len, uint32_t contenthash,
                            const char* type) {
@@ -24,7 +50,7 @@ static ssize_t writepandoc(FILE* fp, const struct repoinfo* info, const char* fi
 		.environ     = (const char*[]){ "filename", filename, "type", type },
 	};
 
-	fprintf(fp, "<div id=\"preview\">\n");
+	fprintf(fp, "<div class=\"preview\">\n");
 	ret = execute(&params);
 	fprintf(fp, "</div>\n");
 
@@ -47,7 +73,7 @@ static ssize_t writetree(FILE* fp, const struct repoinfo* info, const char* cont
 		.environ     = (const char*[]){ "type", type },
 	};
 
-	fprintf(fp, "<div id=\"preview\">\n");
+	fprintf(fp, "<div class=\"preview\">\n");
 	ret = execute(&params);
 	fprintf(fp, "</div>\n");
 
@@ -55,14 +81,14 @@ static ssize_t writetree(FILE* fp, const struct repoinfo* info, const char* cont
 }
 
 static void writeimage(FILE* fp, int relpath, const char* filename) {
-	fprintf(fp, "<div id=\"preview\">\n");
+	fprintf(fp, "<div class=\"preview\">\n");
 	hprintf(fp, "<img height=\"100px\" src=\"%rblob/%s\" />\n", relpath, filename);
 	fprintf(fp, "</div>\n");
 }
 
 static void writeplain(FILE* fp, const char* content, size_t size) {
-	fprintf(fp, "<div id=\"preview\">\n<pre>\n");
-	fwrite(content, size, 1, fp);
+	fprintf(fp, "<div class=\"preview\">\n<pre>\n");
+	xmlencode(fp, content, size);
 	fprintf(fp, "</pre>\n</div>\n");
 }
 

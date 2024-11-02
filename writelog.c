@@ -20,7 +20,7 @@ static void writelogline(FILE* fp, git_commit* commit, const struct commitinfo* 
 		hprintf(fp, "%t", &author->when);
 	fputs("</td><td>", fp);
 	if (summary) {
-		hprintf(fp, "<a href=\"commit/%s.html\">%y</a>", oid, summary);
+		hprintf(fp, "<a href=\"../commit/%s.html\">%y</a>", oid, summary);
 	}
 	fputs("</td><td>", fp);
 	if (author)
@@ -35,7 +35,7 @@ static void writelogline(FILE* fp, git_commit* commit, const struct commitinfo* 
 }
 
 static void writelogcommit(FILE* fp, FILE* json, FILE* atom, const struct repoinfo* info, int index,
-                           git_oid* id, const char* refname) {
+                           git_oid* id) {
 
 	struct commitinfo ci;
 	git_commit*       commit;
@@ -66,7 +66,7 @@ static void writelogcommit(FILE* fp, FILE* json, FILE* atom, const struct repoin
 
 	if (!cachedcommit) {
 		commitfile = efopen("w", "%s", path);
-		writecommit(commitfile, info, commit, &ci, index == maxcommits, refname);
+		writecommit(commitfile, info, commit, &ci, index == maxcommits);
 		fclose(commitfile);
 	}
 	writelogline(fp, commit, &ci);
@@ -92,7 +92,7 @@ int writelog(const struct repoinfo* info, git_reference* ref, git_commit* head) 
 	json = efopen("w", "%s/%s/branch.json", info->destdir, refname);
 	atom = efopen("w", "%s/%s/atom.xml", info->destdir, refname);
 
-	writeheader(fp, info, 1, info->name, "%s", refname);
+	writeheader(fp, info, 1, 1, info->name, "%s", refname);
 	fprintf(json, "{");
 
 	fputs("<h2>Archives</h2>", fp);
@@ -103,8 +103,8 @@ int writelog(const struct repoinfo* info, git_reference* ref, git_commit* head) 
 	FORMASK(type, archivetypes) {
 		arsize = writearchive(info, type, ref, head);
 		unit   = splitunit(&arsize);
-		fprintf(fp, "<tr><td><a href=\"archive/%s.tar.gz\">%s.%s</a></td><td>%zd%s</td></tr>",
-		        refname, refname, archiveexts[type], arsize, unit);
+		fprintf(fp, "<tr><td><a href=\"%s.%s\">%s.%s</a></td><td>%zd%s</td></tr>", refname,
+		        archiveexts[type], refname, archiveexts[type], arsize, unit);
 	}
 	fputs("</tbody></table>", fp);
 
@@ -139,7 +139,7 @@ int writelog(const struct repoinfo* info, git_reference* ref, git_commit* head) 
 	/* Iterate through the commits */
 	ssize_t indx = 0;
 	while ((maxcommits <= 0 || indx < maxcommits) && !git_revwalk_next(&id, w)) {
-		writelogcommit(fp, json, atom, info, indx, &id, refname);
+		writelogcommit(fp, json, atom, info, indx, &id);
 		indx++;
 
 		printprogress(indx, ncommits, "write log:   %-20s", refname);

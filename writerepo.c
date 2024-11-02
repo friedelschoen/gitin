@@ -33,7 +33,7 @@ void writerepo(const struct repoinfo* info) {
 	}
 
 	fp = efopen("w", "%s/index.html", info->destdir);
-	writeredirect(fp, git_reference_shorthand(info->branch));
+	writeredirect(fp, "%s/", git_reference_shorthand(info->branch));
 	fclose(fp);
 
 	fp = efopen("w", "%s/atom.html", info->destdir);

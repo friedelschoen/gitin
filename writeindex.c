@@ -75,7 +75,7 @@ void writeindex(const struct gitininfo* info) {
 
 	cachefp = efopen(".w", "%s/.cache/index", info->destdir);
 	fp      = efopen("w+", "%s/index.html", info->destdir);
-	writeheader(fp, NULL, 0, sitename, "%y", sitedescription);
+	writeheader(fp, NULL, 0, 0, sitename, "%y", sitedescription);
 	fputs("<table id=\"index\"><thead>\n"
 	      "<tr><td>Name</td><td class=\"expand\">Description</td><td>Last changes</td></tr>"
 	      "</thead><tbody>\n",

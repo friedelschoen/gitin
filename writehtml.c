@@ -5,7 +5,7 @@
 #include <stdarg.h>
 
 
-void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char* name,
+void writeheader(FILE* fp, const struct repoinfo* info, int relpath, int inbranch, const char* name,
                  const char* description, ...) {
 	va_list desc_args;
 	int     indexrelpath = relpath + (info ? info->relpath : 0);
@@ -38,9 +38,11 @@ void writeheader(FILE* fp, const struct repoinfo* info, int relpath, const char*
 	fputs("<tr><td></td><td class=\"expand\">\n", fp);
 	if (info) {
 		hprintf(fp, "<a href=\"%r\">Repositories</a> ", indexrelpath);
-		hprintf(fp, "| <a href=\"%rindex.html\">Summary</a> ", relpath - 1);
-		hprintf(fp, "| <a href=\"%rlog.html\">Log</a> ", relpath - 1);
-		hprintf(fp, "| <a href=\"%rfiles/\">Files</a> ", relpath - 1);
+		if (inbranch) {
+			hprintf(fp, "| <a href=\"%rindex.html\">Summary</a> ", relpath - 1);
+			hprintf(fp, "| <a href=\"%rlog.html\">Log</a> ", relpath - 1);
+			hprintf(fp, "| <a href=\"%rfiles/\">Files</a> ", relpath - 1);
+		}
 		if (info->submodules)
 			hprintf(fp, " | <a href=\"%r%s/files/%s.html\">Submodules</a>", relpath,
 			        git_reference_shorthand(info->branch), info->submodules);

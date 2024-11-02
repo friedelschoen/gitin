@@ -1,4 +1,3 @@
-#include "common.h"
 #include "hprintf.h"
 #include "writer.h"
 
@@ -116,7 +115,7 @@ static int hasheadfile(const struct repoinfo* info, const char* filename) {
 }
 
 void writecommit(FILE* fp, const struct repoinfo* info, git_commit* commit,
-                 const struct commitinfo* ci, int parentlink, const char* refname) {
+                 const struct commitinfo* ci, int parentlink) {
 	const git_diff_delta* delta;
 	const git_diff_hunk*  hunk;
 	const git_diff_line*  line;
@@ -132,7 +131,7 @@ void writecommit(FILE* fp, const struct repoinfo* info, git_commit* commit,
 	git_oid_tostr(oid, sizeof(oid), git_commit_id(commit));
 	git_oid_tostr(parentoid, sizeof(parentoid), git_commit_parent_id(commit, 0));
 
-	writeheader(fp, info, 1, info->name, "%y in %s", summary, refname);
+	writeheader(fp, info, 1, 0, info->name, "%y (%s)", summary, oid);
 	fputs("<pre>", fp);
 
 	hprintf(fp, "<b>commit</b> <a href=\"%s.html\">%s</a>\n", oid, oid);

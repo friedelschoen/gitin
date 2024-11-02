@@ -5,77 +5,149 @@ import sys
 import xml.etree.ElementTree as ET
 import glob
 
-base = os.path.dirname(sys.argv[1])
-done = set()
-todo = { sys.argv[1] }
+def print_error(typ, message, current, original = None, next = None):
+    if original:
+        sys.stderr.write(f'[{typ}] {message}: \033[1m{original}\033[0m in \033[1m{current}\033[0m\n')
+    else:
+        sys.stderr.write(f'[{typ}] {message}: \033[1m{current}\033[0m\n')
+    if next:
+        sys.stderr.write(f'      resolves to \033[1m{next}\033[0m\n')
+    sys.stderr.write(f'\n')
 
-while todo:
-	current_file = todo.pop()
-	done.add(current_file)
+def parse_html(file_path):
+    """Parse HTML content from the given file."""
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            content = file.read()
+        tree = ET.ElementTree(ET.fromstring(content))
+        parents = {c: p for p in tree.iter() for c in p}
+        return tree, parents
+    except FileNotFoundError:
+        print_error('F', 'not found', file_path)
+    except ET.ParseError as err:
+        print_error('F', f'parsing error ({err.msg})', file_path)
+    except Exception as err:
+        print_error('F', f'unknown error ({err.msg})', file_path)
+    return None, None
 
-	# Read the HTML content from the file
-	try:
-		with open(current_file, 'r', encoding='utf-8') as file:
-			content = file.read()
+def normalize_path(base, current_file, next_file):
+    """Normalize paths for relative links."""
+    if next_file.startswith('/'):
+        next_file = os.path.join(base, next_file)
+    else:
+        next_file = os.path.join(os.path.dirname(current_file), next_file)
+    
+    if next_file.endswith('/'):
+        next_file = os.path.join(next_file, 'index.html')
 
-		tree = ET.ElementTree(ET.fromstring(content))
-	except FileNotFoundError:
-		print(f"file not found: {current_file}")
-		continue
-	except ET.ParseError:
-		print(f"error parsing file: {current_file}")
-		continue
-	except Exception as err:
-		print(f"unknown error {err!s}: {current_file}")
+    return os.path.normpath(next_file)
 
-	# Find all 'a' tags with 'href' attributes
-	links = tree.findall('.//a[@href]')
-	
-	# Check each link's status
-	for link in links:
-		next_file = orig = link.attrib['href']
+def in_bounds(base, next_file):
+    """Check if next_file is within the base directory."""
+    # Ensure both are absolute paths
+    base = os.path.abspath(base)
+    next_file = os.path.abspath(next_file)
+    
+    # Check if next_file starts with base path
+    return os.path.commonpath([base, next_file]) == base
 
-		if '#' in next_file:
-			next_file = next_file[:next_file.index('#')]
+def inside_preview(parents, element):
+    """Check if the element has a <div class='preview'> ancestor."""
+    while element is not None:
+        if element.tag == 'div' and element.get('class') == 'preview':
+            return True
+        element = parents.get(element)  # Move up the tree
+    return False
 
-		if not next_file:
-			continue
+def find_relpath(base, current, next):
+    next_file = next
+    while next_file.startswith('../'):
+        next_file = next_file[3:] # skip first ../
+        norm = normalize_path(base, current, next_file)
+        if os.path.exists(norm):
+            print_error("N", "too much depth", current, next_file, norm)
+            break
 
-		if next_file.startswith('mailto:'):
-			continue
+    next_file = next
+    for _ in range(5):
+        next_file = "../" + next_file
+        norm = normalize_path(base, current, next_file)
+        if os.path.exists(norm):
+            print_error("N", "too little depth", current, next_file, norm)
+            break
 
-		if '://' in next_file:
-			continue
+def main():
+    if len(sys.argv) < 2:
+        print(f"Usage: {sys.argv[0]} <starting_file>")
+        sys.exit(1)
 
-		if '/blob/' in next_file:
-			continue
+    base = os.path.dirname(sys.argv[1])
+    done = set()
+    todo = {sys.argv[1]}
 
-		if '//' in next_file:
-			print(f"// {current_file} -> {orig} ({next_file})")
+    fatals = 0
+    errors = 0
+    warns = 0
 
-		if next_file.startswith('/'):
-			next_file = base + "/" + next_file
-		else:
-			next_file = os.path.dirname(current_file) + "/" + next_file
+    print(f'using base: {base}')
 
-		if next_file.endswith('/'):
-			next_file = os.path.join(next_file, 'index.html')
+    while todo:
+        current_file = todo.pop()
+        done.add(current_file)
 
-		next_file = os.path.normpath(next_file)
-		
-		if next_file in done:
-			continue
+        tree, parents = parse_html(current_file)
+        if tree is None:
+            fatals += 1
+            continue  # Skip on parsing error or file not found
+    
+        # Process each link
+        for link in tree.findall('.//a[@href]'):
+            orig = link.attrib['href'].split('#')[0]  # Remove fragment if presen
 
-		if not os.path.exists(next_file):
-			print(f"{current_file} -> {orig} ({next_file})")
-			continue
-		
-		if next_file.endswith('.html'):
-			# Add the new file to the todo set if not already done
-			todo.add(next_file)
+            # Skip non-local links
+            if not orig or any(s in orig for s in ('mailto:', '://', '/blob/')):
+                continue
 
-all_files = glob.glob('*.html', root_dir=base)
-for f in all_files:
-	if f in done: continue
+            if inside_preview(parents, link):
+                print_error('I', "link inside preview", current_file, orig)
+                continue
 
-	print(f"orphaned: {f}")
+            # Normalize and check link paths
+            next_file = normalize_path(base, current_file, orig)
+
+            if next_file in done:
+                continue  # Skip if already processed
+
+            if '//' in orig:
+                print_error('W', "double //", current_file, orig, next_file)
+                warns += 1
+
+            if not next_file.endswith('/') and '.' not in os.path.basename(next_file):
+                print_error('W', "invalid directory-suffix", current_file, orig, next_file)
+                warns += 1
+
+            if not in_bounds(base, next_file):
+                print_error('E', "out of bounds", current_file, orig, next_file)
+                errors += 1
+                continue
+
+            if not os.path.exists(next_file):
+                print_error('E', "not found", current_file, orig, next_file)
+                errors += 1
+                find_relpath(base, current_file, orig)
+                continue
+            
+            if next_file.endswith('.html'):
+                todo.add(next_file)  # Queue HTML file for processing
+
+    # Identify orphaned files
+    all_files = glob.glob('*.html', root_dir=base)
+    for f in all_files:
+        full_path = os.path.normpath(os.path.join(base, f))
+        if full_path not in done:
+            print_error('W', "orphaned", full_path)
+
+    print(f'{len(done)} files visited, {fatals} fatal errors, {errors} errors, {warns} warnings')
+
+if __name__ == "__main__":
+    main()

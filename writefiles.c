@@ -126,7 +126,7 @@ static void writefile(const struct repoinfo* info, const char* refname, int relp
 
 	if (force || access(destpath, R_OK)) {
 		fp = efopen(".w", "%s", destpath);
-		writeheader(fp, info, relpath, info->name, "%y in %s", blob->path, refname);
+		writeheader(fp, info, relpath, 1, info->name, "%y in %s", blob->path, refname);
 		hprintf(fp, "<p> %y (%zuB) <a href='%rblob/%s/%h'>download</a></p><hr/>", blob->name,
 		        git_blob_rawsize(blob->blob), relpath, refname, blob->path);
 
@@ -213,8 +213,9 @@ static size_t countfiles(git_repository* repo, git_tree* tree) {
 	return file_count;
 }
 
-static int writetree(FILE* fp, const struct repoinfo* info, const char* refname, int relpath,
-                     git_tree* tree, const char* basepath, size_t* index, size_t maxfiles) {
+static int writetree(FILE* fp, const struct repoinfo* info, const char* refname, int baserelpath,
+                     int relpath, git_tree* tree, const char* basepath, size_t* index,
+                     size_t maxfiles) {
 	const git_tree_entry* entry = NULL;
 	git_object*           obj   = NULL;
 	const char*           entryname;
@@ -230,7 +231,7 @@ static int writetree(FILE* fp, const struct repoinfo* info, const char* refname,
 
 	if (dosplit || !*basepath) {
 		fp = efopen("w", "%s/%s/files/%s/index.html", info->destdir, refname, basepath);
-		writeheader(fp, info, relpath, info->name, "%s in %s", basepath, refname);
+		writeheader(fp, info, relpath, 1, info->name, "%s in %s", basepath, refname);
 
 		fputs("<table id=\"files\"><thead>\n<tr>"
 		      "<td></td><td>Mode</td><td class=\"expand\">Name</td>"
@@ -284,8 +285,8 @@ static int writetree(FILE* fp, const struct repoinfo* info, const char* refname,
 					    "<tr><td><img src=\"%ricons/directory.svg\" /></td><td>d---------</td><td colspan=\"2\"><a href=\"%h/\">%y</a></td></tr>\n",
 					    info->relpath + relpath, entrypath, entrypath);
 				}
-				writetree(fp, info, refname, relpath + 1, (git_tree*) obj, entrypath, index,
-				          maxfiles);
+				writetree(fp, info, refname, baserelpath, relpath + 1, (git_tree*) obj, entrypath,
+				          index, maxfiles);
 			}
 
 			git_object_free(obj);
@@ -337,7 +338,7 @@ int writefiletree(const struct repoinfo* info, git_reference* ref, git_commit* c
 	emkdirf(0777, "%s/%s/blobs", info->destdir, refname);
 
 	if (!git_commit_tree(&tree, commit)) {
-		ret = writetree(NULL, info, refname, 2, tree, "", &indx, countfiles(info->repo, tree));
+		ret = writetree(NULL, info, refname, 2, 2, tree, "", &indx, countfiles(info->repo, tree));
 
 		if (!verbose)
 			fputc('\n', stdout);
