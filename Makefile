@@ -51,6 +51,7 @@ HEADER = \
 	common.h \
 	config.h \
 	execute.h \
+	findrepo.h \
 	getinfo.h \
 	hprintf.h \
 	macro.h \
@@ -64,6 +65,7 @@ OBJECTS = \
 	config.o \
 	execute.o \
 	filetypes.o \
+	findrepo.o \
 	getdiff.o \
 	getindex.o \
 	getrefs.o \
@@ -120,7 +122,7 @@ gitin: LIBS = libgit2 libarchive
 gitin: $(OBJECTS)
 
 gitin-findrepos: LIBS = libgit2
-gitin-findrepos: gitin-findrepos.o config.o
+gitin-findrepos: gitin-findrepos.o config.o findrepo.o hprintf.o path.o
 
 gitin-configtree:
 gitin-configtree: gitin-configtree.py
