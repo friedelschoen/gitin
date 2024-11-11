@@ -39,7 +39,7 @@ static void addpinfile(struct repoinfo* info, const char* pinfile) {
 void getrepo(struct repoinfo* info, const char* destination, const char* repodir) {
 	git_object* obj = NULL;
 	FILE*       fp;
-	const char *start, *reqbranchname;
+	const char *start, *reqbranchname = NULL;
 	char*       end;
 
 	memset(info, 0, sizeof(*info));
@@ -108,9 +108,15 @@ void getrepo(struct repoinfo* info, const char* destination, const char* repodir
 	}
 
 	if (reqbranchname) {
-		git_reference_lookup(&info->branch, info->repo, reqbranchname);
+		if (git_reference_lookup(&info->branch, info->repo, reqbranchname)) {
+			fprintf(stderr, "error: unable to fetch branch %s\n", reqbranchname);
+			git_repository_head(&info->branch, info->repo);
+		}
 	} else {
 		git_repository_head(&info->branch, info->repo);
+	}
+	if (!info->branch) {
+		fprintf(stderr, "error: unable to get HEAD\n");
 	}
 	info->branchname = escaperefname(strdup(git_reference_shorthand(info->branch)));
 
