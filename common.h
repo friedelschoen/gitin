@@ -17,3 +17,4 @@ const char* splitunit(ssize_t* size);
 FILE*       efopen(const char* mode, const char* format, ...) FORMAT(2, 3);
 void        emkdirf(const char* format, ...) FORMAT(1, 2);
 uint32_t    filehash(const void* key, int len);
+char*       escaperefname(char* refname);

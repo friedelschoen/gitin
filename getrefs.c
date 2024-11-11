@@ -1,3 +1,4 @@
+#include "common.h"
 #include "getinfo.h"
 #include "hprintf.h"
 
@@ -5,14 +6,6 @@
 #include <git2/refs.h>
 #include <string.h>
 
-
-void freerefs(struct repoinfo* info) {
-	for (int i = 0; i < info->nrefs; i++) {
-		git_commit_free(info->refs[i].commit);
-		git_reference_free(info->refs[i].ref);
-	}
-	free(info->refs);
-}
 
 static int comparerefs(const void* v1, const void* v2) {
 	const struct referenceinfo *r1 = v1, *r2 = v2;
@@ -58,9 +51,10 @@ int getrefs(struct repoinfo* info) {
 			hprintf(stderr, "error: unable to alloc memory for \"info->refs\": %w\n");
 			continue;
 		}
-		info->refs[info->nrefs].ref    = ref;
-		info->refs[info->nrefs].commit = commit;
-		info->refs[info->nrefs].istag  = git_reference_is_tag(ref);
+		info->refs[info->nrefs].ref     = ref;
+		info->refs[info->nrefs].refname = escaperefname(strdup(git_reference_shorthand(ref)));
+		info->refs[info->nrefs].commit  = commit;
+		info->refs[info->nrefs].istag   = git_reference_is_tag(ref);
 		info->nrefs++;
 	}
 	git_reference_iterator_free(iter);
@@ -69,4 +63,13 @@ int getrefs(struct repoinfo* info) {
 	qsort(info->refs, info->nrefs, sizeof(*info->refs), comparerefs);
 
 	return 0;
+}
+
+void freerefs(struct repoinfo* info) {
+	for (int i = 0; i < info->nrefs; i++) {
+		git_commit_free(info->refs[i].commit);
+		git_reference_free(info->refs[i].ref);
+		free(info->refs[i].refname);
+	}
+	free(info->refs);
 }

@@ -1,6 +1,7 @@
 #include "buffer.h"
 #include "common.h"
 #include "config.h"
+#include "getinfo.h"
 #include "hprintf.h"
 #include "writer.h"
 
@@ -76,30 +77,23 @@ static int walktree(git_repository* repo, git_tree* tree, const char* base_path,
 }
 
 /* Updated function to accept git_reference instead of branch/tag name */
-int writearchive(FILE* fp, const struct repoinfo* info, int type, git_reference* ref,
-                 git_commit* commit) {
+int writearchive(FILE* fp, const struct repoinfo* info, int type, struct referenceinfo* refinfo) {
 	git_tree*       tree = NULL;
 	char            path[PATH_MAX];
 	char            oid[GIT_OID_SHA1_HEXSIZE + 1], configoid[GIT_OID_SHA1_HEXSIZE + 1];
-	char            escapename[NAME_MAX];
 	struct stat     st;
 	struct archive* a;
 
 	emkdirf("!%s/.cache/archives", info->destdir);
 
-	git_oid_tostr(oid, sizeof(oid), git_commit_id(commit));
+	git_oid_tostr(oid, sizeof(oid), git_commit_id(refinfo->commit));
 
-	strlcpy(escapename, git_reference_shorthand(ref), sizeof(escapename));
-	for (char* p = escapename; *p; p++)
-		if (*p == '/')
-			*p = '-';
-
-	snprintf(path, sizeof(path), "%s/%s/%s.%s", info->destdir, escapename, escapename,
+	snprintf(path, sizeof(path), "%s/%s/%s.%s", info->destdir, refinfo->refname, refinfo->refname,
 	         archiveexts[type]);
 
 	if (!force &&
 	    !loadbuffer(configoid, GIT_OID_SHA1_HEXSIZE, "%s/.cache/archives/%s", info->destdir,
-	                escapename) &&
+	                refinfo->refname) &&
 	    !access(path, R_OK)) {
 		configoid[GIT_OID_SHA1_HEXSIZE] = '\0';
 		if (!strcmp(configoid, oid))
@@ -107,9 +101,9 @@ int writearchive(FILE* fp, const struct repoinfo* info, int type, git_reference*
 	}
 
 	/* Get the tree associated with the commit */
-	if (git_commit_tree(&tree, commit)) {
+	if (git_commit_tree(&tree, refinfo->commit)) {
 		hprintf(stderr, "error: unable to get tree from commit: %gw\n");
-		git_commit_free(commit);
+		git_commit_free(refinfo->commit);
 		return -1;
 	}
 
@@ -150,7 +144,8 @@ int writearchive(FILE* fp, const struct repoinfo* info, int type, git_reference*
 		return -1;
 	}
 
-	writebuffer(oid, GIT_OID_SHA1_HEXSIZE, "%s/.cache/archives/%s", info->destdir, escapename);
+	writebuffer(oid, GIT_OID_SHA1_HEXSIZE, "%s/.cache/archives/%s", info->destdir,
+	            refinfo->refname);
 
 	git_tree_free(tree);
 	archive_write_close(a);

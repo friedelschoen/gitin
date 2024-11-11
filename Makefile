@@ -73,7 +73,6 @@ HEADER = \
 OBJECTS = \
 	buffer.o \
 	common.o \
-	composearchive.o \
 	composefiletree.o \
 	composelog.o \
 	composerepo.o \
@@ -88,6 +87,7 @@ OBJECTS = \
 	hprintf.o \
 	parseconfig.o \
 	path.o \
+	writearchive.o \
 	writeatom.o \
 	writecommit.o \
 	writehtml.o \

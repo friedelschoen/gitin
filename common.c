@@ -221,3 +221,11 @@ u_int32_t filehash(const void* key, int len) {
 
 	return h1;
 }
+
+char* escaperefname(char* refname) {
+	for (char* p = refname; *p; p++)
+		if (*p == '/')
+			*p = '-';
+
+	return refname;
+}

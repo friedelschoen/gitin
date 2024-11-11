@@ -1,3 +1,4 @@
+#include "getinfo.h"
 #include "hprintf.h"
 #include "writer.h"
 
@@ -56,11 +57,11 @@ void writejsoncommit(FILE* fp, git_commit* commit, int first) {
 	fprintf(fp, "}");
 }
 
-static void writejsonref(FILE* fp, git_reference* ref, git_commit* commit) {
+static void writejsonref(FILE* fp, struct referenceinfo* refinfo) {
 	fprintf(fp, "{");
-	hprintf(fp, "\"name\":\"%j\",", git_reference_shorthand(ref));
+	hprintf(fp, "\"name\":\"%j\",", refinfo->refname);
 	fprintf(fp, "\"commit\":");
-	writejsoncommit(fp, commit, 0);
+	writejsoncommit(fp, refinfo->commit, 0);
 	fprintf(fp, "}");
 }
 
@@ -79,7 +80,7 @@ void writejsonrefs(FILE* json, const struct repoinfo* info) {
 			fprintf(json, ",\n");
 			first = 0;
 		}
-		writejsonref(json, info->refs[i].ref, info->refs[i].commit);
+		writejsonref(json, &info->refs[i]);
 	}
 
 	fprintf(json, "]");
