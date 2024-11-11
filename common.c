@@ -50,7 +50,7 @@ FILE* efopen(const char* mode, const char* format, ...) {
 	return fp;
 }
 
-void emkdirf(int mode, const char* format, ...) {
+void emkdirf(const char* format, ...) {
 	char    path[PATH_MAX];
 	char*   p;
 	va_list args;
@@ -72,11 +72,11 @@ void emkdirf(int mode, const char* format, ...) {
 		if (*p != '/')
 			continue;
 		*p = '\0';
-		if (mkdir(path, mode) < 0 && errno != EEXIST)
+		if (mkdir(path, 0777) < 0 && errno != EEXIST)
 			goto err;
 		*p = '/';
 	}
-	if (mkdir(path, mode) < 0 && errno != EEXIST)
+	if (mkdir(path, 0777) < 0 && errno != EEXIST)
 		goto err;
 
 	return;
@@ -135,12 +135,17 @@ void printprogress(ssize_t indx, ssize_t ncommits, const char* what, ...) {
 	fflush(stdout);
 }
 
-int isprefix(const char* str, const char* suffix) {
-	size_t lenstr    = strlen(str);
-	size_t lensuffix = strlen(suffix);
-	if (lensuffix > lenstr)
+int issuffix(const char* str, const char* suffix) {
+	size_t nstr    = strlen(str);
+	size_t nsuffix = strlen(suffix);
+	if (nsuffix > nstr)
 		return 0;
-	return strncmp(str + lenstr - lensuffix, suffix, lensuffix) == 0;
+	return strncmp(str + nstr - nsuffix, suffix, nsuffix) == 0;
+}
+
+int isprefix(const char* str, const char* prefix) {
+	size_t nprefix = strlen(prefix);
+	return strncmp(str, prefix, nprefix) == 0;
 }
 
 const char* splitunit(ssize_t* size) {

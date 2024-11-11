@@ -1,5 +1,7 @@
 #include "path.h"
 
+#include <string.h>
+
 void pathnormalize(char* path) {
 	char* src = path;
 	char* dst = path;
@@ -39,4 +41,14 @@ void pathunhide(char* path) {
 		if (*chr == '.' && (chr == path || chr[-1] == '/') && chr[1] != '/')
 			*chr = '-';
 	}
+}
+
+char* pathstrip(char* path, int comps) {
+	while (--comps > 0) {
+		if (!(path = strchr(path, '/')))
+			return NULL;
+
+		path++;
+	}
+	return path;
 }

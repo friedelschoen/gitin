@@ -1,5 +1,6 @@
 
 #include "arg.h"
+#include "common.h"
 #include "config.h"
 #include "findrepo.h"
 #include "getinfo.h"
@@ -33,7 +34,7 @@ int main(int argc, char** argv) {
 	char**           repos        = NULL;
 	int              nrepos       = 0;
 	char*            configbuffer = NULL;
-	FILE*            config;
+	FILE *           config, *fp;
 	struct gitininfo info;
 
 	ARGBEGIN
@@ -117,7 +118,10 @@ int main(int argc, char** argv) {
 	git_libgit2_opts(GIT_OPT_SET_OWNER_VALIDATION, 0);
 
 	getindex(&info, destdir, (const char**) repos, nrepos);
-	writeindex(&info);
+	emkdirf("%s", info.destdir);
+	fp = efopen("w+", "%s/index.html", info.destdir);
+	writeindex(fp, &info, 1);
+	fclose(fp);
 	freeindex(&info);
 
 	git_libgit2_shutdown();

@@ -2,6 +2,8 @@
 #include "config.h"
 #include "findrepo.h"
 
+#include <stdlib.h>
+
 
 int archivezip, archivetargz, archivetarxz, archivetarbz2; /* otherwise we have linker-errors */
 
@@ -25,6 +27,10 @@ int main(int argc, char* argv[]) {
 
 	for (int i = 0; i < nrepos; i++)
 		printf("%s\n", repos[i]);
+
+	for (int i = 0; i < nrepos; i++)
+		free(repos[i]);
+	free(repos);
 
 	return 0;
 }

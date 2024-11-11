@@ -1,4 +1,5 @@
 #include "common.h"
+#include "composer.h"
 #include "config.h"
 #include "hprintf.h"
 #include "writer.h"
@@ -63,18 +64,16 @@ static int iscategory(const char* repodir, const char** category, int* categoryl
 	return 0;
 }
 
-void writeindex(const struct gitininfo* info) {
-	FILE *          fp, *cachefp;
+void writeindex(FILE* fp, const struct gitininfo* info, int dorepo) {
+	FILE*           cachefp;
 	const char*     category    = NULL;
 	int             categorylen = 0;
 	struct repoinfo repoinfo;
 
 
-	emkdirf(0777, "%s", info->destdir);
-	emkdirf(0777, "!%s/.cache", info->destdir);
+	emkdirf("!%s/.cache", info->destdir);
 
 	cachefp = efopen(".w", "%s/.cache/index", info->destdir);
-	fp      = efopen("w+", "%s/index.html", info->destdir);
 	writeheader(fp, NULL, 0, 0, sitename, "%y", sitedescription);
 	fputs("<table id=\"index\"><thead>\n"
 	      "<tr><td>Name</td><td class=\"expand\">Description</td><td>Last changes</td></tr>"
@@ -90,7 +89,9 @@ void writeindex(const struct gitininfo* info) {
 
 			writeindexline(fp, cachefp, info->indexes[i].repodir, repoinfo.name,
 			               repoinfo.description);
-			writerepo(&repoinfo);
+
+			if (dorepo)
+				composerepo(&repoinfo);
 
 			freeinfo(&repoinfo);
 		} else {
@@ -100,5 +101,4 @@ void writeindex(const struct gitininfo* info) {
 	}
 	fputs("</tbody>\n</table>", fp);
 	writefooter(fp);
-	fclose(fp);
 }

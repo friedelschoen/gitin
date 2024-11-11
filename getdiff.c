@@ -63,6 +63,8 @@ int getdiff(struct commitinfo* ci, const struct repoinfo* info, git_commit* comm
 	FILE*                 fp;
 	char                  oid[GIT_OID_SHA1_HEXSIZE + 1];
 
+	emkdirf("!%s/.cache/diffs", info->destdir);
+
 	git_oid_tostr(oid, sizeof(oid), git_commit_id(commit));
 
 	if (docache && (fp = efopen("!.r", "%s/.cache/diffs/%s", info->destdir, oid))) {

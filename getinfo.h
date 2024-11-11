@@ -37,6 +37,8 @@ struct indexinfo {
 	const char* repodir;
 	const char* name;
 	const char* description;
+
+	struct repoinfo* repoinfo;
 };
 
 struct referenceinfo {

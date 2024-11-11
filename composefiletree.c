@@ -1,5 +1,6 @@
 #include "buffer.h"
 #include "common.h"
+#include "composer.h"
 #include "config.h"
 #include "execute.h"
 #include "hprintf.h"
@@ -224,8 +225,8 @@ static int writetree(FILE* fp, const struct repoinfo* info, const char* refname,
 	struct blobinfo       blob;
 	int                   dosplit;
 
-	emkdirf(0777, "%s/%s/files/%s", info->destdir, refname, basepath);
-	emkdirf(0777, "%s/%s/blobs/%s", info->destdir, refname, basepath);
+	emkdirf("%s/%s/files/%s", info->destdir, refname, basepath);
+	emkdirf("%s/%s/blobs/%s", info->destdir, refname, basepath);
 
 	dosplit = splitdirectories == -1 ? maxfiles > autofilelimit : splitdirectories;
 
@@ -309,13 +310,16 @@ static int writetree(FILE* fp, const struct repoinfo* info, const char* refname,
 	return 0;
 }
 
-int writefiletree(const struct repoinfo* info, git_reference* ref, git_commit* commit) {
+int composefiletree(const struct repoinfo* info, git_reference* ref, git_commit* commit) {
 	git_tree*   tree = NULL;
 	size_t      indx = 0;
 	int         ret  = -1;
 	char        path[PATH_MAX];
 	char        headoid[GIT_OID_SHA1_HEXSIZE + 1], oid[GIT_OID_SHA1_HEXSIZE + 1];
 	const char* refname;
+
+	emkdirf("!%s/.cache/files", info->destdir);
+	emkdirf("!%s/.cache/blobs", info->destdir);
 
 	refname = git_reference_shorthand(ref);
 
@@ -334,8 +338,8 @@ int writefiletree(const struct repoinfo* info, git_reference* ref, git_commit* c
 	snprintf(path, sizeof(path), "%s/%s/blobs", info->destdir, refname);
 	removedir(path);
 
-	emkdirf(0777, "%s/%s/files", info->destdir, refname);
-	emkdirf(0777, "%s/%s/blobs", info->destdir, refname);
+	emkdirf("%s/%s/files", info->destdir, refname);
+	emkdirf("%s/%s/blobs", info->destdir, refname);
 
 	if (!git_commit_tree(&tree, commit)) {
 		ret = writetree(NULL, info, refname, 2, 2, tree, "", &indx, countfiles(info->repo, tree));
