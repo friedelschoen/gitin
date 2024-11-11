@@ -35,7 +35,7 @@ int writerefs(FILE* fp, const struct repoinfo* info, int relpath, git_reference*
 	for (int i = 0; i < info->nrefs; i++) {
 		ref       = info->refs[i].ref;
 		commit    = info->refs[i].commit;
-		name      = git_reference_shorthand(ref);
+		name      = info->refs[i].refname;
 		iscurrent = !git_reference_cmp(ref, current);
 
 		if (isbranch && info->refs[i].istag) {

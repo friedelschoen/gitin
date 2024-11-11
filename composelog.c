@@ -1,6 +1,7 @@
 #include "common.h"
 #include "composer.h"
 #include "config.h"
+#include "getinfo.h"
 #include "hprintf.h"
 #include "writer.h"
 
@@ -79,24 +80,22 @@ static void writelogcommit(FILE* fp, FILE* json, FILE* atom, const struct repoin
 	git_tree_free(tree);
 }
 
-int composelog(const struct repoinfo* info, git_reference* ref, git_commit* head) {
+int composelog(const struct repoinfo* info, struct referenceinfo* refinfo) {
 	git_revwalk* w = NULL;
 	git_oid      id;
 	ssize_t      ncommits = 0, arsize;
 	FILE *       fp, *atom, *json, *arfp;
-	const char * unit, *refname;
-
-	refname = git_reference_shorthand(ref);
+	const char*  unit;
 
 	emkdirf("%s/commit", info->destdir);
-	emkdirf("%s/%s", info->destdir, refname);
+	emkdirf("%s/%s", info->destdir, refinfo->refname);
 
 	/* log for HEAD */
-	fp   = efopen("w", "%s/%s/log.html", info->destdir, refname);
-	json = efopen("w", "%s/%s/branch.json", info->destdir, refname);
-	atom = efopen("w", "%s/%s/atom.xml", info->destdir, refname);
+	fp   = efopen("w", "%s/%s/log.html", info->destdir, refinfo->refname);
+	json = efopen("w", "%s/%s/branch.json", info->destdir, refinfo->refname);
+	atom = efopen("w", "%s/%s/atom.xml", info->destdir, refinfo->refname);
 
-	writeheader(fp, info, 1, 1, info->name, "%s", refname);
+	writeheader(fp, info, 1, 1, info->name, "%s", refinfo->refname);
 	fprintf(json, "{");
 
 	fputs("<h2>Archives</h2>", fp);
@@ -105,18 +104,19 @@ int composelog(const struct repoinfo* info, git_reference* ref, git_commit* head
 	      fp);
 
 	FORMASK(type, archivetypes) {
-		arfp   = efopen("w+", "%s/%s/%s.%s", info->destdir, refname, refname, archiveexts[type]);
-		arsize = writearchive(arfp, info, type, ref, head);
+		arfp   = efopen("w+", "%s/%s/%s.%s", info->destdir, refinfo->refname, refinfo->refname,
+		                archiveexts[type]);
+		arsize = writearchive(arfp, info, type, refinfo);
 		fclose(arfp);
 		unit = splitunit(&arsize);
-		fprintf(fp, "<tr><td><a href=\"%s.%s\">%s.%s</a></td><td>%zd%s</td></tr>", refname,
-		        archiveexts[type], refname, archiveexts[type], arsize, unit);
+		fprintf(fp, "<tr><td><a href=\"%s.%s\">%s.%s</a></td><td>%zd%s</td></tr>", refinfo->refname,
+		        archiveexts[type], refinfo->refname, archiveexts[type], arsize, unit);
 	}
 	fputs("</tbody></table>", fp);
 
-	writeshortlog(fp, info, head);
+	writeshortlog(fp, info, refinfo->commit);
 
-	fprintf(fp, "<h2>Commits of %s</h2>", refname);
+	fprintf(fp, "<h2>Commits of %s</h2>", refinfo->refname);
 
 	fprintf(fp, "<table id=\"log\"><thead>\n<tr><td>Date</td>"
 	            "<td class=\"expand\">Commit message</td>"
@@ -133,14 +133,14 @@ int composelog(const struct repoinfo* info, git_reference* ref, git_commit* head
 		hprintf(stderr, "error: unable to initialize revwalk: %gw\n");
 		return -1;
 	}
-	git_revwalk_push(w, git_commit_id(head));
+	git_revwalk_push(w, git_commit_id(refinfo->commit));
 
 	/* Iterate through the commits */
 	while (!git_revwalk_next(&id, w))
 		ncommits++;
 
 	git_revwalk_reset(w);
-	git_revwalk_push(w, git_commit_id(head));
+	git_revwalk_push(w, git_commit_id(refinfo->commit));
 
 	/* Iterate through the commits */
 	ssize_t indx = 0;
@@ -148,7 +148,7 @@ int composelog(const struct repoinfo* info, git_reference* ref, git_commit* head
 		writelogcommit(fp, json, atom, info, indx, &id);
 		indx++;
 
-		printprogress(indx, ncommits, "write log:   %-20s", refname);
+		printprogress(indx, ncommits, "write log:   %-20s", refinfo->refname);
 	}
 	if (!verbose)
 		fputc('\n', stdout);

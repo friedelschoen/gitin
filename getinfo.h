@@ -43,6 +43,7 @@ struct indexinfo {
 
 struct referenceinfo {
 	git_reference* ref;
+	char*          refname;
 	git_commit*    commit;
 	int            istag;
 };
@@ -50,6 +51,7 @@ struct referenceinfo {
 struct repoinfo {
 	git_repository* repo;
 	git_reference*  branch;
+	char*           branchname;
 
 	const char* repodir;
 	char        destdir[1024];
@@ -57,7 +59,6 @@ struct repoinfo {
 
 	char*       confbuffer;
 	char        name[100];
-	const char* branchname;
 	const char* description;
 	const char* cloneurl;
 

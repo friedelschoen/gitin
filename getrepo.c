@@ -39,7 +39,7 @@ static void addpinfile(struct repoinfo* info, const char* pinfile) {
 void getrepo(struct repoinfo* info, const char* destination, const char* repodir) {
 	git_object* obj = NULL;
 	FILE*       fp;
-	const char* start;
+	const char *start, *reqbranchname;
 	char*       end;
 
 	memset(info, 0, sizeof(*info));
@@ -73,7 +73,7 @@ void getrepo(struct repoinfo* info, const char* destination, const char* repodir
 			{ "description", ConfigString, &info->description },
 			{ "url", ConfigString, &info->cloneurl },
 			{ "cloneurl", ConfigString, &info->cloneurl },
-			{ "branch", ConfigString, &info->branchname },
+			{ "branch", ConfigString, &reqbranchname },
 			/* { "revision", ConfigString, &info->revision }, */
 			{ 0 },
 		};
@@ -107,11 +107,12 @@ void getrepo(struct repoinfo* info, const char* destination, const char* repodir
 		git_object_free(obj);
 	}
 
-	if (info->branchname) {
-		git_reference_lookup(&info->branch, info->repo, info->branchname);
+	if (reqbranchname) {
+		git_reference_lookup(&info->branch, info->repo, reqbranchname);
 	} else {
 		git_repository_head(&info->branch, info->repo);
 	}
+	info->branchname = escaperefname(strdup(git_reference_shorthand(info->branch)));
 
 	getrefs(info);
 }
@@ -120,6 +121,7 @@ void freeinfo(struct repoinfo* info) {
 	/* cleanup */
 	freerefs(info);
 	git_reference_free(info->branch);
+	free(info->branchname);
 	git_repository_free(info->repo);
 	free(info->confbuffer);
 	freeheadfiles(info);

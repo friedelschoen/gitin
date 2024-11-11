@@ -42,18 +42,16 @@ git_blob* getcommitblob(git_commit* commit, const char* path) {
 	return blob;
 }
 
-int writesummary(FILE* fp, const struct repoinfo* info, git_reference* ref, git_commit* head) {
-	const char *    refname, *readmename;
+int writesummary(FILE* fp, const struct repoinfo* info, struct referenceinfo* refinfo) {
+	const char*     readmename;
 	git_blob*       readme = NULL;
 	struct blobinfo blobinfo;
 
-	refname = git_reference_shorthand(ref);
-
 	/* log for HEAD */
-	writeheader(fp, info, 1, 1, info->name, "%s", refname);
+	writeheader(fp, info, 1, 1, info->name, "%s", refinfo->refname);
 
 	fprintf(fp, "<div id=\"refcontainer\">");
-	writerefs(fp, info, 1, ref);
+	writerefs(fp, info, 1, refinfo->ref);
 	fprintf(fp, "</div>");
 
 	fputs("<hr />", fp);
@@ -67,17 +65,17 @@ int writesummary(FILE* fp, const struct repoinfo* info, git_reference* ref, git_
 		if (clonepush) {
 			fprintf(fp, "<i>Pushing</i>");
 			if (!strcmp(clonepull, clonepush)) {
-				fprintf(fp, "<pre>git push origin %s</pre>\n", refname);
+				fprintf(fp, "<pre>git push origin %s</pre>\n", refinfo->refname);
 			} else {
 				fprintf(fp, "<pre>git remote add my-remote %s%s\ngit push my-remote %s</pre>\n",
-				        clonepush, info->repodir, refname);
+				        clonepush, info->repodir, refinfo->refname);
 			}
 		}
 	}
 
 	for (int i = 0; aboutfiles[i]; i++) {
 		readmename = aboutfiles[i];
-		if ((readme = getcommitblob(head, aboutfiles[i])))
+		if ((readme = getcommitblob(refinfo->commit, aboutfiles[i])))
 			break;
 	}
 

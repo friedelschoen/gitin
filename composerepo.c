@@ -4,8 +4,7 @@
 #include "writer.h"
 
 void composerepo(const struct repoinfo* info) {
-	FILE*       fp;
-	const char* refname;
+	FILE* fp;
 
 	if (columnate)
 		printf("%s\t%s\t%s\n", info->name, info->repodir, info->destdir);
@@ -15,19 +14,18 @@ void composerepo(const struct repoinfo* info) {
 	emkdirf("%s", info->destdir);
 
 	for (int i = 0; i < info->nrefs; i++) {
-		refname = git_reference_shorthand(info->refs[i].ref);
-		emkdirf("%s/%s", info->destdir, refname);
+		emkdirf("%s/%s", info->destdir, info->refs[i].refname);
 
-		fp = efopen("w", "%s/%s/index.html", info->destdir, refname);
-		writesummary(fp, info, info->refs[i].ref, info->refs[i].commit);
+		fp = efopen("w", "%s/%s/index.html", info->destdir, info->refs[i].refname);
+		writesummary(fp, info, &info->refs[i]);
 		fclose(fp);
 
-		composelog(info, info->refs[i].ref, info->refs[i].commit);
-		composefiletree(info, info->refs[i].ref, info->refs[i].commit);
+		composelog(info, &info->refs[i]);
+		composefiletree(info, &info->refs[i]);
 	}
 
 	fp = efopen("w", "%s/index.html", info->destdir);
-	writeredirect(fp, "%s/", git_reference_shorthand(info->branch));
+	writeredirect(fp, "%s/", info->branchname);
 	fclose(fp);
 
 	fp = efopen("w", "%s/atom.xml", info->destdir);

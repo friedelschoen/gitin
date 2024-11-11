@@ -8,14 +8,13 @@
 /* please order arguments: FILE* fp, (const) struct repoinfo* info, int relpath */
 /* if a function writes a whole file, it must include writeheader() and writefooter() */
 
-int writearchive(FILE* fp, const struct repoinfo* info, int type, git_reference* refname,
-                 git_commit* commit);
+int writearchive(FILE* fp, const struct repoinfo* info, int type, struct referenceinfo* refinfo);
 
 /* XML atom */
 void writeatomfooter(FILE* fp);
 void writeatomheader(FILE* fp, const struct repoinfo* info);
 void writeatomrefs(FILE* fp, const struct repoinfo* info);
-void writeatomcommit(FILE* fp, git_commit* commit, git_reference* tag);
+void writeatomcommit(FILE* fp, git_commit* commit, const char* tag);
 
 /* JSON */
 void writejsoncommit(FILE* fp, git_commit* commit, int first);
@@ -33,4 +32,4 @@ void writepreview(FILE* fp, const struct repoinfo* info, int relpath, struct blo
 void writeredirect(FILE* fp, const char* to, ...);
 int  writerefs(FILE* fp, const struct repoinfo* info, int relpath, git_reference* current);
 void writeshortlog(FILE* fp, const struct repoinfo* info, git_commit* head);
-int  writesummary(FILE* fp, const struct repoinfo* info, git_reference* ref, git_commit* head);
+int  writesummary(FILE* fp, const struct repoinfo* info, struct referenceinfo* refinfo);

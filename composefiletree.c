@@ -3,6 +3,7 @@
 #include "composer.h"
 #include "config.h"
 #include "execute.h"
+#include "getinfo.h"
 #include "hprintf.h"
 #include "path.h"
 #include "writer.h"
@@ -310,20 +311,17 @@ static int writetree(FILE* fp, const struct repoinfo* info, const char* refname,
 	return 0;
 }
 
-int composefiletree(const struct repoinfo* info, git_reference* ref, git_commit* commit) {
-	git_tree*   tree = NULL;
-	size_t      indx = 0;
-	int         ret  = -1;
-	char        path[PATH_MAX];
-	char        headoid[GIT_OID_SHA1_HEXSIZE + 1], oid[GIT_OID_SHA1_HEXSIZE + 1];
-	const char* refname;
+int composefiletree(const struct repoinfo* info, struct referenceinfo* refinfo) {
+	git_tree* tree = NULL;
+	size_t    indx = 0;
+	int       ret  = -1;
+	char      path[PATH_MAX];
+	char      headoid[GIT_OID_SHA1_HEXSIZE + 1], oid[GIT_OID_SHA1_HEXSIZE + 1];
 
 	emkdirf("!%s/.cache/files", info->destdir);
 	emkdirf("!%s/.cache/blobs", info->destdir);
 
-	refname = git_reference_shorthand(ref);
-
-	git_oid_tostr(headoid, sizeof(headoid), git_commit_id(commit));
+	git_oid_tostr(headoid, sizeof(headoid), git_commit_id(refinfo->commit));
 	if (!force) {
 		if (!loadbuffer(oid, GIT_OID_SHA1_HEXSIZE, "%s/.cache/filetree", info->destdir)) {
 			oid[GIT_OID_SHA1_HEXSIZE] = '\0';
@@ -333,16 +331,17 @@ int composefiletree(const struct repoinfo* info, git_reference* ref, git_commit*
 	}
 
 	/* Clean /file and /blob directories since they will be rewritten */
-	snprintf(path, sizeof(path), "%s/%s/files", info->destdir, refname);
+	snprintf(path, sizeof(path), "%s/%s/files", info->destdir, refinfo->refname);
 	removedir(path);
-	snprintf(path, sizeof(path), "%s/%s/blobs", info->destdir, refname);
+	snprintf(path, sizeof(path), "%s/%s/blobs", info->destdir, refinfo->refname);
 	removedir(path);
 
-	emkdirf("%s/%s/files", info->destdir, refname);
-	emkdirf("%s/%s/blobs", info->destdir, refname);
+	emkdirf("%s/%s/files", info->destdir, refinfo->refname);
+	emkdirf("%s/%s/blobs", info->destdir, refinfo->refname);
 
-	if (!git_commit_tree(&tree, commit)) {
-		ret = writetree(NULL, info, refname, 2, 2, tree, "", &indx, countfiles(info->repo, tree));
+	if (!git_commit_tree(&tree, refinfo->commit)) {
+		ret = writetree(NULL, info, refinfo->refname, 2, 2, tree, "", &indx,
+		                countfiles(info->repo, tree));
 
 		if (!verbose)
 			fputc('\n', stdout);
