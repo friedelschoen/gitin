@@ -1,4 +1,5 @@
 #include "common.h"
+#include "composer.h"
 #include "config.h"
 #include "hprintf.h"
 #include "writer.h"
@@ -78,14 +79,17 @@ static void writelogcommit(FILE* fp, FILE* json, FILE* atom, const struct repoin
 	git_tree_free(tree);
 }
 
-int writelog(const struct repoinfo* info, git_reference* ref, git_commit* head) {
+int composelog(const struct repoinfo* info, git_reference* ref, git_commit* head) {
 	git_revwalk* w = NULL;
 	git_oid      id;
 	ssize_t      ncommits = 0, arsize;
-	FILE *       fp, *atom, *json;
+	FILE *       fp, *atom, *json, *arfp;
 	const char * unit, *refname;
 
 	refname = git_reference_shorthand(ref);
+
+	emkdirf("%s/commit", info->destdir);
+	emkdirf("%s/%s", info->destdir, refname);
 
 	/* log for HEAD */
 	fp   = efopen("w", "%s/%s/log.html", info->destdir, refname);
@@ -101,8 +105,10 @@ int writelog(const struct repoinfo* info, git_reference* ref, git_commit* head) 
 	      fp);
 
 	FORMASK(type, archivetypes) {
-		arsize = writearchive(info, type, ref, head);
-		unit   = splitunit(&arsize);
+		arfp   = efopen("w+", "%s/%s/%s.%s", info->destdir, refname, refname, archiveexts[type]);
+		arsize = writearchive(arfp, info, type, ref, head);
+		fclose(arfp);
+		unit = splitunit(&arsize);
 		fprintf(fp, "<tr><td><a href=\"%s.%s\">%s.%s</a></td><td>%zd%s</td></tr>", refname,
 		        archiveexts[type], refname, archiveexts[type], arsize, unit);
 	}

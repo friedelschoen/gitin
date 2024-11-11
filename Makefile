@@ -24,9 +24,19 @@ else
 CFLAGS += -O2
 endif
 
-BINS = gitin gitin-findrepos gitin-configtree
-MAN1 = gitin.1 gitin-findrepos.1 gitin-configtree.1
-MAN5 = gitin.conf.5
+BINS = \
+	gitin \
+	gitin-findrepos \
+	gitin-configtree \
+	gitin-cgi
+
+MAN1 = \
+	gitin.1 \
+	gitin-findrepos.1 \
+	gitin-configtree.1
+
+MAN5 = \
+	gitin.conf.5
 
 DOCS = \
 	assets/favicon.png \
@@ -49,6 +59,7 @@ HEADER = \
 	arg.h \
 	buffer.h \
 	common.h \
+	composer.h \
 	config.h \
 	execute.h \
 	findrepo.h \
@@ -62,6 +73,10 @@ HEADER = \
 OBJECTS = \
 	buffer.o \
 	common.o \
+	composearchive.o \
+	composefiletree.o \
+	composelog.o \
+	composerepo.o \
 	config.o \
 	execute.o \
 	filetypes.o \
@@ -73,18 +88,14 @@ OBJECTS = \
 	hprintf.o \
 	parseconfig.o \
 	path.o \
-	writearchive.o \
 	writeatom.o \
 	writecommit.o \
-	writefiles.o \
 	writehtml.o \
 	writeindex.o \
 	writejson.o \
-	writelog.o \
 	writepreview.o \
 	writeredirect.o \
 	writerefs.o \
-	writerepo.o \
 	writeshortlog.o \
 	writesummary.o
 
@@ -120,6 +131,9 @@ all: $(BINS) $(MAN1) $(MAN5) compile_flags.txt
 
 gitin: LIBS = libgit2 libarchive
 gitin: $(OBJECTS)
+
+gitin-cgi: LIBS = libgit2 libarchive
+gitin-cgi: $(OBJECTS)
 
 gitin-findrepos: LIBS = libgit2
 gitin-findrepos: gitin-findrepos.o config.o findrepo.o hprintf.o path.o

@@ -19,6 +19,8 @@ ssize_t execute(struct executeinfo* params) {
 	ssize_t     readlen;
 	int         status;
 
+	emkdirf("!%s/.cache/%s", params->info->destdir, params->cachename);
+
 	if (!force && (cache = efopen(".!r", "%s/.cache/%s/%x", params->info->destdir,
 	                              params->cachename, params->contenthash))) {
 		n = 0;

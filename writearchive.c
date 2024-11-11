@@ -1,4 +1,5 @@
 #include "buffer.h"
+#include "common.h"
 #include "config.h"
 #include "hprintf.h"
 #include "writer.h"
@@ -75,13 +76,16 @@ static int walktree(git_repository* repo, git_tree* tree, const char* base_path,
 }
 
 /* Updated function to accept git_reference instead of branch/tag name */
-int writearchive(const struct repoinfo* info, int type, git_reference* ref, git_commit* commit) {
+int writearchive(FILE* fp, const struct repoinfo* info, int type, git_reference* ref,
+                 git_commit* commit) {
 	git_tree*       tree = NULL;
 	char            path[PATH_MAX];
 	char            oid[GIT_OID_SHA1_HEXSIZE + 1], configoid[GIT_OID_SHA1_HEXSIZE + 1];
 	char            escapename[NAME_MAX];
 	struct stat     st;
 	struct archive* a;
+
+	emkdirf("!%s/.cache/archives", info->destdir);
 
 	git_oid_tostr(oid, sizeof(oid), git_commit_id(commit));
 
@@ -131,7 +135,7 @@ int writearchive(const struct repoinfo* info, int type, git_reference* ref, git_
 			return -1;
 	}
 
-	if (archive_write_open_filename(a, path) != ARCHIVE_OK) {
+	if (archive_write_open_FILE(a, fp) != ARCHIVE_OK) {
 		fprintf(stderr, "error: unable to open archive: %s\n", archive_error_string(a));
 		git_tree_free(tree);
 		return -1;
