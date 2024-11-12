@@ -5,6 +5,7 @@
 #include "findrepo.h"
 #include "getinfo.h"
 #include "hprintf.h"
+#include "matchcapture.h"
 #include "path.h"
 #include "writer.h"
 
@@ -114,13 +115,40 @@ int main(int argc, char** argv) {
 	/* do not require the git repository to be owned by the current user */
 	git_libgit2_opts(GIT_OPT_SET_OWNER_VALIDATION, 0);
 
+	static const char* urls[] = {
+		"/",                       //
+		"/style.css",              //
+		"/{}/",                    // repo
+		"/{}/atom.xml",            // repo
+		"/{}/commit/{}.html",      // repo
+		"/{}/index.json",          // repo
+		"/{}/{}/",                 // repo, rev
+		"/{}/{}/branch.json",      // repo, rev
+		"/{}/{}/atom.xml",         // repo, rev
+		"/{}/{}/log.html",         // repo, rev
+		"/{}/{a}/{a}.{}",          // repo, rev, rev, archive
+		"/{}/{}/blobs/{}",         // repo, rev, path
+		"/{}/{}/files/{}.html",    // repo, rev, path
+		NULL,
+	};
+	char* captures[4];
+	int   ncaptures;
+
+	struct repoinfo repoinfo;
+	switch (matchcaptures(reqpath, urls, captures, 4, &ncaptures, NULL)) {
+		case -1:
+			fprintf(stderr, "404\n");
+			break;
+		case 0:
+			getindex(&info, destdir, (const char**) repos, nrepos);
+			emkdirf("%s", destdir);
+			writeindex(stdout, &info, 0);
+			freeindex(&info);
+			break;
+	}
+
 	if (!*reqpath) {    // empty path
-		getindex(&info, destdir, (const char**) repos, nrepos);
-		emkdirf("%s", destdir);
-		writeindex(stdout, &info, 0);
-		freeindex(&info);
 	} else {
-		struct repoinfo repoinfo;
 		for (int i = 0; i < nrepos; i++) {
 			if (!isprefix(repos[i], reqpath))
 				continue;
@@ -134,6 +162,9 @@ int main(int argc, char** argv) {
 			// todo
 		}
 	}
+
+	for (int i = 0; i < ncaptures; i++)
+		free(captures[i]);
 
 	git_libgit2_shutdown();
 

@@ -8,9 +8,9 @@ PREFIX ?= /usr/local
 # flags
 CC 		 ?= gcc
 CFLAGS 	 += -Wall -Wextra -Wpedantic -Werror \
-		    $(shell pkg-config --cflags $(LIBS))
+		    $(if $(LIBS),$(shell pkg-config --cflags $(LIBS)),)
 CPPFLAGS += -D_XOPEN_SOURCE=700 -D_GNU_SOURCE -DVERSION=\"$(VERSION)\" -DGIT_DEPRECATE_HARD
-LDFLAGS  += $(shell pkg-config --libs $(LIBS))
+LDFLAGS  += $(if $(LIBS),$(shell pkg-config --libs $(LIBS)),)
 
 ifeq ($(CC),gcc)
 CFLAGS += -Wno-stringop-truncation \
@@ -26,14 +26,15 @@ endif
 
 BINS = \
 	gitin \
-	gitin-findrepos \
+	gitin-cgi \
 	gitin-configtree \
-	gitin-cgi
+	gitin-findrepos \
+	gitin-matchcapture
 
 MAN1 = \
 	gitin.1 \
-	gitin-findrepos.1 \
-	gitin-configtree.1
+	gitin-configtree.1 \
+	gitin-findrepos.1
 
 MAN5 = \
 	gitin.conf.5
@@ -70,7 +71,7 @@ HEADER = \
 	path.h \
 	writer.h
 
-OBJECTS = \
+SHAREDOBJECTS = \
 	buffer.o \
 	common.o \
 	composefiletree.o \
@@ -101,12 +102,11 @@ OBJECTS = \
 
 CLEAN = \
 	$(BINS) \
-	$(BINS:=.o) \
-	$(OBJECTS) \
 	$(MAN1) \
 	$(MAN5) \
 	compile_flags.txt \
-	filetypes.c
+	filetypes.c \
+	*.o
 	
 
 .PHONY: all clean \
@@ -127,20 +127,22 @@ all: $(BINS) $(MAN1) $(MAN5) compile_flags.txt
 %: %.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 
-# binary targets
+# targets
 
 gitin: LIBS = libgit2 libarchive
-gitin: $(OBJECTS)
+gitin: $(SHAREDOBJECTS)
 
 gitin-cgi: LIBS = libgit2 libarchive
-gitin-cgi: $(OBJECTS)
+gitin-cgi: $(SHAREDOBJECTS)
 
-gitin-findrepos: LIBS = libgit2
-gitin-findrepos: gitin-findrepos.o config.o findrepo.o hprintf.o path.o
-
-gitin-configtree:
 gitin-configtree: gitin-configtree.py
 	install -m755 $^ $@
+
+gitin-findrepos: LIBS = libgit2
+gitin-findrepos: config.o findrepo.o hprintf.o path.o
+
+gitin-matchcapture: LIBS =
+gitin-matchcapture: matchcapture.o
 
 compile_flags.txt: LIBS = libgit2 libarchive
 compile_flags.txt: Makefile
