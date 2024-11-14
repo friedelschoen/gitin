@@ -9,7 +9,7 @@ PREFIX ?= /usr/local
 CC 		 ?= gcc
 CFLAGS 	 += -Wall -Wextra -Wpedantic -Werror \
 		    $(if $(LIBS),$(shell pkg-config --cflags $(LIBS)),)
-CPPFLAGS += -D_XOPEN_SOURCE=700 -D_GNU_SOURCE -DVERSION=\"$(VERSION)\" -DGIT_DEPRECATE_HARD
+CPPFLAGS += -D_XOPEN_SOURCE=700 -D_GNU_SOURCE -DVERSION=\"$(VERSION)\" -DGIT_DEPRECATE_HARD -I.
 LDFLAGS  += $(if $(LIBS),$(shell pkg-config --libs $(LIBS)),)
 
 ifeq ($(CC),gcc)
@@ -29,7 +29,13 @@ BINS = \
 	gitin-cgi \
 	gitin-configtree \
 	gitin-findrepos \
-	gitin-matchcapture
+	contrib/matchcapture
+
+INSTBINS = \
+	gitin \
+	gitin-cgi \
+	gitin-configtree \
+	gitin-findrepos
 
 MAN1 = \
 	gitin.1 \
@@ -133,7 +139,7 @@ gitin: LIBS = libgit2 libarchive
 gitin: $(SHAREDOBJECTS)
 
 gitin-cgi: LIBS = libgit2 libarchive
-gitin-cgi: $(SHAREDOBJECTS)
+gitin-cgi: $(SHAREDOBJECTS) matchcapture.o
 
 gitin-configtree: gitin-configtree.py
 	install -m755 $^ $@
@@ -141,8 +147,7 @@ gitin-configtree: gitin-configtree.py
 gitin-findrepos: LIBS = libgit2
 gitin-findrepos: config.o findrepo.o hprintf.o path.o
 
-gitin-matchcapture: LIBS =
-gitin-matchcapture: matchcapture.o
+contrib/matchcapture: matchcapture.o
 
 compile_flags.txt: LIBS = libgit2 libarchive
 compile_flags.txt: Makefile
@@ -160,9 +165,9 @@ clean:
 
 install: install-bins install-man1 install-man5 install-assets install-icons
 
-install-bins: $(BINS)
+install-bins: $(INSTBINS)
 	install -d $(PREFIX)/bin
-	install -m 755 $(BINS) $(PREFIX)/bin
+	install -m 755 $(INSTBINS) $(PREFIX)/bin
 
 install-man1: $(MAN1)
 	install -d $(PREFIX)/share/man/man1
@@ -183,7 +188,7 @@ install-icons: $(ICONS)
 uninstall: uninstall-bins uninstall-man1 uninstall-man5 uninstall-assets
 
 uninstall-bins:
-	rm -f $(addprefix $(PREFIX)/bin/, $(BINS))
+	rm -f $(addprefix $(PREFIX)/bin/, $(INSTBINS))
 
 uninstall-man1:
 	rm -f $(addprefix $(PREFIX)/share/man/man1/, $(MAN1))
