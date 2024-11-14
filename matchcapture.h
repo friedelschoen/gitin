@@ -9,6 +9,7 @@
  * Parameters:
  *   @testnum    : The identifier of the specific test to perform.
  *   @input      : The input segment to test.
+ *   @userdata   : A pointer which is passed in `matchcapture`
  *
  * Returns:
  *   - Non-null if the test passes, null if it fails.
@@ -35,7 +36,7 @@
  * }
  * ```
  */
-typedef int (*matchcapture_test_t)(int testnum, const char* input);
+typedef int (*matchcapture_test_t)(int testnum, const char* input, void* userdata);
 
 /**
  * matchcapture - Match an input string against a single template pattern.
@@ -54,7 +55,7 @@ typedef int (*matchcapture_test_t)(int testnum, const char* input);
  * - `{?}`, `{?a}`, etc. : Non-greedy capture. `{?}` matches as few characters as possible until the
  *                         next match point. Named non-greedy captures enforce similar behavior with
  *                         minimal character consumption.
- * - `{0}`, `{a|0}`, `{?0}`, `{?0|a}`, etc.
+ * - `{0}`, `{0|a}`, `{?0}`, `{?0|a}`, etc.
  *                       : Testing capture, which can be greedy or non-greedy. Calls `@test` on the
  *                         consumed text segment to validate it. If the test fails, the next capture
  *                         option is tested. If `@test` is NULL, the capture is automatically
@@ -67,6 +68,7 @@ typedef int (*matchcapture_test_t)(int testnum, const char* input);
  *                 Must have space for `maxcaptures` entries.
  *   @maxcaptures: The maximum number of capture slots available in `captures`.
  *   @test       : A function pointer to a test function, or NULL if no tests are needed.
+ *   @userdata   : A pointer which will be passed to `test`
  *
  * Returns:
  *   - The number of captures written, or -1 if the template does not match.
@@ -87,7 +89,7 @@ typedef int (*matchcapture_test_t)(int testnum, const char* input);
  * ```
  */
 int matchcapture(const char* input, const char* templat, char** captures, int maxcaptures,
-                 matchcapture_test_t test);
+                 matchcapture_test_t test, void* userdata);
 
 /**
  * matchcaptures - Match an input string against multiple template patterns.
@@ -107,6 +109,7 @@ int matchcapture(const char* input, const char* templat, char** captures, int ma
  *                  found (optional, can be NULL).
  *   @test        : A function pointer to a test function to validate test-based captures, or NULL
  *                  if no testing is required.
+ *   @userdata   : A pointer which will be passed to `test`
  *
  * Returns:
  *   - The index of the matched template in the `templates` array, or -1 if no match is found.
@@ -128,4 +131,4 @@ int matchcapture(const char* input, const char* templat, char** captures, int ma
  * ```
  */
 int matchcaptures(const char* input, const char** templates, char** captures, int maxcaptures,
-                  int* ncaptures, matchcapture_test_t test);
+                  int* ncaptures, matchcapture_test_t test, void* userdata);

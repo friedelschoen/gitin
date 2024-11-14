@@ -6,15 +6,20 @@
 #include <string.h>
 
 
-static int matchend(const char* input, const char* templat, char** captures, int maxcaptures,
-                    matchcapture_test_t test, int testnum, const char** named, int var, int greedy);
+struct mc_context {
+	matchcapture_test_t test;
+	void*               userdata;
+	const char*         named[26];
+};
 
-static int matchone(const char* input, const char* templat, char** captures, int maxcaptures,
-                    matchcapture_test_t test, const char** named);
+static int matchend(struct mc_context* ctx, const char* input, const char* templat, char** captures,
+                    int maxcaptures, int testnum, int var, int greedy);
 
-static int matchend(const char* input, const char* templat, char** captures, int maxcaptures,
-                    matchcapture_test_t test, int testnum, const char** named, int var,
-                    int greedy) {
+static int matchone(struct mc_context* ctx, const char* input, const char* templat, char** captures,
+                    int maxcaptures);
+
+static int matchend(struct mc_context* ctx, const char* input, const char* templat, char** captures,
+                    int maxcaptures, int testnum, int var, int greedy) {
 
 	const char* start = input;
 	char*       value;
@@ -31,18 +36,17 @@ static int matchend(const char* input, const char* templat, char** captures, int
 	while (input >= start) {
 		if (*input == *templat) {
 			value = strndup(start, input - start);
-			if (testnum == -1 || !test || test(testnum, value)) {
+			if (testnum == -1 || !ctx->test || ctx->test(testnum, value, ctx->userdata)) {
 				if (maxcaptures > 0)
 					*captures = value;
 				if (var != -1)
-					named[var] = *captures;
+					ctx->named[var] = *captures;
 
-				if ((ret = matchone(input, templat, captures + 1, maxcaptures - 1, test, named)) !=
-				    -1)
+				if ((ret = matchone(ctx, input, templat, captures + 1, maxcaptures - 1)) != -1)
 					return ret + 1;
 
 				if (var != -1)
-					named[var] = NULL;
+					ctx->named[var] = NULL;
 			}
 			free(value);
 		}
@@ -53,8 +57,8 @@ static int matchend(const char* input, const char* templat, char** captures, int
 	return -1;
 }
 
-static int matchone(const char* input, const char* templat, char** captures, int maxcaptures,
-                    matchcapture_test_t test, const char** named) {
+static int matchone(struct mc_context* ctx, const char* input, const char* templat, char** captures,
+                    int maxcaptures) {
 	int         ret, greedy, testnum;
 	const char* start;
 
@@ -82,7 +86,7 @@ static int matchone(const char* input, const char* templat, char** captures, int
 			if (templat[0] == '}' && templat[1] == '\0') {
 				templat++;
 
-				if (testnum == -1 || !test || test(testnum, input)) {
+				if (testnum == -1 || !ctx->test || ctx->test(testnum, input, ctx->userdata)) {
 					if (maxcaptures > 0)
 						*captures = strdup(input);
 					return 1;
@@ -91,8 +95,7 @@ static int matchone(const char* input, const char* templat, char** captures, int
 			} else if (templat[0] == '}' && templat[1] != '\0') {
 				templat++;
 
-				return matchend(input, templat, captures, maxcaptures, test, testnum, named, -1,
-				                greedy);
+				return matchend(ctx, input, templat, captures, maxcaptures, testnum, -1, greedy);
 			} else if ((testnum && templat[0] == '|' && isalpha(templat[1]) && templat[2] == '}') ||
 			           (!testnum && isalpha(templat[0]) && templat[1] == '}')) {
 				if (testnum)
@@ -102,20 +105,19 @@ static int matchone(const char* input, const char* templat, char** captures, int
 				templat += 2;    // Skip over `a}`
 
 				// Check if this placeholder has been encountered before
-				if (named[var] == NULL) {
-					return matchend(input, templat, captures, maxcaptures, test, testnum, named,
-					                var, greedy);
+				if (ctx->named[var] == NULL) {
+					return matchend(ctx, input, templat, captures, maxcaptures, testnum, var,
+					                greedy);
 				}
 
-				if (strncmp(input, named[var], strlen(named[var])))
+				if (strncmp(input, ctx->named[var], strlen(ctx->named[var])))
 					return -1;
 
 				if (maxcaptures > 0)
-					*captures = strdup(named[var]);
-				input += strlen(named[var]);
+					*captures = strdup(ctx->named[var]);
+				input += strlen(ctx->named[var]);
 
-				if ((ret = matchone(input, templat, captures + 1, maxcaptures - 1, test, named)) !=
-				    -1)
+				if ((ret = matchone(ctx, input, templat, captures + 1, maxcaptures - 1)) != -1)
 					return ret + 1;
 
 				if (maxcaptures > 0)
@@ -140,23 +142,29 @@ static int matchone(const char* input, const char* templat, char** captures, int
 }
 
 int matchcapture(const char* input, const char* templat, char** captures, int maxcaptures,
-                 matchcapture_test_t test) {
-	const char* named[26];    // For named captures (a-z)
+                 matchcapture_test_t test, void* userdata) {
+	struct mc_context ctx;
 
-	memset(named, 0, sizeof(named));    // Clear previous capturesputs
+	ctx.test     = test;
+	ctx.userdata = userdata;
+	memset(ctx.named, 0, sizeof(ctx.named));
 
-	return matchone(input, templat, captures, maxcaptures, test, named);
+	return matchone(&ctx, input, templat, captures, maxcaptures);
 }
 
 int matchcaptures(const char* input, const char** templats, char** captures, int maxcaptures,
-                  int* pncaptures, matchcapture_test_t test) {
-	const char* named[26];    // For named captures (a-z)
-	int         ncaptures;
+                  int* pncaptures, matchcapture_test_t test, void* userdata) {
+	struct mc_context ctx;
+	int               ncaptures;
+
+	memset(&ctx, 0, sizeof(ctx));    // Clear previous capturesputs
+	ctx.test     = test;
+	ctx.userdata = userdata;
 
 	for (int i = 0; templats[i] != NULL; i++) {
-		memset(named, 0, sizeof(named));    // Clear previous capturesputs
+		memset(ctx.named, 0, sizeof(ctx.named));
 
-		if ((ncaptures = matchone(input, templats[i], captures, maxcaptures, test, named)) == -1)
+		if ((ncaptures = matchone(&ctx, input, templats[i], captures, maxcaptures)) == -1)
 			continue;
 
 		if (pncaptures)
