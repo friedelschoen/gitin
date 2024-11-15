@@ -28,7 +28,7 @@ extern const char*       extrapinfiles;
 extern const char*       favicon;
 extern const char*       favicontype;
 extern const char*       filetypes[][3];
-extern int               force, verbose, columnate;
+extern int               force, verbose, columnate, quiet;
 extern const char*       footertext;
 extern const char*       highlightcmd;
 extern const char*       logoicon;

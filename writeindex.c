@@ -93,7 +93,7 @@ void writeindex(FILE* fp, const struct gitininfo* info, int dorepo) {
 			if (dorepo)
 				composerepo(&repoinfo);
 
-			freeinfo(&repoinfo);
+			freerefs(&repoinfo);
 		} else {
 			writeindexline(fp, cachefp, info->indexes[i].repodir, info->indexes[i].name,
 			               info->indexes[i].description);

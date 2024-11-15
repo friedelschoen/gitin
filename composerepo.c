@@ -4,12 +4,14 @@
 #include "writer.h"
 
 void composerepo(const struct repoinfo* info) {
-	FILE* fp;
+	FILE *fp, *json, *atom;
 
-	if (columnate)
-		printf("%s\t%s\t%s\n", info->name, info->repodir, info->destdir);
-	else
-		printf("updating '%s' (at %s) -> %s\n", info->name, info->repodir, info->destdir);
+	if (!quiet) {
+		if (columnate)
+			printf("%s\t%s\t%s\n", info->name, info->repodir, info->destdir);
+		else
+			printf("updating '%s' (at %s) -> %s\n", info->name, info->repodir, info->destdir);
+	}
 
 	emkdirf("%s", info->destdir);
 
@@ -20,12 +22,20 @@ void composerepo(const struct repoinfo* info) {
 		writesummary(fp, info, &info->refs[i]);
 		fclose(fp);
 
-		composelog(info, &info->refs[i]);
+		/* log for HEAD */
+		fp   = efopen("w", "%s/%s/log.html", info->destdir, info->refs[i].refname);
+		json = efopen("w", "%s/%s/log.json", info->destdir, info->refs[i].refname);
+		atom = efopen("w", "%s/%s/log.xml", info->destdir, info->refs[i].refname);
+		writelog(fp, json, atom, info, &info->refs[i]);
+		fclose(fp);
+		fclose(json);
+		fclose(atom);
+
 		composefiletree(info, &info->refs[i]);
 	}
 
 	fp = efopen("w", "%s/index.html", info->destdir);
-	writeredirect(fp, "%s/", info->branchname);
+	writeredirect(fp, "%s/", info->branch.refname);
 	fclose(fp);
 
 	fp = efopen("w", "%s/atom.xml", info->destdir);
