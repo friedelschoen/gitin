@@ -96,10 +96,12 @@ static int matchone(struct mc_context* ctx, const char* input, const char* templ
 				templat++;
 
 				return matchend(ctx, input, templat, captures, maxcaptures, testnum, -1, greedy);
-			} else if ((testnum && templat[0] == '|' && isalpha(templat[1]) && templat[2] == '}') ||
-			           (!testnum && isalpha(templat[0]) && templat[1] == '}')) {
-				if (testnum)
+			} else if ((testnum != -1 && templat[0] == '|' && isalpha(templat[1]) &&
+			            templat[2] == '}') ||
+			           (testnum == -1 && isalpha(templat[0]) && templat[1] == '}')) {
+				if (testnum != -1)
 					templat++; /* skip | */
+
 				// Enforced placeholder with specific character (e.g., `{a}`)
 				int var = tolower(templat[0]) - 'a';
 				templat += 2;    // Skip over `a}`
@@ -124,7 +126,8 @@ static int matchone(struct mc_context* ctx, const char* input, const char* templ
 					free(*captures);
 				return -1;
 			} else {
-				fprintf(stderr, "error: invalid capture: %.*s\n", (int) (templat - start), start);
+				fprintf(stderr, "error: invalid capture: %.*s\n", (int) (templat - start + 1),
+				        start);
 				return -1;
 			}
 		} else if (*templat != *input) {

@@ -16,7 +16,7 @@
 #include <unistd.h>
 
 
-int force = 0, verbose = 0, columnate = 0;
+int force = 0, verbose = 0, columnate = 0, quiet = 1;
 int archivezip = 0, archivetargz = 0, archivetarxz = 0, archivetarbz2 = 0;
 
 static __attribute__((noreturn)) void usage(const char* argv0, int exitcode) {

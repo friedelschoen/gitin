@@ -45,9 +45,9 @@ void writeheader(FILE* fp, const struct repoinfo* info, int relpath, int inbranc
 		}
 		if (info->submodules)
 			hprintf(fp, " | <a href=\"%r%s/files/%s.html\">Submodules</a>", relpath,
-			        info->branchname, info->submodules);
+			        info->branch.refname, info->submodules);
 		for (int i = 0; i < info->pinfileslen; i++)
-			hprintf(fp, " | <a href=\"%r%s/files/%s.html\">%s</a>", relpath, info->branchname,
+			hprintf(fp, " | <a href=\"%r%s/files/%s.html\">%s</a>", relpath, info->branch.refname,
 			        info->pinfiles[i], info->pinfiles[i]);
 	} else {
 		fputs("</td><td>", fp);

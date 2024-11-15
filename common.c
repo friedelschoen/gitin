@@ -100,7 +100,7 @@ int removedir(char* path) {
 
 void printprogress(ssize_t indx, ssize_t ncommits, const char* what, ...) {
 	va_list args;
-	if (verbose)
+	if (verbose || quiet)
 		return;
 
 	printf("\r");
@@ -228,4 +228,25 @@ char* escaperefname(char* refname) {
 			*p = '-';
 
 	return refname;
+}
+
+int copyfile(FILE* dest, FILE* src) {
+	uint8_t buffer[1024];
+	size_t  nread;
+
+	// Ensure both file pointers are valid
+	if (!dest || !src) {
+		errno = EINVAL;    // Invalid argument
+		return -1;
+	}
+
+	// Copy data from src to dest
+	while ((nread = fread(buffer, 1, sizeof(buffer), src)) > 0) {
+		if (fwrite(buffer, 1, nread, dest) != nread) {
+			return -1;    // Write error
+		}
+	}
+
+	// Check for read error
+	return ferror(src) ? -1 : 0;
 }

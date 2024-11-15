@@ -81,7 +81,6 @@ SHAREDOBJECTS = \
 	buffer.o \
 	common.o \
 	composefiletree.o \
-	composelog.o \
 	composerepo.o \
 	config.o \
 	execute.o \
@@ -100,6 +99,7 @@ SHAREDOBJECTS = \
 	writehtml.o \
 	writeindex.o \
 	writejson.o \
+	writelog.o \
 	writepreview.o \
 	writeredirect.o \
 	writerefs.o \

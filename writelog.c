@@ -38,7 +38,6 @@ static void writelogline(FILE* fp, git_commit* commit, const struct commitinfo* 
 
 static void writelogcommit(FILE* fp, FILE* json, FILE* atom, const struct repoinfo* info, int index,
                            git_oid* id) {
-
 	struct commitinfo ci;
 	git_commit*       commit;
 	git_tree*         tree;
@@ -71,37 +70,37 @@ static void writelogcommit(FILE* fp, FILE* json, FILE* atom, const struct repoin
 		writecommit(commitfile, info, commit, &ci, index == maxcommits);
 		fclose(commitfile);
 	}
-	writelogline(fp, commit, &ci);
-	writeatomcommit(atom, commit, NULL);
-	writejsoncommit(json, commit, index == 0);
+	if (fp)
+		writelogline(fp, commit, &ci);
+	if (atom)
+		writeatomcommit(atom, commit, NULL);
+	if (json)
+		writejsoncommit(json, commit, index == 0);
 
 	freediff(&ci);
 	git_commit_free(commit);
 	git_tree_free(tree);
 }
 
-int composelog(const struct repoinfo* info, struct referenceinfo* refinfo) {
+int writelog(FILE* fp, FILE* atom, FILE* json, const struct repoinfo* info,
+             struct referenceinfo* refinfo) {
 	git_revwalk* w = NULL;
 	git_oid      id;
 	ssize_t      ncommits = 0, arsize;
-	FILE *       fp, *atom, *json, *arfp;
+	FILE*        arfp;
 	const char*  unit;
 
 	emkdirf("%s/commit", info->destdir);
 	emkdirf("%s/%s", info->destdir, refinfo->refname);
 
-	/* log for HEAD */
-	fp   = efopen("w", "%s/%s/log.html", info->destdir, refinfo->refname);
-	json = efopen("w", "%s/%s/branch.json", info->destdir, refinfo->refname);
-	atom = efopen("w", "%s/%s/atom.xml", info->destdir, refinfo->refname);
+	if (fp) {
+		writeheader(fp, info, 1, 1, info->name, "%s", refinfo->refname);
 
-	writeheader(fp, info, 1, 1, info->name, "%s", refinfo->refname);
-	fprintf(json, "{");
-
-	fputs("<h2>Archives</h2>", fp);
-	fputs("<table><thead>\n<tr><td class=\"expand\">Name</td>"
-	      "<td class=\"num\">Size</td></tr>\n</thead><tbody>\n",
-	      fp);
+		fputs("<h2>Archives</h2>", fp);
+		fputs("<table><thead>\n<tr><td class=\"expand\">Name</td>"
+		      "<td class=\"num\">Size</td></tr>\n</thead><tbody>\n",
+		      fp);
+	}
 
 	FORMASK(type, archivetypes) {
 		arfp   = efopen("w+", "%s/%s/%s.%s", info->destdir, refinfo->refname, refinfo->refname,
@@ -109,24 +108,30 @@ int composelog(const struct repoinfo* info, struct referenceinfo* refinfo) {
 		arsize = writearchive(arfp, info, type, refinfo);
 		fclose(arfp);
 		unit = splitunit(&arsize);
-		fprintf(fp, "<tr><td><a href=\"%s.%s\">%s.%s</a></td><td>%zd%s</td></tr>", refinfo->refname,
-		        archiveexts[type], refinfo->refname, archiveexts[type], arsize, unit);
+		if (fp)
+			fprintf(fp, "<tr><td><a href=\"%s.%s\">%s.%s</a></td><td>%zd%s</td></tr>",
+			        refinfo->refname, archiveexts[type], refinfo->refname, archiveexts[type],
+			        arsize, unit);
 	}
-	fputs("</tbody></table>", fp);
 
-	writeshortlog(fp, info, refinfo->commit);
+	if (fp) {
+		fputs("</tbody></table>", fp);
 
-	fprintf(fp, "<h2>Commits of %s</h2>", refinfo->refname);
+		writeshortlog(fp, info, refinfo->commit);
 
-	fprintf(fp, "<table id=\"log\"><thead>\n<tr><td>Date</td>"
-	            "<td class=\"expand\">Commit message</td>"
-	            "<td>Author</td><td class=\"num\" align=\"right\">Files</td>"
-	            "<td class=\"num\" align=\"right\">+</td>"
-	            "<td class=\"num\" align=\"right\">-</td></tr>\n</thead><tbody>");
+		fprintf(fp, "<h2>Commits of %s</h2>", refinfo->refname);
 
-	fprintf(json, ",\"commits\":{");
+		fprintf(fp, "<table id=\"log\"><thead>\n<tr><td>Date</td>"
+		            "<td class=\"expand\">Commit message</td>"
+		            "<td>Author</td><td class=\"num\" align=\"right\">Files</td>"
+		            "<td class=\"num\" align=\"right\">+</td>"
+		            "<td class=\"num\" align=\"right\">-</td></tr>\n</thead><tbody>");
+	}
+	if (json)
+		fprintf(json, "{\"commits\":{");
 
-	writeatomheader(atom, info);
+	if (atom)
+		writeatomheader(atom, info);
 
 	/* Create a revwalk to iterate through the commits */
 	if (git_revwalk_new(&w, info->repo)) {
@@ -155,23 +160,24 @@ int composelog(const struct repoinfo* info, struct referenceinfo* refinfo) {
 
 	git_revwalk_free(w);
 
-	if (maxcommits > 0 && ncommits > maxcommits) {
-		if (ncommits - maxcommits == 1)
-			fprintf(fp, "<tr><td></td><td colspan=\"5\">1 commit left out...</td></tr>\n");
-		else
-			fprintf(fp, "<tr><td></td><td colspan=\"5\">%lld commits left out...</td></tr>\n",
-			        ncommits - maxcommits);
+	if (fp) {
+		if (maxcommits > 0 && ncommits > maxcommits) {
+			if (ncommits - maxcommits == 1)
+				fprintf(fp, "<tr><td></td><td colspan=\"5\">1 commit left out...</td></tr>\n");
+			else
+				fprintf(fp, "<tr><td></td><td colspan=\"5\">%lld commits left out...</td></tr>\n",
+				        ncommits - maxcommits);
+		}
+
+		fputs("</tbody></table>", fp);
+		writefooter(fp);
 	}
 
-	fputs("</tbody></table>", fp);
-	writefooter(fp);
-	fclose(fp);
+	if (json)
+		fprintf(json, "}}");
 
-	fprintf(json, "}}");
-	fclose(json);
-
-	writeatomfooter(atom);
-	fclose(atom);
+	if (atom)
+		writeatomfooter(atom);
 
 	return 0;
 }

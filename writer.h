@@ -27,6 +27,8 @@ void writefooter(FILE* fp);
 void writeheader(FILE* fp, const struct repoinfo* info, int relpath, int inbranch, const char* name,
                  const char* description, ...);
 void writeindex(FILE* fp, const struct gitininfo* info, int dorepo);
+int  writelog(FILE* fp, FILE* atom, FILE* json, const struct repoinfo* info,
+              struct referenceinfo* refinfo);
 void writepreview(FILE* fp, const struct repoinfo* info, int relpath, struct blobinfo* blob,
                   int printplain);
 void writeredirect(FILE* fp, const char* to, ...);

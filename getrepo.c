@@ -5,6 +5,7 @@
 
 #include <git2/repository.h>
 #include <git2/revparse.h>
+#include <git2/types.h>
 #include <limits.h>
 #include <string.h>
 
@@ -37,10 +38,11 @@ static void addpinfile(struct repoinfo* info, const char* pinfile) {
 }
 
 void getrepo(struct repoinfo* info, const char* destination, const char* repodir) {
-	git_object* obj = NULL;
-	FILE*       fp;
-	const char *start, *reqbranchname = NULL;
-	char*       end;
+	git_object*    obj = NULL;
+	FILE*          fp;
+	const char *   start, *reqbranchname = NULL;
+	char*          end;
+	git_reference* branch = NULL;
 
 	memset(info, 0, sizeof(*info));
 	info->repodir     = repodir;
@@ -108,26 +110,26 @@ void getrepo(struct repoinfo* info, const char* destination, const char* repodir
 	}
 
 	if (reqbranchname) {
-		if (git_reference_lookup(&info->branch, info->repo, reqbranchname)) {
+		if (git_reference_lookup(&branch, info->repo, reqbranchname)) {
 			fprintf(stderr, "error: unable to fetch branch %s\n", reqbranchname);
-			git_repository_head(&info->branch, info->repo);
+			git_repository_head(&branch, info->repo);
 		}
 	} else {
-		git_repository_head(&info->branch, info->repo);
+		git_repository_head(&branch, info->repo);
 	}
-	if (!info->branch) {
+	if (!branch) {
 		fprintf(stderr, "error: unable to get HEAD\n");
 	}
-	info->branchname = escaperefname(strdup(git_reference_shorthand(info->branch)));
+
+	getreference(&info->branch, branch);
 
 	getrefs(info);
 }
 
-void freeinfo(struct repoinfo* info) {
+void freerepo(struct repoinfo* info) {
 	/* cleanup */
 	freerefs(info);
-	git_reference_free(info->branch);
-	free(info->branchname);
+	freereference(&info->branch);
 	git_repository_free(info->repo);
 	free(info->confbuffer);
 	freeheadfiles(info);

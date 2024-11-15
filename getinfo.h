@@ -49,9 +49,8 @@ struct referenceinfo {
 };
 
 struct repoinfo {
-	git_repository* repo;
-	git_reference*  branch;
-	char*           branchname;
+	git_repository*      repo;
+	struct referenceinfo branch;
 
 	const char* repodir;
 	char        destdir[1024];
@@ -84,8 +83,10 @@ void freeindex(struct gitininfo* info);
 
 /* refinfo */
 int  getrefs(struct repoinfo* info);
+int  getreference(struct referenceinfo* refinfo, git_reference* ref);
 void freerefs(struct repoinfo* info);
+void freereference(struct referenceinfo* refinfo);
 
 /* repoinfo */
 void getrepo(struct repoinfo* info, const char* destination, const char* repodir);
-void freeinfo(struct repoinfo* info);
+void freerepo(struct repoinfo* info);

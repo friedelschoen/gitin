@@ -4,6 +4,4 @@
 
 int composefiletree(const struct repoinfo* info, struct referenceinfo* ref);
 
-int composelog(const struct repoinfo* info, struct referenceinfo* ref);
-
 void composerepo(const struct repoinfo* info);

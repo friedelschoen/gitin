@@ -4,6 +4,7 @@
 
 #include <git2/commit.h>
 #include <git2/refs.h>
+#include <git2/types.h>
 #include <string.h>
 
 
@@ -23,38 +24,46 @@ static int comparerefs(const void* v1, const void* v2) {
 	return strcmp(git_reference_shorthand(r1->ref), git_reference_shorthand(r2->ref));
 }
 
+int getreference(struct referenceinfo* out, git_reference* ref) {
+	git_reference* newref;
+
+	if (!git_reference_is_branch(ref) && !git_reference_is_tag(ref)) {
+		return -1;
+	}
+
+	if (git_reference_resolve(&newref, ref)) {
+		return -1;
+	}
+
+	git_reference_free(ref);
+	ref = newref;
+
+	if (git_reference_peel((git_object**) &out->commit, ref, GIT_OBJECT_COMMIT))
+		return -1;
+
+	out->ref     = ref;
+	out->refname = escaperefname(strdup(git_reference_shorthand(ref)));
+	out->istag   = git_reference_is_tag(ref);
+	return 0;
+}
+
 int getrefs(struct repoinfo* info) {
 	git_reference_iterator* iter;
-	git_reference *         ref, *newref;
-	git_commit*             commit;
+	git_reference*          ref;
 
 	if (git_reference_iterator_new(&iter, info->repo))
 		return -1;
 
 	while (!git_reference_next(&ref, iter)) {
-		if (!git_reference_is_branch(ref) && !git_reference_is_tag(ref)) {
-			git_reference_free(ref);
-			ref = NULL;
-			continue;
-		}
-
-		if (git_reference_resolve(&newref, ref))
-			continue;
-
-		git_reference_free(ref);
-		ref = newref;
-
-		if (git_reference_peel((git_object**) &commit, ref, GIT_OBJECT_COMMIT))
-			continue;
-
 		if (!(info->refs = realloc(info->refs, (info->nrefs + 1) * sizeof(*info->refs)))) {
 			hprintf(stderr, "error: unable to alloc memory for \"info->refs\": %w\n");
 			continue;
 		}
-		info->refs[info->nrefs].ref     = ref;
-		info->refs[info->nrefs].refname = escaperefname(strdup(git_reference_shorthand(ref)));
-		info->refs[info->nrefs].commit  = commit;
-		info->refs[info->nrefs].istag   = git_reference_is_tag(ref);
+		if (getreference(&info->refs[info->nrefs], ref) == -1) {
+			git_reference_free(ref);
+			continue;
+		}
+
 		info->nrefs++;
 	}
 	git_reference_iterator_free(iter);
@@ -65,11 +74,15 @@ int getrefs(struct repoinfo* info) {
 	return 0;
 }
 
+void freereference(struct referenceinfo* refinfo) {
+	git_commit_free(refinfo->commit);
+	git_reference_free(refinfo->ref);
+	free(refinfo->refname);
+}
+
 void freerefs(struct repoinfo* info) {
 	for (int i = 0; i < info->nrefs; i++) {
-		git_commit_free(info->refs[i].commit);
-		git_reference_free(info->refs[i].ref);
-		free(info->refs[i].refname);
+		freereference(&info->refs[i]);
 	}
 	free(info->refs);
 }
