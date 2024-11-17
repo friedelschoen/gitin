@@ -16,4 +16,4 @@
 
 #define OPT          (*opt)
 #define ARGF         (argv[1] ? (SHIFT, *argv) : NULL)
-#define EARGF(usage) (argv[1] ? ARGF : (printf("'-%c' requires an argument\n", *opt), usage, NULL))
+#define EARGF(usage) (argv[1] ? (SHIFT, *argv) : (printf("'-%c' requires an argument\n", *opt), usage, ""))
