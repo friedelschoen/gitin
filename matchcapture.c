@@ -1,63 +1,86 @@
 #include "matchcapture.h"
 
+#include <alloca.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 
+struct strslice {
+	char* string;
+	int   length;
+};
+
+#define SLICECLEAR(slc) ((slc).string = 0, (slc).length = 0)
+
+#define SLICESET(slc, str, len) ((slc).string = (str), (slc).length = (len))
+
 struct mc_context {
 	matchcapture_test_t test;
 	void*               userdata;
-	const char*         named[26];
+	struct strslice     named[26];
 };
 
-static int matchend(struct mc_context* ctx, const char* input, const char* templat, char** captures,
-                    int maxcaptures, int testnum, int var, int greedy);
+static int consume(struct mc_context* ctx, char* input, const char* templat, char** captures,
+                   int maxcaptures, int testnum, int var, int greedy);
 
-static int matchone(struct mc_context* ctx, const char* input, const char* templat, char** captures,
+static int matchone(struct mc_context* ctx, char* input, const char* templat, char** captures,
                     int maxcaptures);
 
-static int matchend(struct mc_context* ctx, const char* input, const char* templat, char** captures,
-                    int maxcaptures, int testnum, int var, int greedy) {
+static int consume(struct mc_context* ctx, char* input, const char* templat, char** captures,
+                   int maxcaptures, int testnum, int var, int greedy) {
 
-	const char* start = input;
-	char*       value;
-	int         ret;
+	char* start = input;
+	int   ret, buffer;
 
 	if (*templat == '{') {
-		fprintf(stderr, "error: adjacent captures without separators are not allowed\n");
+		fprintf(stderr, "error: unable to match two captures next to each other\n");
 		return -1;
 	}
 
 	if (greedy)
-		input = strchr(input, '\0') - 1; /* end of string */
+		input = strchr(input, '\0'); /* end of string */
 
 	while (input >= start) {
-		if (*input == *templat) {
-			value = strndup(start, input - start);
-			if (testnum == -1 || !ctx->test || ctx->test(testnum, value, ctx->userdata)) {
-				if (maxcaptures > 0)
-					*captures = value;
-				if (var != -1)
-					ctx->named[var] = *captures;
+		if (*input != *templat)
+			goto nomatch;
 
-				if ((ret = matchone(ctx, input, templat, captures + 1, maxcaptures - 1)) != -1)
-					return ret + 1;
-
-				if (var != -1)
-					ctx->named[var] = NULL;
-			}
-			free(value);
+		if (testnum != -1 && ctx->test) {
+			buffer = *input;
+			*input = '\0';
+			if (!ctx->test(testnum, start, ctx->userdata))
+				goto nomatch;
+			*input = buffer;
 		}
-		if (!*input)
-			break;
-		input += greedy ? -1 : +1;
+
+		if (var != -1)
+			SLICESET(ctx->named[var], start, input - start);
+
+		if ((ret = matchone(ctx, input, templat, captures + 1, maxcaptures - 1)) != -1) {
+			*input = '\0';
+			if (maxcaptures > 0)
+				*captures = start;
+			return ret + 1;
+		}
+
+		if (var != -1)
+			SLICECLEAR(ctx->named[var]);
+
+	nomatch:
+		if (!greedy) {
+			if (!*input)
+				break;
+
+			input++;
+		} else {
+			input--;
+		}
 	}
 	return -1;
 }
 
-static int matchone(struct mc_context* ctx, const char* input, const char* templat, char** captures,
+static int matchone(struct mc_context* ctx, char* input, const char* templat, char** captures,
                     int maxcaptures) {
 	int         ret, greedy, testnum;
 	const char* start;
@@ -86,44 +109,44 @@ static int matchone(struct mc_context* ctx, const char* input, const char* templ
 			if (templat[0] == '}' && templat[1] == '\0') {
 				templat++;
 
+				/* just capture the remaining input */
 				if (testnum == -1 || !ctx->test || ctx->test(testnum, input, ctx->userdata)) {
 					if (maxcaptures > 0)
-						*captures = strdup(input);
+						*captures = input;
 					return 1;
 				}
 				return -1;
 			} else if (templat[0] == '}' && templat[1] != '\0') {
 				templat++;
 
-				return matchend(ctx, input, templat, captures, maxcaptures, testnum, -1, greedy);
+				return consume(ctx, input, templat, captures, maxcaptures, testnum, -1, greedy);
 			} else if ((testnum != -1 && templat[0] == '|' && isalpha(templat[1]) &&
 			            templat[2] == '}') ||
 			           (testnum == -1 && isalpha(templat[0]) && templat[1] == '}')) {
 				if (testnum != -1)
 					templat++; /* skip | */
 
-				// Enforced placeholder with specific character (e.g., `{a}`)
 				int var = tolower(templat[0]) - 'a';
-				templat += 2;    // Skip over `a}`
+				templat += 2; /* skip over `a}` */
 
-				// Check if this placeholder has been encountered before
-				if (ctx->named[var] == NULL) {
-					return matchend(ctx, input, templat, captures, maxcaptures, testnum, var,
-					                greedy);
+				/* check if this placeholder has been encountered before */
+				if (!ctx->named[var].length) {
+					return consume(ctx, input, templat, captures, maxcaptures, testnum, var,
+					               greedy);
 				}
 
-				if (strncmp(input, ctx->named[var], strlen(ctx->named[var])))
+				if (strncmp(input, ctx->named[var].string, ctx->named[var].length))
 					return -1;
 
 				if (maxcaptures > 0)
-					*captures = strdup(ctx->named[var]);
-				input += strlen(ctx->named[var]);
+					*captures = ctx->named[var].string; /* expect it to be NUL-delimited when the
+					                                       first capture succeed */
+
+				input += ctx->named[var].length;
 
 				if ((ret = matchone(ctx, input, templat, captures + 1, maxcaptures - 1)) != -1)
 					return ret + 1;
 
-				if (maxcaptures > 0)
-					free(*captures);
 				return -1;
 			} else {
 				fprintf(stderr, "error: invalid capture: %.*s\n", (int) (templat - start + 1),
@@ -138,13 +161,10 @@ static int matchone(struct mc_context* ctx, const char* input, const char* templ
 		}
 	}
 
-	if (*input == '\0' && *templat == '\0')
-		return 0;
-
-	return -1;
+	return (*input == '\0' && *templat == '\0') ? 0 : -1;
 }
 
-int matchcapture(const char* input, const char* templat, char** captures, int maxcaptures,
+int matchcapture(char* input, const char* templat, char** captures, int maxcaptures,
                  matchcapture_test_t test, void* userdata) {
 	struct mc_context ctx;
 
@@ -155,12 +175,12 @@ int matchcapture(const char* input, const char* templat, char** captures, int ma
 	return matchone(&ctx, input, templat, captures, maxcaptures);
 }
 
-int matchcaptures(const char* input, const char** templats, char** captures, int maxcaptures,
+int matchcaptures(char* input, const char** templats, char** captures, int maxcaptures,
                   int* pncaptures, matchcapture_test_t test, void* userdata) {
 	struct mc_context ctx;
 	int               ncaptures;
 
-	memset(&ctx, 0, sizeof(ctx));    // Clear previous capturesputs
+	memset(&ctx, 0, sizeof(ctx)); /* clear previous captures */
 	ctx.test     = test;
 	ctx.userdata = userdata;
 
