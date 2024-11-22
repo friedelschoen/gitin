@@ -88,7 +88,7 @@ typedef int (*matchcapture_test_t)(int testnum, const char* input, void* userdat
  * }
  * ```
  */
-int matchcapture(const char* input, const char* templat, char** captures, int maxcaptures,
+int matchcapture(char* input, const char* templat, char** captures, int maxcaptures,
                  matchcapture_test_t test, void* userdata);
 
 /**
@@ -130,5 +130,5 @@ int matchcapture(const char* input, const char* templat, char** captures, int ma
  * }
  * ```
  */
-int matchcaptures(const char* input, const char** templates, char** captures, int maxcaptures,
+int matchcaptures(char* input, const char** templates, char** captures, int maxcaptures,
                   int* ncaptures, matchcapture_test_t test, void* userdata);
