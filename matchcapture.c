@@ -49,8 +49,10 @@ static int consume(struct mc_context* ctx, char* input, const char* templat, cha
 		if (testnum != -1 && ctx->test) {
 			buffer = *input;
 			*input = '\0';
-			if (!ctx->test(testnum, start, ctx->userdata))
+			if (!ctx->test(testnum, start, ctx->userdata)) {
+				*input = buffer;
 				goto nomatch;
+			}
 			*input = buffer;
 		}
 
@@ -186,6 +188,7 @@ int matchcaptures(char* input, const char** templats, char** captures, int maxca
 
 	for (int i = 0; templats[i] != NULL; i++) {
 		memset(ctx.named, 0, sizeof(ctx.named));
+		printf("input: %s\n", input);
 
 		if ((ncaptures = matchone(&ctx, input, templats[i], captures, maxcaptures)) == -1)
 			continue;
