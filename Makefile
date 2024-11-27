@@ -149,6 +149,8 @@ gitin-findrepos: config.o findrepo.o hprintf.o path.o
 
 contrib/matchcapture: matchcapture.o
 
+contrib/testcapture: matchcapture.o
+
 compile_flags.txt: LIBS = libgit2 libarchive
 compile_flags.txt: Makefile
 	echo $(CFLAGS) $(CPPFLAGS) | tr ' ' '\n' > $@
