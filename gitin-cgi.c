@@ -45,13 +45,13 @@ enum {
 	PATH_REPO_ATOM,           /* /{0}/atom.xml */
 	PATH_REPO_COMMIT,         /* /{0}/commit/{}.html */
 	PATH_REPO_JSON,           /* /{0}/index.json */
-	PATH_REPO_BRANCH,         /* /{0}/{}/ */
 	PATH_REPO_BRANCH_JSON,    /* /{0}/{}/branch.json */
 	PATH_REPO_BRANCH_ATOM,    /* /{0}/{}/atom.xml */
 	PATH_REPO_BRANCH_LOG,     /* /{0}/{}/log.html */
 	PATH_REPO_BRANCH_ARCHIVE, /* /{0}/{a}/{a}.{} */
 	PATH_REPO_BRANCH_BLOB,    /* /{0}/{}/blobs/{} */
 	PATH_REPO_BRANCH_FILE,    /* /{0}/{}/files/{}.html */
+	PATH_REPO_BRANCH,         /* /{0}/{}/ */
 };
 
 static int capturetest(int testnr, const char* text, void* userdata) {
@@ -60,10 +60,11 @@ static int capturetest(int testnr, const char* text, void* userdata) {
 	switch (testnr) {
 		case 0: /* is repository */
 			for (int i = 0; i < nrepos; i++)
-				if (!strcmp(repos[i], text))
+				if (!strcmp(repos[i], text)) {
 					return 1;
+				}
 			return 0;
-		default:
+		default: /* by default, a test failes */
 			return 0;
 	}
 }
@@ -182,15 +183,16 @@ int main(int argc, char** argv) {
 		"{0}/atom.xml",            // repo
 		"{0}/commit/{}.html",      // repo
 		"{0}/index.json",          // repo
-		"{0}/{}/",                 // repo, rev
 		"{0}/{}/log.json",         // repo, rev
 		"{0}/{}/log.xml",          // repo, rev
 		"{0}/{}/log.html",         // repo, rev
 		"{0}/{a}/{a}.{}",          // repo, rev, rev, archive
 		"{0}/{}/blobs/{}",         // repo, rev, path
 		"{0}/{}/files/{}.html",    // repo, rev, path
+		"{0}/{}",                  // repo, rev
 		NULL,
 	};
+
 	char*                captures[4];
 	int                  ncaptures;
 	struct repoinfo      repoinfo;
@@ -203,6 +205,10 @@ int main(int argc, char** argv) {
 	struct referenceinfo refinfo;
 	git_reference*       ref;
 	int                  relpath;
+
+	if (issuffix(reqpath, "/index.html")) {
+		reqpath[strlen(reqpath) - 11] = '\0';
+	}
 
 	int indx = matchcaptures(reqpath, urls, captures, 4, &ncaptures, capturetest, NULL);
 	switch (indx) {
@@ -289,7 +295,7 @@ int main(int argc, char** argv) {
 			printf("Content-Type: text/html\n\n");
 			getrepo(&repoinfo, destdir, captures[0]);
 
-			if (git_reference_lookup(&ref, repoinfo.repo, captures[1])) {
+			if (git_reference_dwim(&ref, repoinfo.repo, captures[1])) {
 				hprintf(stderr, "stderr: unable to fetch ref: %gw");
 				freerepo(&repoinfo);
 				break;
@@ -310,7 +316,7 @@ int main(int argc, char** argv) {
 		case PATH_REPO_BRANCH_ATOM: /* /{0}/{}/atom.xml */
 		case PATH_REPO_BRANCH_JSON: /* /{0}/{}/branch.json */
 			getrepo(&repoinfo, destdir, captures[0]);
-			if (git_reference_lookup(&ref, repoinfo.repo, captures[1])) {
+			if (git_reference_dwim(&ref, repoinfo.repo, captures[1])) {
 				hprintf(stderr, "stderr: unable to fetch ref: %gw");
 				freerepo(&repoinfo);
 				break;
@@ -345,7 +351,7 @@ int main(int argc, char** argv) {
 		case PATH_REPO_BRANCH_BLOB: /* /{0}/{}/blobs/{} */
 			getrepo(&repoinfo, destdir, captures[0]);
 
-			if (git_reference_lookup(&ref, repoinfo.repo, captures[1])) {
+			if (git_reference_dwim(&ref, repoinfo.repo, captures[1])) {
 				hprintf(stderr, "stderr: unable to fetch ref: %gw");
 				freerepo(&repoinfo);
 				break;
@@ -375,9 +381,6 @@ int main(int argc, char** argv) {
 			freerepo(&repoinfo);
 			break;
 	}
-
-	for (int i = 0; i < ncaptures; i++)
-		free(captures[i]);
 
 	git_libgit2_shutdown();
 
