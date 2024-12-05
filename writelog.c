@@ -155,7 +155,7 @@ int writelog(FILE* fp, FILE* atom, FILE* json, const struct repoinfo* info,
 
 		printprogress(indx, ncommits, "write log:   %-20s", refinfo->refname);
 	}
-	if (!verbose)
+	if (!verbose && !quiet)
 		fputc('\n', stdout);
 
 	git_revwalk_free(w);

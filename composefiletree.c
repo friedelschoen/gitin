@@ -343,7 +343,7 @@ int composefiletree(const struct repoinfo* info, struct referenceinfo* refinfo) 
 		ret = writetree(NULL, info, refinfo->refname, 2, 2, tree, "", &indx,
 		                countfiles(info->repo, tree));
 
-		if (!verbose)
+		if (!verbose && !quiet)
 			fputc('\n', stdout);
 	}
 
