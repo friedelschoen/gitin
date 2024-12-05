@@ -16,7 +16,7 @@
 #include <unistd.h>
 
 
-static int addrelpath(int relpath, char* buffer, int size) {
+static int setrelpath(int relpath, char* buffer, int size) {
 	int n = 0;
 	for (int i = 0; i < relpath && n < size - 3; i++) {
 		buffer[n++] = '.';
@@ -113,7 +113,7 @@ static void writeblob(const struct repoinfo* info, const char* refname, int relp
 	if (force || access(destpath, R_OK))
 		writebuffer(git_blob_rawcontent(blob->blob), git_blob_rawsize(blob->blob), "%s", destpath);
 
-	n = addrelpath(relpath, hashpath, sizeof(hashpath));
+	n = setrelpath(relpath, hashpath, sizeof(hashpath));
 	snprintf(hashpath + n, sizeof(hashpath) - n, ".cache/blobs/%x-%s", blob->hash, blob->name);
 	snprintf(destpath, sizeof(destpath), "%s/%s/blobs/%s", info->destdir, refname, blob->path);
 	pathunhide(destpath);
@@ -151,7 +151,7 @@ static void writefile(const struct repoinfo* info, const char* refname, int relp
 		fclose(fp);
 	}
 
-	n = addrelpath(relpath, hashpath, sizeof(hashpath));
+	n = setrelpath(relpath, hashpath, sizeof(hashpath));
 	snprintf(hashpath + n, sizeof(hashpath) - n, ".cache/files/%x-%s.html", blob->hash, blob->name);
 	snprintf(destpath, sizeof(destpath), "%s/%s/files/%s.html", info->destdir, refname, blob->path);
 	pathunhide(destpath);
