@@ -9,7 +9,7 @@ PREFIX ?= /usr/local
 CC 		 ?= gcc
 CFLAGS 	 += -Wall -Wextra -Wpedantic -Werror -Wno-format-truncation \
 		    $(if $(LIBS),$(shell pkg-config --cflags $(LIBS)),)
-CPPFLAGS += -D_XOPEN_SOURCE=700 -D_GNU_SOURCE -DVERSION=\"$(VERSION)\" -DGIT_DEPRECATE_HARD -I.
+CPPFLAGS += -D_XOPEN_SOURCE=700 -D_GNU_SOURCE -DVERSION=\"$(VERSION)\" -DGIT_DEPRECATE_HARD -Iinclude
 LDFLAGS  += $(if $(LIBS),$(shell pkg-config --libs $(LIBS)),)
 
 ifneq ($(DEBUG),)
@@ -58,55 +58,56 @@ ICONS = \
 	icons/command.svg
 
 HEADER = \
-	arg.h \
-	buffer.h \
-	common.h \
-	composer.h \
-	config.h \
-	execute.h \
-	findrepo.h \
-	getinfo.h \
-	hprintf.h \
-	macro.h \
-	parseconfig.h \
-	path.h \
-	writer.h
+	include/arg.h \
+	include/buffer.h \
+	include/common.h \
+	include/composer.h \
+	include/config.h \
+	include/execute.h \
+	include/findrepo.h \
+	include/getinfo.h \
+	include/hprintf.h \
+	include/macro.h \
+	include/parseconfig.h \
+	include/path.h \
+	include/writer.h
 
-SHAREDOBJECTS = \
-	buffer.o \
-	common.o \
-	composefiletree.o \
-	composerepo.o \
-	config.o \
-	execute.o \
-	filetypes.o \
-	findrepo.o \
-	getdiff.o \
-	getindex.o \
-	getrefs.o \
-	getrepo.o \
-	hprintf.o \
-	parseconfig.o \
-	path.o \
-	writearchive.o \
-	writeatom.o \
-	writecommit.o \
-	writehtml.o \
-	writeindex.o \
-	writejson.o \
-	writelog.o \
-	writepreview.o \
-	writeredirect.o \
-	writerefs.o \
-	writeshortlog.o \
-	writesummary.o
+OBJECTS = \
+	lib/buffer.o \
+	lib/common.o \
+	lib/composefiletree.o \
+	lib/composerepo.o \
+	lib/config.o \
+	lib/execute.o \
+	lib/filetypes.o \
+	lib/findrepo.o \
+	lib/getdiff.o \
+	lib/getindex.o \
+	lib/getrefs.o \
+	lib/getrepo.o \
+	lib/hprintf.o \
+	lib/parseconfig.o \
+	lib/path.o \
+	lib/writearchive.o \
+	lib/writeatom.o \
+	lib/writecommit.o \
+	lib/writehtml.o \
+	lib/writeindex.o \
+	lib/writejson.o \
+	lib/writelog.o \
+	lib/writepreview.o \
+	lib/writeredirect.o \
+	lib/writerefs.o \
+	lib/writeshortlog.o \
+	lib/writesummary.o
 
 CLEAN = \
 	$(BINS) \
 	$(MAN1) \
 	$(MAN5) \
 	*.o \
-	filetypes.c
+	lib/*.o \
+	lib/filetypes.c
 
 DEV = \
 	compile_flags.txt \
@@ -132,26 +133,26 @@ all: $(BINS) $(MAN1) $(MAN5) $(DEV)
 # targets
 
 gitin: LIBS = libgit2 libarchive
-gitin: $(SHAREDOBJECTS)
+gitin: $(OBJECTS)
 
 gitin-cgi: LIBS = libgit2 libarchive
-gitin-cgi: $(SHAREDOBJECTS) matchcapture.o
+gitin-cgi: $(OBJECTS) lib/matchcapture.o
 
 gitin-configtree: gitin-configtree.py
 	install -m755 $^ $@
 
 gitin-findrepos: LIBS = libgit2
-gitin-findrepos: config.o findrepo.o hprintf.o path.o
+gitin-findrepos: lib/config.o lib/findrepo.o lib/hprintf.o lib/path.o
 
-contrib/matchcapture: matchcapture.o
+contrib/matchcapture: lib/matchcapture.o
 
-contrib/testcapture: matchcapture.o
+contrib/testcapture: lib/matchcapture.o
 
 compile_flags.txt: LIBS = libgit2 libarchive
 compile_flags.txt: Makefile
 	echo $(CFLAGS) $(CPPFLAGS) | tr ' ' '\n' > $@
 
-filetypes.c: filetypes.txt
+lib/filetypes.c: filetypes.txt
 	@echo "const char* filetypes[][3] = {" > $@
 	sed -E 's/([^ ]+) ([^ ]+)( ([^ ]*))?/{ "\1", "\2", "\4" },/' $< >> $@
 	@echo "{0} };" >> $@
