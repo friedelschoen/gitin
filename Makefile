@@ -105,17 +105,18 @@ CLEAN = \
 	$(BINS) \
 	$(MAN1) \
 	$(MAN5) \
-	compile_flags.txt \
-	filetypes.c \
-	*.o
-	
+	*.o \
+	filetypes.c
 
-.PHONY: all clean \
+DEV = \
+	compile_flags.txt \
+
+.PHONY: all clean clean-all \
 	install install-bins install-man1 install-man5 install-assets install-icons \
 	uninstall uninstall-bins uninstall-man1 uninstall-man5 uninstall-assets
 
 # default target, make everything
-all: $(BINS) $(MAN1) $(MAN5) compile_flags.txt
+all: $(BINS) $(MAN1) $(MAN5) $(DEV)
 
 # automatic tagets
 
@@ -157,8 +158,11 @@ filetypes.c: filetypes.txt
 
 # pseudo targets
 
-clean: 
+clean:
 	rm -f $(CLEAN)
+
+clean-all:
+	rm -f $(CLEAN) $(DEV)
 
 install: install-bins install-man1 install-man5 install-assets install-icons
 
