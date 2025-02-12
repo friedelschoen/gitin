@@ -38,7 +38,7 @@ void findrepos(const char* base_path, char*** repos, int* size) {
 	while ((dp = readdir(dir)) != NULL) {
 		char path[PATH_MAX];
 		if (base_path[0] == '.' && base_path[1] == '\0')
-			strncpy(path, dp->d_name, sizeof(path));
+			strlcpy(path, dp->d_name, sizeof(path));
 		else
 			snprintf(path, sizeof(path), "%s/%s", base_path, dp->d_name);
 

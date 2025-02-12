@@ -38,7 +38,7 @@ static int handle(struct configitem* keys, char* section, char* key, char* value
 		if (section)
 			snprintf(confkey, sizeof(confkey), "%s/%s", section, key);
 		else
-			strncpy(confkey, key, sizeof(confkey) - 1);
+			strlcpy(confkey, key, sizeof(confkey) );
 
 		if (!strcmp(p->name, confkey)) {
 			switch (p->type) {
