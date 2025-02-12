@@ -7,15 +7,10 @@ PREFIX ?= /usr/local
 
 # flags
 CC 		 ?= gcc
-CFLAGS 	 += -Wall -Wextra -Wpedantic -Werror \
+CFLAGS 	 += -Wall -Wextra -Wpedantic -Werror -Wno-format-truncation \
 		    $(if $(LIBS),$(shell pkg-config --cflags $(LIBS)),)
 CPPFLAGS += -D_XOPEN_SOURCE=700 -D_GNU_SOURCE -DVERSION=\"$(VERSION)\" -DGIT_DEPRECATE_HARD -I.
 LDFLAGS  += $(if $(LIBS),$(shell pkg-config --libs $(LIBS)),)
-
-ifeq ($(CC),gcc)
-CFLAGS += -Wno-stringop-truncation \
-		  -Wno-format-truncation
-endif
 
 ifneq ($(DEBUG),)
 CFLAGS += -g -O0
