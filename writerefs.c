@@ -45,7 +45,7 @@ int writerefs(FILE* fp, const struct repoinfo* info, int relpath, git_reference*
 		}
 
 		author = git_commit_author(commit);
-		strncpy(summary, git_commit_summary(commit), sizeof(summary) - 1);
+		strlcpy(summary, git_commit_summary(commit), sizeof(summary) );
 		git_oid_tostr(oid, sizeof(oid), git_commit_id(commit));
 
 		if (strlen(summary) > MAXSUMMARY) {

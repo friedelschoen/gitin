@@ -177,11 +177,11 @@ static void mergedatecount(struct loginfo* li) {
 			/* Append references if present */
 			if (li->datecount[readptr].refs[0]) {
 				if (li->datecount[writeptr].refs[0]) {
-					strncat(li->datecount[writeptr].refs, ", ",
-					        MAXREFS - strlen(li->datecount[writeptr].refs) - 1);
+					strlcat(li->datecount[writeptr].refs, ", ",
+					        MAXREFS - strlen(li->datecount[writeptr].refs));
 				}
-				strncat(li->datecount[writeptr].refs, li->datecount[readptr].refs,
-				        MAXREFS - strlen(li->datecount[writeptr].refs) - 1);
+				strlcat(li->datecount[writeptr].refs, li->datecount[readptr].refs,
+				        MAXREFS - strlen(li->datecount[writeptr].refs));
 			}
 		} else {
 			/* Move to the next month */
@@ -190,7 +190,7 @@ static void mergedatecount(struct loginfo* li) {
 			/* Copy the new month entry to the next position */
 			li->datecount[writeptr].day   = li->datecount[readptr].day;
 			li->datecount[writeptr].count = li->datecount[readptr].count;
-			strncpy(li->datecount[writeptr].refs, li->datecount[readptr].refs, MAXREFS - 1);
+			strlcpy(li->datecount[writeptr].refs, li->datecount[readptr].refs, MAXREFS);
 			li->datecount[writeptr].refs[MAXREFS - 1] = '\0';
 
 			/* Update first_day for the new month */
@@ -294,13 +294,13 @@ static void addrefcount(const struct repoinfo* info, struct loginfo* li) {
 		for (int i = 0; i < li->ndatecount; i++) {
 			if (li->datecount[i].day == days) {
 				if (li->datecount[i].refs[0])
-					strncat(li->datecount[i].refs, ", ", MAXREFS);
+					strlcat(li->datecount[i].refs, ", ", MAXREFS);
 
 				if (git_reference_is_tag(ref))
-					strncat(li->datecount[i].refs, "[", MAXREFS);
-				strncat(li->datecount[i].refs, git_reference_shorthand(ref), MAXREFS - 1);
+					strlcat(li->datecount[i].refs, "[", MAXREFS);
+				strlcat(li->datecount[i].refs, git_reference_shorthand(ref), MAXREFS);
 				if (git_reference_is_tag(ref))
-					strncat(li->datecount[i].refs, "]", MAXREFS);
+					strlcat(li->datecount[i].refs, "]", MAXREFS);
 
 				break;
 			}
