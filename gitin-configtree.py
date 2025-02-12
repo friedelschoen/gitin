@@ -16,7 +16,7 @@ def parseini(f):
     for line in f:
         if line.startswith(';'):
             line = line[:line.index(';')]
-            
+
         if line.startswith('#'):
             line = line[:line.index('#')]
 
@@ -61,25 +61,29 @@ def writehtml(data, indent_level=0):
     else:
         sys.stdout.write(f"{indent}{data}\n")
 
-if len(sys.argv) != 2:
-    sys.stderr.write("Usage: python gitin-configtree.py <yaml|ini|toml>\n")
-    sys.exit(1)
+def main():
+    if len(sys.argv) != 2:
+        sys.stderr.write("Usage: python gitin-configtree.py <yaml|ini|toml>\n")
+        sys.exit(1)
 
-# Read input from stdin
-file_type = sys.argv[1].lower()
+    # Read input from stdin
+    file_type = sys.argv[1].lower()
 
-# Process the content based on file type and directly write to stdout
-try:
-    if file_type == "yaml":
-        writehtml(yaml.safe_load(sys.stdin))
-    elif file_type == "ini":
-        writehtml(parseini(sys.stdin))
-    elif file_type == "toml":
-        bstdin = io.BufferedReader(sys.stdin.buffer)
-        writehtml(tomllib.load(bstdin))
-    else:
-        sys.stdout.write("<p>Unsupported file format</p>\n")
+    # Process the content based on file type and directly write to stdout
+    try:
+        if file_type == "yaml":
+            writehtml(yaml.safe_load(sys.stdin))
+        elif file_type == "ini":
+            writehtml(parseini(sys.stdin))
+        elif file_type == "toml":
+            bstdin = io.BufferedReader(sys.stdin.buffer)
+            writehtml(tomllib.load(bstdin))
+        else:
+            sys.stdout.write("<p>Unsupported file format</p>\n")
 
-except Exception as err:
-    sys.stderr.write(f'{err!r}\n')
-    sys.stdout.write("<p><i>Unable to parse config</i></p>\n")
+    except Exception as err:
+        sys.stderr.write(f'{err!r}\n')
+        sys.stdout.write("<p><i>Unable to parse config</i></p>\n")
+
+if __name__ == '__main__':
+    main()
