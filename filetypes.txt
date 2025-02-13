@@ -1,3 +1,12 @@
+# this is a space-delimited tabel
+# 1st: extension, the file ends with ...
+# 2nd: icon, must be an icon in ./icons
+# 3rd: preview (optional), can be followed by an parameter, delimited by colon (:). Must be one of the following
+#  - configtree: parses this file as either its extension or parameter,
+#    supported is 'ini', 'toml' and 'yaml' (json is a subset of yaml)
+#  - image: pastes an image pointing at this file
+#  - pandoc: generates html using pandoc, input-type is either its extension or parameter
+
 .ini source configtree
 .toml source configtree
 .json source configtree:yaml
