@@ -97,7 +97,7 @@ void writepreview(FILE* fp, const struct repoinfo* info, int relpath, struct blo
 	char type[1024] = "", *param;
 
 	for (int i = 0; filetypes[i][0] != NULL; i++) {
-		if (isprefix(blob->name, filetypes[i][0])) {
+		if (issuffix(blob->name, filetypes[i][0])) {
 			strlcpy(type, filetypes[i][2], sizeof(type));
 			break;
 		}

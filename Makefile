@@ -153,9 +153,10 @@ compile_flags.txt: Makefile
 	echo $(CFLAGS) $(CPPFLAGS) | tr ' ' '\n' > $@
 
 lib/filetypes.c: filetypes.txt
-	@echo "const char* filetypes[][3] = {" > $@
-	sed -E 's/([^ ]+) ([^ ]+)( ([^ ]*))?/{ "\1", "\2", "\4" },/' $< >> $@
-	@echo "{0} };" >> $@
+	awk 'BEGIN { print "const char* filetypes[][3] = {" } \
+	/^#/ { next } \
+	{ printf("{ \"%s\", \"%s\", \"%s\" },\n", $$1, $$2, $$3) } \
+	END { print "{0} };" }' $< >> $@
 
 # pseudo targets
 
