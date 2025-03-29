@@ -21,14 +21,11 @@ endif
 
 BINS = \
 	gitin \
-	gitin-cgi \
 	gitin-configtree \
-	gitin-findrepos \
-	contrib/matchcapture
+	gitin-findrepos
 
 INSTBINS = \
 	gitin \
-	gitin-cgi \
 	gitin-configtree \
 	gitin-findrepos
 
@@ -135,18 +132,11 @@ all: $(BINS) $(MAN1) $(MAN5) $(DEV)
 gitin: LIBS = libgit2 libarchive
 gitin: $(OBJECTS)
 
-gitin-cgi: LIBS = libgit2 libarchive
-gitin-cgi: $(OBJECTS) lib/matchcapture.o
-
 gitin-configtree: gitin-configtree.py
 	install -m755 $^ $@
 
 gitin-findrepos: LIBS = libgit2
 gitin-findrepos: lib/config.o lib/findrepo.o lib/hprintf.o lib/path.o
-
-contrib/matchcapture: lib/matchcapture.o
-
-contrib/testcapture: lib/matchcapture.o
 
 compile_flags.txt: LIBS = libgit2 libarchive
 compile_flags.txt: Makefile
