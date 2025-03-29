@@ -1,9 +1,11 @@
 
 #include "arg.h"
-#include "composer.h"
+#include "common.h"
 #include "config.h"
+#include "findrepo.h"
 #include "getinfo.h"
 #include "hprintf.h"
+#include "writer.h"
 
 #include <dirent.h>
 #include <git2/config.h>
@@ -18,21 +20,30 @@ int force = 0, verbose = 0, columnate = 0, quiet = 0;
 int archivezip = 0, archivetargz = 0, archivetarxz = 0, archivetarbz2 = 0;
 
 static __attribute__((noreturn)) void usage(const char* argv0, int exitcode) {
-	fprintf(stderr, "usage: %s [-fhrsVv] [-C workdir] [-d destdir] <repository>\n", argv0);
+	fprintf(stderr,
+	        "usage: %s [-fhrsVv] [-C workdir] [-d destdir] repos...\n"
+	        "   or: %s [-fhrsVv] [-C workdir] [-d destdir] -r startdir\n",
+	        argv0, argv0);
 	exit(exitcode);
 }
 
 int main(int argc, char** argv) {
-	const char*     self         = argv[0];
-	const char*     pwd          = NULL;
-	char*           configbuffer = NULL;
-	FILE*           config;
-	struct repoinfo repoinfo;
+	const char*      self    = argv[0];
+	const char *     destdir = ".", *pwd = NULL;
+	int              recursive    = 0;
+	char**           repos        = NULL;
+	int              nrepos       = 0;
+	char*            configbuffer = NULL;
+	FILE *           config, *fp;
+	struct gitininfo info;
 
 	ARGBEGIN
 	switch (OPT) {
 		case 'C':
 			pwd = EARGF(usage(self, 1));
+			break;
+		case 'd':
+			destdir = EARGF(usage(self, 1));
 			break;
 		case 'f':
 			force = 1;
@@ -41,6 +52,9 @@ int main(int argc, char** argv) {
 			usage(self, 0);
 		case 'q':
 			quiet = 1;
+			break;
+		case 'r':
+			recursive = 1;
 			break;
 		case 's':
 			columnate = 1;
@@ -56,9 +70,6 @@ int main(int argc, char** argv) {
 			return 1;
 	}
 	ARGEND
-
-	if (argc == 0)
-		usage(self, 1);
 
 	if (pwd) {
 		if (chdir(pwd)) {
@@ -84,6 +95,23 @@ int main(int argc, char** argv) {
 	if (archivezip)
 		archivetypes |= ArchiveZip;
 
+	if (recursive) {
+		if (argc == 0) {
+			findrepos(".", &repos, &nrepos);
+		} else if (argc == 1) {
+			findrepos(argv[0], &repos, &nrepos);
+		} else {
+			fprintf(stderr, "error: too many arguments\n");
+			return 1;
+		}
+	} else {
+		if (argc == 0)
+			usage(self, 1);
+
+		repos  = argv;
+		nrepos = argc;
+	}
+
 	/* do not search outside the git repository:
 	   GIT_CONFIG_LEVEL_APP is the highest level currently */
 	git_libgit2_init();
@@ -92,11 +120,21 @@ int main(int argc, char** argv) {
 	/* do not require the git repository to be owned by the current user */
 	git_libgit2_opts(GIT_OPT_SET_OWNER_VALIDATION, 0);
 
-	getrepo(&repoinfo, ".", argv[0]);
-	composerepo(&repoinfo);
-	freerefs(&repoinfo);
+	getindex(&info, destdir, (const char**) repos, nrepos);
+	emkdirf("%s", info.destdir);
+	fp = efopen("w+", "%s/index.html", info.destdir);
+	writeindex(fp, &info);
+	fclose(fp);
+	freeindex(&info);
 
 	git_libgit2_shutdown();
+
+	if (recursive) {
+		for (int i = 0; i < nrepos; i++) {
+			free(repos[i]);
+		}
+		free(repos);
+	}
 
 	if (configbuffer)
 		free(configbuffer);

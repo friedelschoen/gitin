@@ -62,7 +62,7 @@ void getrepo(struct repoinfo* info, const char* destination, const char* repodir
 	if (info->name[strlen(info->name) - 1] == '/')
 		info->name[strlen(info->name) - 1] = '\0';
 
-	snprintf(info->destdir, sizeof(info->destdir), "%s/%s", destination, info->repodir);
+	strlcpy(info->destdir, destination, sizeof(info->destdir));
 
 	if (git_repository_open_ext(&info->repo, info->repodir, GIT_REPOSITORY_OPEN_NO_SEARCH, NULL) <
 	    0) {

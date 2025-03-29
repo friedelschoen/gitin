@@ -21,11 +21,13 @@ endif
 
 BINS = \
 	gitin \
+	gitin-index \
 	gitin-configtree \
 	gitin-findrepos
 
 INSTBINS = \
 	gitin \
+	gitin-index \
 	gitin-configtree \
 	gitin-findrepos
 
@@ -131,6 +133,9 @@ all: $(BINS) $(MAN1) $(MAN5) $(DEV)
 
 gitin: LIBS = libgit2 libarchive
 gitin: $(OBJECTS)
+
+gitin-index: LIBS = libgit2 libarchive
+gitin-index: $(OBJECTS)
 
 gitin-configtree: gitin-configtree.py
 	install -m755 $^ $@

@@ -1,5 +1,4 @@
 #include "common.h"
-#include "composer.h"
 #include "config.h"
 #include "hprintf.h"
 #include "writer.h"
@@ -64,7 +63,7 @@ static int iscategory(const char* repodir, const char** category, int* categoryl
 	return 0;
 }
 
-void writeindex(FILE* fp, const struct gitininfo* info, int dorepo) {
+void writeindex(FILE* fp, const struct gitininfo* info) {
 	FILE*           cachefp;
 	const char*     category    = NULL;
 	int             categorylen = 0;
@@ -89,9 +88,6 @@ void writeindex(FILE* fp, const struct gitininfo* info, int dorepo) {
 
 			writeindexline(fp, cachefp, info->indexes[i].repodir, repoinfo.name,
 			               repoinfo.description);
-
-			if (dorepo)
-				composerepo(&repoinfo);
 
 			freerefs(&repoinfo);
 		} else {
