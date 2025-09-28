@@ -123,8 +123,8 @@ all: $(BINS) $(MAN1) $(MAN5) $(DEV)
 %.o: %.c $(HEADER)
 	$(CC) -c -o $@ $< $(CFLAGS) $(CPPFLAGS)
 
-%: %.in
-	sed 's/%VERSION%/$(VERSION)/g;s|%HOMEPAGE%|$(HOMEPAGE)|g' $< > $@
+%: %.md
+	sed 's/%VERSION%/$(VERSION)/g;s|%HOMEPAGE%|$(HOMEPAGE)|g' $< | lowdown -s -tman -o $@
 
 %: %.o
 	$(CC) -o $@ $^ $(LDFLAGS)
