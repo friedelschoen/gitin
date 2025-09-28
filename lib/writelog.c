@@ -59,7 +59,7 @@ static void writelogcommit(FILE* fp, FILE* json, FILE* atom, const struct repoin
 	}
 
 	git_oid_tostr(oid, sizeof(oid), id);
-	snprintf(path, sizeof(path), "%s/commit/%s.html", info->destdir, oid);
+	snprintf(path, sizeof(path), "commit/%s.html", oid);
 
 	cachedcommit = !force && !access(path, F_OK);
 	if (getdiff(&ci, info, commit, cachedcommit) == -1)
@@ -90,8 +90,8 @@ int writelog(FILE* fp, FILE* atom, FILE* json, const struct repoinfo* info,
 	FILE*        arfp;
 	const char*  unit;
 
-	emkdirf("%s/commit", info->destdir);
-	emkdirf("%s/%s", info->destdir, refinfo->refname);
+	emkdirf("commit");
+	emkdirf("%s", refinfo->refname);
 
 	if (fp) {
 		writeheader(fp, info, 1, 1, info->name, "%s", refinfo->refname);
@@ -103,8 +103,7 @@ int writelog(FILE* fp, FILE* atom, FILE* json, const struct repoinfo* info,
 	}
 
 	FORMASK(type, archivetypes) {
-		arfp   = efopen("w+", "%s/%s/%s.%s", info->destdir, refinfo->refname, refinfo->refname,
-		                archiveexts[type]);
+		arfp   = efopen("w+", "%s/%s.%s", refinfo->refname, refinfo->refname, archiveexts[type]);
 		arsize = writearchive(arfp, info, type, refinfo);
 		fclose(arfp);
 		unit = splitunit(&arsize);

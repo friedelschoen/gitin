@@ -29,8 +29,7 @@ void writeheader(FILE* fp, const struct repoinfo* info, int relpath, int inbranc
 void writeindex(FILE* fp, const struct gitininfo* info);
 int  writelog(FILE* fp, FILE* atom, FILE* json, const struct repoinfo* info,
               struct referenceinfo* refinfo);
-void writepreview(FILE* fp, const struct repoinfo* info, int relpath, struct blobinfo* blob,
-                  int printplain);
+void writepreview(FILE* fp, int relpath, struct blobinfo* blob, int printplain);
 void writeredirect(FILE* fp, const char* to, ...);
 int  writerefs(FILE* fp, const struct repoinfo* info, int relpath, git_reference* current);
 void writeshortlog(FILE* fp, const struct repoinfo* info, git_commit* head);

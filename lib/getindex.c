@@ -50,16 +50,14 @@ static struct indexinfo* parsecache(char* buffer, int* count) {
 	return indexes;
 }
 
-int getindex(struct gitininfo* info, const char* destdir, const char** repos, int nrepos) {
+int getindex(struct gitininfo* info, const char** repos, int nrepos) {
 	FILE* cachefp;
 	char* cache = NULL;
 
 	memset(info, 0, sizeof(*info));
-	info->destdir = destdir;
 
 	/* parse cache */
-	if ((cachefp = efopen("!.r", "%s/.cache/index", info->destdir)) &&
-	    (cache = loadbuffermalloc(cachefp, NULL))) {
+	if ((cachefp = efopen("!.r", ".cache/index")) && (cache = loadbuffermalloc(cachefp, NULL))) {
 
 		info->indexes = parsecache(cache, &info->nindexes);
 

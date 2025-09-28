@@ -28,8 +28,8 @@ static __attribute__((noreturn)) void usage(const char* argv0, int exitcode) {
 }
 
 int main(int argc, char** argv) {
-	const char*      self    = argv[0];
-	const char *     destdir = ".", *pwd = NULL;
+	const char*      self         = argv[0];
+	const char*      pwd          = NULL;
 	int              recursive    = 0;
 	char**           repos        = NULL;
 	int              nrepos       = 0;
@@ -41,9 +41,6 @@ int main(int argc, char** argv) {
 	switch (OPT) {
 		case 'C':
 			pwd = EARGF(usage(self, 1));
-			break;
-		case 'd':
-			destdir = EARGF(usage(self, 1));
 			break;
 		case 'f':
 			force = 1;
@@ -120,9 +117,8 @@ int main(int argc, char** argv) {
 	/* do not require the git repository to be owned by the current user */
 	git_libgit2_opts(GIT_OPT_SET_OWNER_VALIDATION, 0);
 
-	getindex(&info, destdir, (const char**) repos, nrepos);
-	emkdirf("%s", info.destdir);
-	fp = efopen("w+", "%s/index.html", info.destdir);
+	getindex(&info, (const char**) repos, nrepos);
+	fp = efopen("w+", "index.html");
 	writeindex(fp, &info);
 	fclose(fp);
 	freeindex(&info);

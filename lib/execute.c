@@ -19,10 +19,9 @@ ssize_t execute(struct executeinfo* params) {
 	ssize_t     readlen;
 	int         status;
 
-	emkdirf("!%s/.cache/%s", params->info->destdir, params->cachename);
+	emkdirf("!.cache/%s", params->cachename);
 
-	if (!force && (cache = efopen(".!r", "%s/.cache/%s/%x", params->info->destdir,
-	                              params->cachename, params->contenthash))) {
+	if (!force && (cache = efopen(".!r", ".cache/%s/%x", params->cachename, params->contenthash))) {
 		n = 0;
 		while ((readlen = fread(buffer, 1, sizeof(buffer), cache)) > 0) {
 			fwrite(buffer, 1, readlen, cache);
@@ -68,8 +67,7 @@ ssize_t execute(struct executeinfo* params) {
 
 	close(outpipefd.write);
 
-	cache = efopen(".!w+", "%s/.cache/%s/%x", params->info->destdir, params->cachename,
-	               params->contenthash);
+	cache = efopen(".!w+", ".cache/%s/%x", params->cachename, params->contenthash);
 
 	n = 0;
 	while ((readlen = read(inpipefd.read, buffer, sizeof buffer)) > 0) {

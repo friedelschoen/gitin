@@ -70,9 +70,9 @@ void writeindex(FILE* fp, const struct gitininfo* info) {
 	struct repoinfo repoinfo;
 
 
-	emkdirf("!%s/.cache", info->destdir);
+	emkdirf("!.cache");
 
-	cachefp = efopen(".w", "%s/.cache/index", info->destdir);
+	cachefp = efopen(".w", ".cache/index");
 	writeheader(fp, NULL, 0, 0, sitename, "%y", sitedescription);
 	fputs("<table id=\"index\"><thead>\n"
 	      "<tr><td>Name</td><td class=\"expand\">Description</td><td>Last changes</td></tr>"
@@ -84,12 +84,12 @@ void writeindex(FILE* fp, const struct gitininfo* info) {
 			writecategory(fp, category, categorylen);
 
 		if (!info->indexes[i].name) {
-			getrepo(&repoinfo, info->destdir, info->indexes[i].repodir);
+			getrepo(&repoinfo, info->indexes[i].repodir);
 
 			writeindexline(fp, cachefp, info->indexes[i].repodir, repoinfo.name,
 			               repoinfo.description);
 
-			freerefs(&repoinfo);
+			freerepo(&repoinfo);
 		} else {
 			writeindexline(fp, cachefp, info->indexes[i].repodir, info->indexes[i].name,
 			               info->indexes[i].description);

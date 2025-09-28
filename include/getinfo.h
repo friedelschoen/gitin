@@ -26,8 +26,7 @@ struct deltainfo {
 };
 
 struct gitininfo {
-	const char* destdir;
-	char*       cache;
+	char* cache;
 
 	struct indexinfo* indexes;
 	int               nindexes;
@@ -53,7 +52,6 @@ struct repoinfo {
 	struct referenceinfo branch;
 
 	const char* repodir;
-	char        destdir[1024];
 	int         relpath;
 
 	char*       confbuffer;
@@ -78,7 +76,7 @@ struct repoinfo {
 int  getdiff(struct commitinfo* ci, const struct repoinfo* info, git_commit* commit, int docache);
 void freediff(struct commitinfo* ci);
 
-int  getindex(struct gitininfo* info, const char* destdir, const char** repos, int nrepos);
+int  getindex(struct gitininfo* info, const char** repos, int nrepos);
 void freeindex(struct gitininfo* info);
 
 /* refinfo */
@@ -88,5 +86,5 @@ void freerefs(struct repoinfo* info);
 void freereference(struct referenceinfo* refinfo);
 
 /* repoinfo */
-void getrepo(struct repoinfo* info, const char* destination, const char* repodir);
+void getrepo(struct repoinfo* info, const char* repodir);
 void freerepo(struct repoinfo* info);

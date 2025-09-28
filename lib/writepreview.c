@@ -33,9 +33,8 @@ static void xmlencode(FILE* fp, const char* s, size_t size) {
 	}
 }
 
-static ssize_t writepandoc(FILE* fp, const struct repoinfo* info, const char* filename,
-                           const char* content, ssize_t len, uint32_t contenthash,
-                           const char* type) {
+static ssize_t writepandoc(FILE* fp, const char* filename, const char* content, ssize_t len,
+                           uint32_t contenthash, const char* type) {
 
 	ssize_t            ret;
 	struct executeinfo params = {
@@ -45,7 +44,6 @@ static ssize_t writepandoc(FILE* fp, const struct repoinfo* info, const char* fi
 		.ncontent    = len,
 		.contenthash = contenthash,
 		.fp          = fp,
-		.info        = info,
 		.nenviron    = 2,
 		.environ     = (const char*[]){ "filename", filename, "type", type },
 	};
@@ -57,8 +55,8 @@ static ssize_t writepandoc(FILE* fp, const struct repoinfo* info, const char* fi
 	return ret;
 }
 
-static ssize_t writetree(FILE* fp, const struct repoinfo* info, const char* content, ssize_t len,
-                         uint32_t contenthash, const char* type) {
+static ssize_t writetree(FILE* fp, const char* content, ssize_t len, uint32_t contenthash,
+                         const char* type) {
 
 	ssize_t            ret;
 	struct executeinfo params = {
@@ -68,7 +66,6 @@ static ssize_t writetree(FILE* fp, const struct repoinfo* info, const char* cont
 		.ncontent    = len,
 		.contenthash = contenthash,
 		.fp          = fp,
-		.info        = info,
 		.nenviron    = 1,
 		.environ     = (const char*[]){ "type", type },
 	};
@@ -92,8 +89,7 @@ static void writeplain(FILE* fp, const char* content, size_t size) {
 	fprintf(fp, "</pre>\n</div>\n");
 }
 
-void writepreview(FILE* fp, const struct repoinfo* info, int relpath, struct blobinfo* blob,
-                  int printplain) {
+void writepreview(FILE* fp, int relpath, struct blobinfo* blob, int printplain) {
 	char type[1024] = "", *param;
 
 	for (int i = 0; filetypes[i][0] != NULL; i++) {
@@ -111,15 +107,15 @@ void writepreview(FILE* fp, const struct repoinfo* info, int relpath, struct blo
 			param++;
 
 		if (param)
-			writepandoc(fp, info, blob->name, git_blob_rawcontent(blob->blob),
+			writepandoc(fp, blob->name, git_blob_rawcontent(blob->blob),
 			            git_blob_rawsize(blob->blob), blob->hash, param);
 	} else if (!strcmp(type, "configtree")) {
 		if (!param && (param = strchr(blob->name, '.')))
 			param++;
 
 		if (param)
-			writetree(fp, info, git_blob_rawcontent(blob->blob), git_blob_rawsize(blob->blob),
-			          blob->hash, param);
+			writetree(fp, git_blob_rawcontent(blob->blob), git_blob_rawsize(blob->blob), blob->hash,
+			          param);
 	} else if (!strcmp(type, "image")) {
 		writeimage(fp, relpath, blob->name);
 	} else if (printplain && !git_blob_is_binary(blob->blob)) {

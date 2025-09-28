@@ -85,4 +85,6 @@ void freerefs(struct repoinfo* info) {
 		freereference(&info->refs[i]);
 	}
 	free(info->refs);
+	info->refs  = 0;
+	info->nrefs = 0;
 }

@@ -37,7 +37,7 @@ static void addpinfile(struct repoinfo* info, const char* pinfile) {
 	}
 }
 
-void getrepo(struct repoinfo* info, const char* destination, const char* repodir) {
+void getrepo(struct repoinfo* info, const char* repodir) {
 	git_object*    obj = NULL;
 	FILE*          fp;
 	const char *   start, *reqbranchname = NULL;
@@ -61,8 +61,6 @@ void getrepo(struct repoinfo* info, const char* destination, const char* repodir
 	strlcpy(info->name, start, sizeof(info->name));
 	if (info->name[strlen(info->name) - 1] == '/')
 		info->name[strlen(info->name) - 1] = '\0';
-
-	strlcpy(info->destdir, destination, sizeof(info->destdir));
 
 	if (git_repository_open_ext(&info->repo, info->repodir, GIT_REPOSITORY_OPEN_NO_SEARCH, NULL) <
 	    0) {

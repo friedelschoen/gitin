@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 
-git_blob* getcommitblob(git_commit* commit, const char* path) {
+static git_blob* getcommitblob(git_commit* commit, const char* path) {
 	git_tree*       tree  = NULL;
 	git_tree_entry* entry = NULL;
 	git_blob*       blob  = NULL;
@@ -87,7 +87,7 @@ int writesummary(FILE* fp, const struct repoinfo* info, struct referenceinfo* re
 		blobinfo.blob = readme;
 		blobinfo.hash = filehash(git_blob_rawcontent(readme), git_blob_rawsize(readme));
 
-		writepreview(fp, info, 1, &blobinfo, 1);
+		writepreview(fp, 1, &blobinfo, 1);
 
 		git_blob_free(readme);
 	}

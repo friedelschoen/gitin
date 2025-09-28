@@ -7,7 +7,7 @@ PREFIX ?= /usr/local
 
 # flags
 CC 		 ?= gcc
-CFLAGS 	 += -Wall -Wextra -Wpedantic -Werror -Wno-format-truncation \
+CFLAGS 	 += -Wall -Wextra -Wpedantic -Werror -Wno-format-truncation -Wno-unknown-warning-option \
 		    $(if $(LIBS),$(shell pkg-config --cflags $(LIBS)),)
 CPPFLAGS += -D_XOPEN_SOURCE=700 -D_GNU_SOURCE -DVERSION=\"$(VERSION)\" -DGIT_DEPRECATE_HARD -Iinclude
 LDFLAGS  += $(if $(LIBS),$(shell pkg-config --libs $(LIBS)),)

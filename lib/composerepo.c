@@ -8,24 +8,22 @@ void composerepo(const struct repoinfo* info) {
 
 	if (!quiet) {
 		if (columnate)
-			printf("%s\t%s\t%s\n", info->name, info->repodir, info->destdir);
+			printf("%s\t%s\n", info->name, info->repodir);
 		else
-			printf("updating '%s' (at %s) -> %s\n", info->name, info->repodir, info->destdir);
+			printf("updating '%s' -> %s\n", info->name, info->repodir);
 	}
 
-	emkdirf("%s", info->destdir);
-
 	for (int i = 0; i < info->nrefs; i++) {
-		emkdirf("%s/%s", info->destdir, info->refs[i].refname);
+		emkdirf("%s", info->refs[i].refname);
 
-		fp = efopen("w", "%s/%s/index.html", info->destdir, info->refs[i].refname);
+		fp = efopen("w", "%s/index.html", info->refs[i].refname);
 		writesummary(fp, info, &info->refs[i]);
 		fclose(fp);
 
 		/* log for HEAD */
-		fp   = efopen("w", "%s/%s/log.html", info->destdir, info->refs[i].refname);
-		json = efopen("w", "%s/%s/log.json", info->destdir, info->refs[i].refname);
-		atom = efopen("w", "%s/%s/log.xml", info->destdir, info->refs[i].refname);
+		fp   = efopen("w", "%s/log.html", info->refs[i].refname);
+		json = efopen("w", "%s/log.json", info->refs[i].refname);
+		atom = efopen("w", "%s/log.xml", info->refs[i].refname);
 		writelog(fp, json, atom, info, &info->refs[i]);
 		fclose(fp);
 		fclose(json);
@@ -34,15 +32,15 @@ void composerepo(const struct repoinfo* info) {
 		composefiletree(info, &info->refs[i]);
 	}
 
-	fp = efopen("w", "%s/index.html", info->destdir);
+	fp = efopen("w", "index.html");
 	writeredirect(fp, "%s/", info->branch.refname);
 	fclose(fp);
 
-	fp = efopen("w", "%s/atom.xml", info->destdir);
+	fp = efopen("w", "atom.xml");
 	writeatomrefs(fp, info);
 	fclose(fp);
 
-	fp = efopen("w", "%s/index.json", info->destdir);
+	fp = efopen("w", "index.json");
 	writejsonrefs(fp, info);
 	fclose(fp);
 }

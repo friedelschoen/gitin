@@ -93,9 +93,9 @@ int main(int argc, char** argv) {
 	/* do not require the git repository to be owned by the current user */
 	git_libgit2_opts(GIT_OPT_SET_OWNER_VALIDATION, 0);
 
-	getrepo(&repoinfo, ".", repodir);
+	getrepo(&repoinfo, repodir);
 	composerepo(&repoinfo);
-	freerefs(&repoinfo);
+	freerepo(&repoinfo);
 
 	git_libgit2_shutdown();
 

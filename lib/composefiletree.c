@@ -79,7 +79,7 @@ static const char* filemode(git_filemode_t m) {
 	return mode;
 }
 
-static ssize_t highlight(FILE* fp, const struct repoinfo* info, struct blobinfo* blob) {
+static ssize_t highlight(FILE* fp, struct blobinfo* blob) {
 
 	char* type;
 	if ((type = strrchr(blob->name, '.')) != NULL)
@@ -94,7 +94,6 @@ static ssize_t highlight(FILE* fp, const struct repoinfo* info, struct blobinfo*
 		.ncontent    = git_blob_rawsize(blob->blob),
 		.contenthash = blob->hash,
 		.fp          = fp,
-		.info        = info,
 		.nenviron    = 3,
 		.environ = (const char*[]){ "filename", blob->name, "type", type, "scheme", colorscheme },
 	};
@@ -102,20 +101,18 @@ static ssize_t highlight(FILE* fp, const struct repoinfo* info, struct blobinfo*
 	return execute(&params);
 }
 
-static void writeblob(const struct repoinfo* info, const char* refname, int relpath,
-                      struct blobinfo* blob) {
+static void writeblob(const char* refname, int relpath, struct blobinfo* blob) {
 	char hashpath[PATH_MAX], destpath[PATH_MAX];
 	int  n;
 
-	snprintf(destpath, sizeof(destpath), "%s/.cache/blobs/%x-%s", info->destdir, blob->hash,
-	         blob->name);
+	snprintf(destpath, sizeof(destpath), ".cache/blobs/%x-%s", blob->hash, blob->name);
 
 	if (force || access(destpath, R_OK))
 		writebuffer(git_blob_rawcontent(blob->blob), git_blob_rawsize(blob->blob), "%s", destpath);
 
 	n = setrelpath(relpath, hashpath, sizeof(hashpath));
 	snprintf(hashpath + n, sizeof(hashpath) - n, ".cache/blobs/%x-%s", blob->hash, blob->name);
-	snprintf(destpath, sizeof(destpath), "%s/%s/blobs/%s", info->destdir, refname, blob->path);
+	snprintf(destpath, sizeof(destpath), "%s/blobs/%s", refname, blob->path);
 	pathunhide(destpath);
 	unlink(destpath);
 	if (symlink(hashpath, destpath))
@@ -128,8 +125,7 @@ static void writefile(const struct repoinfo* info, const char* refname, int relp
 	char  hashpath[PATH_MAX], destpath[PATH_MAX];
 	int   n;
 
-	snprintf(destpath, sizeof(destpath), "%s/.cache/files/%x-%s.html", info->destdir, blob->hash,
-	         blob->name);
+	snprintf(destpath, sizeof(destpath), ".cache/files/%x-%s.html", blob->hash, blob->name);
 
 	if (force || access(destpath, R_OK)) {
 		fp = efopen(".w", "%s", destpath);
@@ -137,14 +133,14 @@ static void writefile(const struct repoinfo* info, const char* refname, int relp
 		hprintf(fp, "<p> %y (%zuB) <a href='%rblob/%s/%h'>download</a></p><hr/>", blob->name,
 		        git_blob_rawsize(blob->blob), relpath, refname, blob->path);
 
-		writepreview(fp, info, relpath, blob, 0);
+		writepreview(fp, relpath, blob, 0);
 
 		if (git_blob_is_binary(blob->blob)) {
 			fputs("<p>Binary file.</p>\n", fp);
 		} else if (maxfilesize != -1 && git_blob_rawsize(blob->blob) >= (size_t) maxfilesize) {
 			fputs("<p>File too big.</p>\n", fp);
 		} else if (git_blob_rawsize(blob->blob) > 0) {
-			highlight(fp, info, blob);
+			highlight(fp, blob);
 		}
 
 		writefooter(fp);
@@ -153,7 +149,7 @@ static void writefile(const struct repoinfo* info, const char* refname, int relp
 
 	n = setrelpath(relpath, hashpath, sizeof(hashpath));
 	snprintf(hashpath + n, sizeof(hashpath) - n, ".cache/files/%x-%s.html", blob->hash, blob->name);
-	snprintf(destpath, sizeof(destpath), "%s/%s/files/%s.html", info->destdir, refname, blob->path);
+	snprintf(destpath, sizeof(destpath), "%s/files/%s.html", refname, blob->path);
 	pathunhide(destpath);
 	unlink(destpath);
 	if (symlink(hashpath, destpath))
@@ -226,13 +222,13 @@ static int writetree(FILE* fp, const struct repoinfo* info, const char* refname,
 	struct blobinfo       blob;
 	int                   dosplit;
 
-	emkdirf("%s/%s/files/%s", info->destdir, refname, basepath);
-	emkdirf("%s/%s/blobs/%s", info->destdir, refname, basepath);
+	emkdirf("%s/files/%s", refname, basepath);
+	emkdirf("%s/blobs/%s", refname, basepath);
 
 	dosplit = splitdirectories == -1 ? maxfiles > autofilelimit : splitdirectories;
 
 	if (dosplit || !*basepath) {
-		fp = efopen("w", "%s/%s/files/%s/index.html", info->destdir, refname, basepath);
+		fp = efopen("w", "%s/files/%s/index.html", refname, basepath);
 		writeheader(fp, info, relpath, 1, info->name, "%s in %s", basepath, refname);
 
 		fputs("<table id=\"files\"><thead>\n<tr>"
@@ -267,7 +263,7 @@ static int writetree(FILE* fp, const struct repoinfo* info, const char* refname,
 				                     git_blob_rawsize((git_blob*) obj));
 
 				writefile(info, refname, relpath, &blob);
-				writeblob(info, refname, relpath, &blob);
+				writeblob(refname, relpath, &blob);
 
 				if (dosplit)
 					hprintf(fp, "<td><a href=\"%h.html\">%y</a></td>", entryname, entryname);
@@ -318,12 +314,12 @@ int composefiletree(const struct repoinfo* info, struct referenceinfo* refinfo) 
 	char      path[PATH_MAX];
 	char      headoid[GIT_OID_SHA1_HEXSIZE + 1], oid[GIT_OID_SHA1_HEXSIZE + 1];
 
-	emkdirf("!%s/.cache/files", info->destdir);
-	emkdirf("!%s/.cache/blobs", info->destdir);
+	emkdirf("!.cache/files");
+	emkdirf("!.cache/blobs");
 
 	git_oid_tostr(headoid, sizeof(headoid), git_commit_id(refinfo->commit));
 	if (!force) {
-		if (!loadbuffer(oid, GIT_OID_SHA1_HEXSIZE, "%s/.cache/filetree", info->destdir)) {
+		if (!loadbuffer(oid, GIT_OID_SHA1_HEXSIZE, ".cache/filetree")) {
 			oid[GIT_OID_SHA1_HEXSIZE] = '\0';
 			if (!strcmp(oid, headoid))
 				return 0;
@@ -331,13 +327,13 @@ int composefiletree(const struct repoinfo* info, struct referenceinfo* refinfo) 
 	}
 
 	/* Clean /file and /blob directories since they will be rewritten */
-	snprintf(path, sizeof(path), "%s/%s/files", info->destdir, refinfo->refname);
+	snprintf(path, sizeof(path), "%s/files", refinfo->refname);
 	removedir(path);
-	snprintf(path, sizeof(path), "%s/%s/blobs", info->destdir, refinfo->refname);
+	snprintf(path, sizeof(path), "%s/blobs", refinfo->refname);
 	removedir(path);
 
-	emkdirf("%s/%s/files", info->destdir, refinfo->refname);
-	emkdirf("%s/%s/blobs", info->destdir, refinfo->refname);
+	emkdirf("%s/files", refinfo->refname);
+	emkdirf("%s/blobs", refinfo->refname);
 
 	if (!git_commit_tree(&tree, refinfo->commit)) {
 		ret = writetree(NULL, info, refinfo->refname, 2, 2, tree, "", &indx,
@@ -349,7 +345,7 @@ int composefiletree(const struct repoinfo* info, struct referenceinfo* refinfo) 
 
 	git_tree_free(tree);
 
-	writebuffer(headoid, GIT_OID_SHA1_HEXSIZE, "%s/.cache/filetree", info->destdir);
+	writebuffer(headoid, GIT_OID_SHA1_HEXSIZE, ".cache/filetree");
 
 	return ret;
 }

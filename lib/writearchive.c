@@ -84,16 +84,14 @@ int writearchive(FILE* fp, const struct repoinfo* info, int type, struct referen
 	struct stat     st;
 	struct archive* a;
 
-	emkdirf("!%s/.cache/archives", info->destdir);
+	emkdirf("!.cache/archives");
 
 	git_oid_tostr(oid, sizeof(oid), git_commit_id(refinfo->commit));
 
-	snprintf(path, sizeof(path), "%s/%s/%s.%s", info->destdir, refinfo->refname, refinfo->refname,
-	         archiveexts[type]);
+	snprintf(path, sizeof(path), "%s/%s.%s", refinfo->refname, refinfo->refname, archiveexts[type]);
 
 	if (!force &&
-	    !loadbuffer(configoid, GIT_OID_SHA1_HEXSIZE, "%s/.cache/archives/%s", info->destdir,
-	                refinfo->refname) &&
+	    !loadbuffer(configoid, GIT_OID_SHA1_HEXSIZE, ".cache/archives/%s", refinfo->refname) &&
 	    !access(path, R_OK)) {
 		configoid[GIT_OID_SHA1_HEXSIZE] = '\0';
 		if (!strcmp(configoid, oid))
@@ -144,8 +142,7 @@ int writearchive(FILE* fp, const struct repoinfo* info, int type, struct referen
 		return -1;
 	}
 
-	writebuffer(oid, GIT_OID_SHA1_HEXSIZE, "%s/.cache/archives/%s", info->destdir,
-	            refinfo->refname);
+	writebuffer(oid, GIT_OID_SHA1_HEXSIZE, ".cache/archives/%s", refinfo->refname);
 
 	git_tree_free(tree);
 	archive_write_close(a);
