@@ -18,13 +18,13 @@ int force = 0, verbose = 0, columnate = 0, quiet = 0;
 int archivezip = 0, archivetargz = 0, archivetarxz = 0, archivetarbz2 = 0;
 
 static __attribute__((noreturn)) void usage(const char* argv0, int exitcode) {
-	fprintf(stderr, "usage: %s [-fhrsVv] [-C workdir] [-d destdir] <repository>\n", argv0);
+	fprintf(stderr, "usage: %s [-fhqsVv] [-C workdir] <repository>\n", argv0);
 	exit(exitcode);
 }
 
 int main(int argc, char** argv) {
-	const char*     self         = argv[0];
-	const char*     pwd          = NULL;
+	const char*     self = argv[0];
+	const char *    pwd = NULL, *repodir = NULL;
 	char*           configbuffer = NULL;
 	FILE*           config;
 	struct repoinfo repoinfo;
@@ -57,8 +57,9 @@ int main(int argc, char** argv) {
 	}
 	ARGEND
 
-	if (argc == 0)
-		usage(self, 1);
+	repodir = ".";
+	if (argc > 0)
+		repodir = argv[0];
 
 	if (pwd) {
 		if (chdir(pwd)) {
@@ -92,7 +93,7 @@ int main(int argc, char** argv) {
 	/* do not require the git repository to be owned by the current user */
 	git_libgit2_opts(GIT_OPT_SET_OWNER_VALIDATION, 0);
 
-	getrepo(&repoinfo, ".", argv[0]);
+	getrepo(&repoinfo, ".", repodir);
 	composerepo(&repoinfo);
 	freerefs(&repoinfo);
 
