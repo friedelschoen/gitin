@@ -43,7 +43,6 @@ static void writelogcommit(FILE* fp, FILE* json, FILE* atom, const struct repoin
 	git_tree*         tree;
 	char              path[PATH_MAX], oid[GIT_OID_SHA1_HEXSIZE + 1];
 	int               cachedcommit;
-	FILE*             commitfile;
 
 	/* Lookup the current commit */
 	if (git_commit_lookup(&commit, info->repo, id)) {
@@ -66,7 +65,7 @@ static void writelogcommit(FILE* fp, FILE* json, FILE* atom, const struct repoin
 		return;
 
 	if (!cachedcommit) {
-		commitfile = efopen("w", "%s", path);
+		FILE* commitfile = efopen("w", "%s", path);
 		writecommit(commitfile, info, commit, &ci, index == maxcommits);
 		fclose(commitfile);
 	}

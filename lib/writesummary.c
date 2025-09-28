@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 
-static git_blob* getcommitblob(git_commit* commit, const char* path) {
+static git_blob* getcommitblob(const git_commit* commit, const char* path) {
 	git_tree*       tree  = NULL;
 	git_tree_entry* entry = NULL;
 	git_blob*       blob  = NULL;

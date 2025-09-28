@@ -7,7 +7,7 @@ PREFIX ?= /usr/local
 
 # flags
 CC 		 ?= gcc
-CFLAGS 	 += -Wall -Wextra -Wpedantic -Werror -Wno-format-truncation -Wno-unknown-warning-option \
+CFLAGS 	 += -std=c99 -Wall -Wextra -Wpedantic -Werror -Wno-format-truncation -Wno-unknown-warning-option \
 		    $(if $(LIBS),$(shell pkg-config --cflags $(LIBS)),)
 CPPFLAGS += -D_XOPEN_SOURCE=700 -D_GNU_SOURCE -DVERSION=\"$(VERSION)\" -DGIT_DEPRECATE_HARD -Iinclude
 LDFLAGS  += $(if $(LIBS),$(shell pkg-config --libs $(LIBS)),)
@@ -113,7 +113,7 @@ DEV = \
 
 .PHONY: all clean clean-all \
 	install install-bins install-man1 install-man5 install-assets install-icons \
-	uninstall uninstall-bins uninstall-man1 uninstall-man5 uninstall-assets
+	uninstall uninstall-bins uninstall-man1 uninstall-man5 uninstall-assets staticcheck
 
 # default target, make everything
 all: $(BINS) $(MAN1) $(MAN5) $(DEV)
@@ -196,3 +196,6 @@ uninstall-man5:
 
 uninstall-assets:
 	rm -rf $(PREFIX)/share/doc/$(NAME)
+
+staticcheck:
+	cppcheck --enable=all --std=c99 -Iinclude/ --cppcheck-build-dir=.cppcheck --suppress=missingIncludeSystem --check-level=exhaustive .

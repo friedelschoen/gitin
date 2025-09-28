@@ -6,8 +6,8 @@
 #include <ftw.h>
 #include <limits.h>
 #include <stdarg.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
@@ -144,11 +144,6 @@ int issuffix(const char* str, const char* suffix) {
 	return strncmp(str + nstr - nsuffix, suffix, nsuffix) == 0;
 }
 
-int isprefix(const char* str, const char* prefix) {
-	size_t nprefix = strlen(prefix);
-	return strncmp(str, prefix, nprefix) == 0;
-}
-
 const char* splitunit(ssize_t* size) {
 	const char* unit = "B";
 	if (*size > 1024) {
@@ -229,25 +224,4 @@ char* escaperefname(char* refname) {
 			*p = '-';
 
 	return refname;
-}
-
-int copyfile(FILE* dest, FILE* src) {
-	uint8_t buffer[1024];
-	size_t  nread;
-
-	// Ensure both file pointers are valid
-	if (!dest || !src) {
-		errno = EINVAL;    // Invalid argument
-		return -1;
-	}
-
-	// Copy data from src to dest
-	while ((nread = fread(buffer, 1, sizeof(buffer), src)) > 0) {
-		if (fwrite(buffer, 1, nread, dest) != nread) {
-			return -1;    // Write error
-		}
-	}
-
-	// Check for read error
-	return ferror(src) ? -1 : 0;
 }

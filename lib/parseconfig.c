@@ -32,13 +32,13 @@ static int boolstr(const char* str) {
 		return -1;
 }
 
-static int handle(struct configitem* keys, char* section, char* key, char* value) {
+static int handle(struct configitem* keys, const char* section, char* key, char* value) {
 	char confkey[NAME_MAX];
 	for (struct configitem* p = keys; p->name; p++) {
 		if (section)
 			snprintf(confkey, sizeof(confkey), "%s/%s", section, key);
 		else
-			strlcpy(confkey, key, sizeof(confkey) );
+			strlcpy(confkey, key, sizeof(confkey));
 
 		if (!strcmp(p->name, confkey)) {
 			switch (p->type) {
@@ -78,7 +78,8 @@ static int handle(struct configitem* keys, char* section, char* key, char* value
 }
 
 char* parseconfig(FILE* file, struct configitem* keys) {
-	char *buffer, *line, *current, *value, *key, *section = NULL;
+	char *      buffer, *line, *current, *value, *key;
+	const char* section = NULL;
 
 	if (!(buffer = loadbuffermalloc(file, NULL)))
 		return NULL;

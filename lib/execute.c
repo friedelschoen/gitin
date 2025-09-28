@@ -24,7 +24,7 @@ ssize_t execute(struct executeinfo* params) {
 	if (!force && (cache = efopen(".!r", ".cache/%s/%x", params->cachename, params->contenthash))) {
 		n = 0;
 		while ((readlen = fread(buffer, 1, sizeof(buffer), cache)) > 0) {
-			fwrite(buffer, 1, readlen, cache);
+			fwrite(buffer, 1, readlen, params->fp);
 			n += readlen;
 		}
 		fclose(cache);
@@ -62,7 +62,6 @@ ssize_t execute(struct executeinfo* params) {
 	if (write(outpipefd.write, params->content, params->ncontent) == -1) {
 		hprintf(stderr, "error: unable to write to pipe: %w\n");
 		exit(100); /* Fatal error, exit with 100 */
-		goto wait;
 	}
 
 	close(outpipefd.write);
@@ -81,7 +80,6 @@ ssize_t execute(struct executeinfo* params) {
 	if (cache)
 		fclose(cache);
 
-wait:
 	waitpid(process, &status, 0);
 
 	return WEXITSTATUS(status) ? -1 : n;

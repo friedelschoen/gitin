@@ -3,6 +3,9 @@
 #include "hprintf.h"
 #include "writer.h"
 
+#include <git2/refs.h>
+#include <git2/repository.h>
+#include <git2/types.h>
 #include <limits.h>
 #include <string.h>
 
@@ -12,6 +15,7 @@ static int writeindexline(FILE* fp, FILE* cachefp, const char* repodir, const ch
 	const git_signature* author = NULL;
 	int                  ret    = 0;
 
+	// TODO: get time of HEAD
 	hprintf(fp, "<tr><td><a href=\"%s/\">%y</a></td><td>%y</td><td>", repodir, name, description);
 	if (author)
 		hprintf(fp, "%t", &author->when);
@@ -23,7 +27,7 @@ static int writeindexline(FILE* fp, FILE* cachefp, const char* repodir, const ch
 }
 
 static void writecategory(FILE* index, const char* name, int len) {
-	char  category[PATH_MAX], configpath[PATH_MAX];
+	char  category[PATH_MAX];
 	char* description = "";
 	char* confbuffer  = NULL;
 	FILE* fp;
@@ -38,7 +42,7 @@ static void writecategory(FILE* index, const char* name, int len) {
 		};
 
 		if (!(confbuffer = parseconfig(fp, keys)))
-			fprintf(stderr, "error: unable to parse config at %s\n", configpath);
+			fprintf(stderr, "error: unable to parse config at %s\n", configfile);
 
 		fclose(fp);
 	}

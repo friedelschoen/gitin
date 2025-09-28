@@ -170,13 +170,11 @@ err:
 }
 
 void freediff(struct commitinfo* ci) {
-	size_t i;
-
 	if (!ci)
 		return;
 
 	if (ci->deltas) {
-		for (i = 0; i < ci->ndeltas; i++) {
+		for (size_t i = 0; i < ci->ndeltas; i++) {
 			git_patch_free(ci->deltas[i].patch);
 		}
 		free(ci->deltas);

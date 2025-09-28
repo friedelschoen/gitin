@@ -23,20 +23,18 @@ static void writereffooter(FILE* fp) {
 }
 
 int writerefs(FILE* fp, const struct repoinfo* info, int relpath, git_reference* current) {
-	char        escapename[NAME_MAX], oid[GIT_OID_SHA1_HEXSIZE + 1], summary[MAXSUMMARY + 2];
-	const char* name;
+	char escapename[NAME_MAX], oid[GIT_OID_SHA1_HEXSIZE + 1], summary[MAXSUMMARY + 2];
 	const git_signature* author;
-	git_reference*       ref;
-	git_commit*          commit;
-	int                  isbranch = 1, iscurrent;
+	int                  isbranch = 1;
 
 	writerefheader(fp, "Branches");
 
 	for (int i = 0; i < info->nrefs; i++) {
-		ref       = info->refs[i].ref;
-		commit    = info->refs[i].commit;
-		name      = info->refs[i].refname;
-		iscurrent = !git_reference_cmp(ref, current);
+
+		git_reference* ref       = info->refs[i].ref;
+		git_commit*    commit    = info->refs[i].commit;
+		const char*    name      = info->refs[i].refname;
+		int            iscurrent = !git_reference_cmp(ref, current);
 
 		if (isbranch && info->refs[i].istag) {
 			writereffooter(fp);
@@ -45,17 +43,17 @@ int writerefs(FILE* fp, const struct repoinfo* info, int relpath, git_reference*
 		}
 
 		author = git_commit_author(commit);
-		strlcpy(summary, git_commit_summary(commit), sizeof(summary) );
+		strlcpy(summary, git_commit_summary(commit), sizeof(summary));
 		git_oid_tostr(oid, sizeof(oid), git_commit_id(commit));
 
 		if (strlen(summary) > MAXSUMMARY) {
-			for (int i = MAXSUMMARY - 4; i >= 0; i--) {
-				if (isspace(summary[i]) && !isspace(summary[i - 1])) {
-					i++;
-					summary[i++] = '.';
-					summary[i++] = '.';
-					summary[i++] = '.';
-					summary[i]   = '\0';
+			for (int j = MAXSUMMARY - 4; j >= 0; j--) {
+				if (isspace(summary[j]) && !isspace(summary[j - 1])) {
+					j++;
+					summary[j++] = '.';
+					summary[j++] = '.';
+					summary[j++] = '.';
+					summary[j]   = '\0';
 					break;
 				}
 			}

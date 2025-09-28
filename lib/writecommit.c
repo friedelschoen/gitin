@@ -9,12 +9,11 @@
 
 /* Escape characters below as HTML 2.0 / XML 1.0, ignore printing '\r', '\n' */
 static void xmlencodeline(FILE* fp, const char* s, size_t len) {
-	size_t        i = 0;
-	unsigned char c;
-	unsigned int  codepoint;
+	size_t       i = 0;
+	unsigned int codepoint;
 
 	while (i < len && *s) {
-		c = (unsigned char) *s;
+		unsigned char c = (unsigned char) *s;
 
 		/* Handle ASCII characters */
 		if (c < 0x80) {
@@ -119,8 +118,7 @@ void writecommit(FILE* fp, const struct repoinfo* info, git_commit* commit,
 	const git_diff_delta* delta;
 	const git_diff_hunk*  hunk;
 	const git_diff_line*  line;
-	git_patch*            patch;
-	size_t                nhunks, nhunklines, changed, add, del, total, i, j, k;
+	size_t                nhunks, nhunklines, i, j, k;
 	char                  linestr[80];
 	int                   c;
 	char                  oid[GIT_OID_SHA1_HEXSIZE + 1], parentoid[GIT_OID_SHA1_HEXSIZE + 1];
@@ -195,6 +193,7 @@ void writecommit(FILE* fp, const struct repoinfo* info, git_commit* commit,
 		if (strcmp(delta->old_file.path, delta->new_file.path))
 			hprintf(fp, " -&gt; \n%y", delta->new_file.path);
 
+		size_t changed, add, del, total;
 		add     = ci->deltas[i].addcount;
 		del     = ci->deltas[i].delcount;
 		changed = add + del;
@@ -222,8 +221,8 @@ void writecommit(FILE* fp, const struct repoinfo* info, git_commit* commit,
 	fputs("<hr/>", fp);
 
 	for (i = 0; i < ci->ndeltas; i++) {
-		patch = ci->deltas[i].patch;
-		delta = git_patch_get_delta(patch);
+		git_patch* patch = ci->deltas[i].patch;
+		delta            = git_patch_get_delta(patch);
 
 		if (hasheadfile(info, delta->old_file.path))
 			hprintf(fp, "<b>diff --git a/<a id=\"h%zu\" href=\"../file/%h.html\">%y</a> ", i,

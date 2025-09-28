@@ -121,14 +121,13 @@ static void writeblob(const char* refname, int relpath, struct blobinfo* blob) {
 
 static void writefile(const struct repoinfo* info, const char* refname, int relpath,
                       struct blobinfo* blob) {
-	FILE* fp;
-	char  hashpath[PATH_MAX], destpath[PATH_MAX];
-	int   n;
+	char hashpath[PATH_MAX], destpath[PATH_MAX];
+	int  n;
 
 	snprintf(destpath, sizeof(destpath), ".cache/files/%x-%s.html", blob->hash, blob->name);
 
 	if (force || access(destpath, R_OK)) {
-		fp = efopen(".w", "%s", destpath);
+		FILE* fp = efopen(".w", "%s", destpath);
 		writeheader(fp, info, relpath, 1, info->name, "%y in %s", blob->path, refname);
 		hprintf(fp, "<p> %y (%zuB) <a href='%rblob/%s/%h'>download</a></p><hr/>", blob->name,
 		        git_blob_rawsize(blob->blob), relpath, refname, blob->path);
@@ -312,13 +311,14 @@ int composefiletree(const struct repoinfo* info, struct referenceinfo* refinfo) 
 	size_t    indx = 0;
 	int       ret  = -1;
 	char      path[PATH_MAX];
-	char      headoid[GIT_OID_SHA1_HEXSIZE + 1], oid[GIT_OID_SHA1_HEXSIZE + 1];
+	char      headoid[GIT_OID_SHA1_HEXSIZE + 1];
 
 	emkdirf("!.cache/files");
 	emkdirf("!.cache/blobs");
 
 	git_oid_tostr(headoid, sizeof(headoid), git_commit_id(refinfo->commit));
 	if (!force) {
+		char oid[GIT_OID_SHA1_HEXSIZE + 1];
 		if (!loadbuffer(oid, GIT_OID_SHA1_HEXSIZE, ".cache/filetree")) {
 			oid[GIT_OID_SHA1_HEXSIZE] = '\0';
 			if (!strcmp(oid, headoid))

@@ -34,7 +34,13 @@ static struct indexinfo* parsecache(char* buffer, int* count) {
 		*description++ = '\0'; /* Null-terminate name field */
 
 		/* Allocate more space for the new index */
-		indexes                     = realloc(indexes, (*count + 1) * sizeof(*indexes));
+		struct indexinfo* newindexes = realloc(indexes, (*count + 1) * sizeof(*indexes));
+		if (newindexes == NULL) {
+			free(indexes);
+			exit(101);
+		}
+
+		indexes                     = newindexes;
 		indexes[*count].repodir     = start;
 		indexes[*count].name        = name;
 		indexes[*count].description = description;

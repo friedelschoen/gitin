@@ -12,9 +12,9 @@
 #define RELPATHMAX 50
 
 static void printtime(FILE* fp, const git_time* intime) {
-	struct tm* intm;
-	time_t     t;
-	char       out[32];
+	const struct tm* intm;
+	time_t           t;
+	char             out[32];
 
 	t = (time_t) intime->time + (intime->offset * 60);
 	if (!(intm = gmtime(&t)))
@@ -27,9 +27,9 @@ static void printtime(FILE* fp, const git_time* intime) {
 }
 
 static void printtimeshort(FILE* fp, const git_time* intime) {
-	struct tm* intm;
-	time_t     t;
-	char       out[32];
+	const struct tm* intm;
+	time_t           t;
+	char             out[32];
 
 	t = (time_t) intime->time;
 	if (!(intm = gmtime(&t)))
@@ -40,11 +40,10 @@ static void printtimeshort(FILE* fp, const git_time* intime) {
 
 /* Percent-encode, see RFC3986 section 2.1. */
 static void percentencode(FILE* fp, const char* s) {
-	static char   tab[] = "0123456789ABCDEF";
-	unsigned char uc;
+	static const char tab[] = "0123456789ABCDEF";
 
 	while (*s) {
-		uc = *s;
+		unsigned char uc = *s;
 		/* NOTE: do not encode '/' for paths or ",-." */
 		if (uc < ',' || uc >= 127 || (uc >= ':' && uc <= '@') || uc == '[' || uc == ']') {
 			putc('%', fp);

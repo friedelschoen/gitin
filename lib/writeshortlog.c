@@ -103,14 +103,15 @@ static void writediagram(FILE* file, struct loginfo* li) {
 
 	/* Add vertical labels for months, also right to left */
 	for (int i = 0; i < li->ndatecount; i++) {
-		int x  = width - padding_right - i * x_scale; /* Reversed X */
-		int y  = height - padding_bottom + 10;        /* Adjust for spacing below the graph */
-		int ty = height - padding_bottom - li->datecount[i].count * y_scale;
+		int x = width - padding_right - i * x_scale; /* Reversed X */
 
 		time_t    secs;
 		struct tm time;
 
 		if (li->datecount[i].count > 0) {
+			int y  = height - padding_bottom + 10; /* Adjust for spacing below the graph */
+			int ty = height - padding_bottom - li->datecount[i].count * y_scale;
+
 			secs = li->datecount[i].day * SECONDSINDAY;
 			gmtime_r(&secs, &time);
 
@@ -137,7 +138,7 @@ static void writediagram(FILE* file, struct loginfo* li) {
 			int y2 = height - li->datecount[i].count * y_scale - padding_bottom;
 			fprintf(
 			    file,
-			    "  <line x1=\"%d\" y1=\"%ld\" x2=\"%d\" y2=\"%d\" stroke=\"#000\" stroke-width=\"1\" stroke-dasharray=\"4\"/>\n",
+			    "  <line x1=\"%d\" y1=\"%zu\" x2=\"%d\" y2=\"%d\" stroke=\"#000\" stroke-width=\"1\" stroke-dasharray=\"4\"/>\n",
 			    x, 20 + char_width * strlen(li->datecount[i].refs), x, y2 - 30);
 
 			fprintf(
@@ -312,7 +313,7 @@ static void addrefcount(const struct repoinfo* info, struct loginfo* li) {
 	git_reference_iterator_free(iter);
 }
 
-static void writeauthorlog(FILE* fp, struct loginfo* li) {
+static void writeauthorlog(FILE* fp, const struct loginfo* li) {
 	fputs("<table><thead>\n<tr><td class=\"num\">Count</td>"
 	      "<td class=\"expand\">Author</td>"
 	      "<td>E-Mail</td></tr>\n</thead><tbody>\n",
