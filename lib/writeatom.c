@@ -17,10 +17,10 @@ void writeatomcommit(FILE* fp, git_commit* commit, const char* refname) {
 
 	fprintf(fp, "<id>%s</id>\n", oid);
 	if (author) {
-		hprintf(fp, "<published>%t</published>\n", &author->when);
+		hprintf(fp, "<published>%t</published>\n", author->when);
 	}
 	if (committer) {
-		hprintf(fp, "<published>%t</published>\n", &committer->when);
+		hprintf(fp, "<published>%t</published>\n", committer->when);
 	}
 	if (summary) {
 		fputs("<title>", fp);
@@ -42,7 +42,7 @@ void writeatomcommit(FILE* fp, git_commit* commit, const char* refname) {
 		fprintf(fp, "parent %s\n", parentoid);
 	if (author) {
 		hprintf(fp, "Author: %y &lt;%y&gt;\n", author->name, author->email);
-		hprintf(fp, "Date:   %T\n", &author->when);
+		hprintf(fp, "Date:   %T\n", author->when);
 	}
 	if (message) {
 		hprintf(fp, "\n%y", message);

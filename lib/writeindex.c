@@ -1,24 +1,30 @@
 #include "common.h"
 #include "config.h"
+#include "getinfo.h"
 #include "hprintf.h"
 #include "writer.h"
 
+#include <git2/commit.h>
 #include <git2/refs.h>
 #include <git2/repository.h>
 #include <git2/types.h>
 #include <limits.h>
+#include <stdio.h>
 #include <string.h>
 
 
-static int writeindexline(FILE* fp, FILE* cachefp, const char* repodir, const char* name,
-                          const char* description) {
-	const git_signature* author = NULL;
-	int                  ret    = 0;
+static int writeindexline(FILE* fp, FILE* cachefp, struct referenceinfo* ref, const char* repodir,
+                          const char* name, const char* description) {
+	int ret = 0;
 
 	// TODO: get time of HEAD
 	hprintf(fp, "<tr><td><a href=\"%s/\">%y</a></td><td>%y</td><td>", repodir, name, description);
-	if (author)
-		hprintf(fp, "%t", &author->when);
+	if (ref) {
+		hprintf(fp, "%t", git_commit_time(ref->commit));
+		const git_signature* sig = git_commit_author(ref->commit);
+		if (sig && sig->name)
+			fprintf(fp, " by %s", sig->name);
+	}
 	fputs("</td></tr>", fp);
 
 	fprintf(cachefp, "%s,%s,%s\n", repodir, name, description);
@@ -90,12 +96,12 @@ void writeindex(FILE* fp, const struct gitininfo* info) {
 		if (!info->indexes[i].name) {
 			getrepo(&repoinfo, info->indexes[i].repodir);
 
-			writeindexline(fp, cachefp, info->indexes[i].repodir, repoinfo.name,
+			writeindexline(fp, cachefp, &repoinfo.branch, info->indexes[i].repodir, repoinfo.name,
 			               repoinfo.description);
 
 			freerepo(&repoinfo);
 		} else {
-			writeindexline(fp, cachefp, info->indexes[i].repodir, info->indexes[i].name,
+			writeindexline(fp, cachefp, NULL, info->indexes[i].repodir, info->indexes[i].name,
 			               info->indexes[i].description);
 		}
 	}

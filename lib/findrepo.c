@@ -15,15 +15,15 @@ static int checkrepo(const char* path) {
 
 	/* Check for bare repository (HEAD file directly in the directory) */
 	snprintf(git_path, sizeof(git_path), "%s/HEAD", path);
-	if (stat(git_path, &statbuf) != 0 || !S_ISREG(statbuf.st_mode))
-		return 0;
+	if (stat(git_path, &statbuf) == 0 && S_ISREG(statbuf.st_mode))
+		return 1;
 
-	/* Check for config file in the git directory (non-bare repo) */
-	snprintf(git_path, sizeof(git_path), "%s/%s", path, configfile);
-	if (stat(git_path, &statbuf) != 0 || !S_ISREG(statbuf.st_mode))
-		return 0;
+	/* Check for bare repository (HEAD file directly in the directory) */
+	snprintf(git_path, sizeof(git_path), "%s/.git/HEAD", path);
+	if (stat(git_path, &statbuf) == 0 && S_ISREG(statbuf.st_mode))
+		return 1;
 
-	return 1;
+	return 0;
 }
 
 void findrepos(const char* base_path, char*** repos, int* size) {

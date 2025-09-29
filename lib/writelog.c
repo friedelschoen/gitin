@@ -1,5 +1,4 @@
 #include "common.h"
-#include "composer.h"
 #include "config.h"
 #include "getinfo.h"
 #include "hprintf.h"
@@ -19,7 +18,7 @@ static void writelogline(FILE* fp, git_commit* commit, const struct commitinfo* 
 
 	fputs("<tr><td>", fp);
 	if (author)
-		hprintf(fp, "%t", &author->when);
+		hprintf(fp, "%t", author->when);
 	fputs("</td><td>", fp);
 	if (summary) {
 		hprintf(fp, "<a href=\"../commit/%s.html\">%y</a>", oid, summary);

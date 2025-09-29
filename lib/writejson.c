@@ -8,7 +8,7 @@ static void writesignature(FILE* fp, const git_signature* sig) {
 	fprintf(fp, "{");
 	hprintf(fp, "\"name\":\"%j\",", sig->name);
 	hprintf(fp, "\"email\":\"%j\",", sig->email);
-	hprintf(fp, "\"date\":\"%T\"", &sig->when);
+	hprintf(fp, "\"date\":\"%T\"", sig->when);
 	fprintf(fp, "}");
 }
 

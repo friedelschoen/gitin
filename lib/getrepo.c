@@ -115,11 +115,10 @@ void getrepo(struct repoinfo* info, const char* repodir) {
 	} else {
 		git_repository_head(&branch, info->repo);
 	}
-	if (!branch) {
+	if (!branch)
 		fprintf(stderr, "error: unable to get HEAD\n");
-	}
-
-	getreference(&info->branch, branch);
+	else
+		getreference(&info->branch, branch);
 
 	getrefs(info);
 }

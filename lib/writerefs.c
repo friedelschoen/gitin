@@ -75,7 +75,7 @@ int writerefs(FILE* fp, const struct repoinfo* info, int relpath, git_reference*
 
 		fputs("</td><td>", fp);
 		if (author)
-			hprintf(fp, "%t", &author->when);
+			hprintf(fp, "%t", author->when);
 		fputs("</td><td>", fp);
 		if (author)
 			hprintf(fp, "%y", author->name);

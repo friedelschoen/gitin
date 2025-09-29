@@ -11,27 +11,27 @@
 
 #define RELPATHMAX 50
 
-static void printtime(FILE* fp, const git_time* intime) {
+static void printtime(FILE* fp, const git_time intime) {
 	const struct tm* intm;
 	time_t           t;
 	char             out[32];
 
-	t = (time_t) intime->time + (intime->offset * 60);
+	t = (time_t) intime.time + (intime.offset * 60);
 	if (!(intm = gmtime(&t)))
 		return;
 	strftime(out, sizeof(out), "%a, %e %b %Y %H:%M:%S", intm);
-	if (intime->offset < 0)
-		fprintf(fp, "%s -%02d%02d", out, -(intime->offset) / 60, -(intime->offset) % 60);
+	if (intime.offset < 0)
+		fprintf(fp, "%s -%02d%02d", out, -(intime.offset) / 60, -(intime.offset) % 60);
 	else
-		fprintf(fp, "%s +%02d%02d", out, intime->offset / 60, intime->offset % 60);
+		fprintf(fp, "%s +%02d%02d", out, intime.offset / 60, intime.offset % 60);
 }
 
-static void printtimeshort(FILE* fp, const git_time* intime) {
+static void printtimeshort(FILE* fp, const git_time intime) {
 	const struct tm* intm;
 	time_t           t;
 	char             out[32];
 
-	t = (time_t) intime->time;
+	t = (time_t) intime.time;
 	if (!(intm = gmtime(&t)))
 		return;
 	strftime(out, sizeof(out), "%Y-%m-%d %H:%M", intm);
@@ -155,10 +155,10 @@ void vhprintf(FILE* file, const char* format, va_list args) {
 			const char* path = va_arg(args, const char*);
 			percentencode(file, path);
 		} else if (*p == 'T') {
-			const git_time* time = va_arg(args, const git_time*);
+			const git_time time = va_arg(args, const git_time);
 			printtime(file, time);
 		} else if (*p == 't') {
-			const git_time* time = va_arg(args, const git_time*);
+			const git_time time = va_arg(args, const git_time);
 			printtimeshort(file, time);
 		} else if (*p == 'w') {
 			fprintf(file, "%s", strerror(errno));
@@ -194,7 +194,10 @@ void vhprintf(FILE* file, const char* format, va_list args) {
 		} else if (*p == 's') {
 			/* Handle %y for xmlencoding */
 			const char* text = va_arg(args, const char*);
-			fprintf(file, "%s", text);
+			if (text == NULL)
+				fprintf(file, "(nil)");
+			else
+				fprintf(file, "%s", text);
 		} else if (*p == 'c') {
 			/* Handle %c for characters */
 			int c = va_arg(args, int); /* 'char' is promoted to 'int' in va_arg */

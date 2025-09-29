@@ -142,7 +142,7 @@ void writecommit(FILE* fp, const struct repoinfo* info, git_commit* commit,
 	}
 	if (author)
 		hprintf(fp, "<b>Author:</b> %y &lt;<a href=\"mailto:%y\">%y</a>&gt;\n<b>Date:</b>   %T\n",
-		        author->name, author->email, author->email, &author->when);
+		        author->name, author->email, author->email, author->when);
 
 	if (msg)
 		hprintf(fp, "\n%y\n", msg);
