@@ -151,7 +151,7 @@ lib/filetypes.c: filetypes.txt
 	awk 'BEGIN { print "const char* filetypes[][3] = {" } \
 	/^#/ { next } \
 	{ printf("{ \"%s\", \"%s\", \"%s\" },\n", $$1, $$2, $$3) } \
-	END { print "{0} };" }' $< >> $@
+	END { print "{0} };" }' $< > $@
 
 # pseudo targets
 

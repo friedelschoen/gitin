@@ -1,0 +1,6 @@
+<svg width="24" height="24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#000"
+    stroke-width="1">
+    <rect x="2" y="2" width="20" height="20" rx="3" fill="#f3e9ff" stroke="#000" />
+    <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle"
+        font-family="monospace" font-size="14" fill="#000">§</text>
+</svg>

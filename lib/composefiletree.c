@@ -177,8 +177,14 @@ static const char* geticon(const git_blob* blob, const char* filename) {
 		return "readme";
 
 	for (int i = 0; filetypes[i][0] != NULL; i++) {
-		if (issuffix(filename, filetypes[i][0])) {
-			return filetypes[i][1];
+		if (filetypes[i][0][0] == '%') {
+			if (isprefix(filename, filetypes[i][0] + 1)) {
+				return filetypes[i][1];
+			}
+		} else {
+			if (issuffix(filename, filetypes[i][0])) {
+				return filetypes[i][1];
+			}
 		}
 	}
 

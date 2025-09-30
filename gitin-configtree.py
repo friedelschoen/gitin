@@ -2,6 +2,7 @@
 
 import io
 import sys
+import traceback
 import yaml
 
 try:
@@ -82,6 +83,7 @@ def main():
             sys.stdout.write("<p>Unsupported file format</p>\n")
 
     except Exception as err:
+        traceback.format_exc()
         sys.stderr.write(f'{err!r}\n')
         sys.stdout.write("<p><i>Unable to parse config</i></p>\n")
 

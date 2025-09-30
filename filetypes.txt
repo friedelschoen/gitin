@@ -112,4 +112,15 @@
 .xsl source
 .zsh command
 .zshrc text
-Makefile command
+
+makefile command
+%license license
+%copying license
+%readme readme
+%changelog readme
+%support readme
+%security readme
+%code_of_conduct readme
+%contributing readme
+%contributors license
+%author license
