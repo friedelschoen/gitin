@@ -28,11 +28,15 @@ int main(int argc, char** argv) {
 	char*           configbuffer = NULL;
 	FILE*           config;
 	struct repoinfo repoinfo;
+	int             relpath = -1;
 
 	ARGBEGIN
 	switch (OPT) {
 		case 'C':
 			pwd = EARGF(usage(self, 1));
+			break;
+		case 'd':
+			relpath = atoi(EARGF(usage(self, 1)));
 			break;
 		case 'f':
 			force = 1;
@@ -93,7 +97,7 @@ int main(int argc, char** argv) {
 	/* do not require the git repository to be owned by the current user */
 	git_libgit2_opts(GIT_OPT_SET_OWNER_VALIDATION, 0);
 
-	getrepo(&repoinfo, repodir);
+	getrepo(&repoinfo, repodir, relpath);
 	composerepo(&repoinfo);
 	freerepo(&repoinfo);
 

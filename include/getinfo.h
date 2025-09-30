@@ -86,5 +86,5 @@ void freerefs(struct repoinfo* info);
 void freereference(struct referenceinfo* refinfo);
 
 /* repoinfo */
-void getrepo(struct repoinfo* info, const char* repodir);
+void getrepo(struct repoinfo* info, const char* repodir, int relpath);
 void freerepo(struct repoinfo* info);

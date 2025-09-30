@@ -37,7 +37,7 @@ static void addpinfile(struct repoinfo* info, const char* pinfile) {
 	}
 }
 
-void getrepo(struct repoinfo* info, const char* repodir) {
+void getrepo(struct repoinfo* info, const char* repodir, int relpath) {
 	git_object*    obj = NULL;
 	FILE*          fp;
 	const char *   start, *reqbranchname = NULL;
@@ -49,10 +49,7 @@ void getrepo(struct repoinfo* info, const char* repodir) {
 	info->description = "";
 	info->cloneurl    = "";
 
-	info->relpath = 1;
-	for (const char* p = info->repodir + 1; p[1]; p++)
-		if (*p == '/')
-			info->relpath++;
+	info->relpath = relpath;
 
 	start = info->repodir;
 	if (start[0] == '/')

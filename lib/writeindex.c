@@ -94,7 +94,7 @@ void writeindex(FILE* fp, const struct gitininfo* info) {
 			writecategory(fp, category, categorylen);
 
 		if (!info->indexes[i].name) {
-			getrepo(&repoinfo, info->indexes[i].repodir);
+			getrepo(&repoinfo, info->indexes[i].repodir, 0);
 
 			writeindexline(fp, cachefp, &repoinfo.branch, info->indexes[i].repodir, repoinfo.name,
 			               repoinfo.description);

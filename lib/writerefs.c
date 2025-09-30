@@ -24,8 +24,7 @@ static void writereffooter(FILE* fp) {
 
 int writerefs(FILE* fp, const struct repoinfo* info, int relpath, git_reference* current) {
 	char escapename[NAME_MAX], oid[GIT_OID_SHA1_HEXSIZE + 1], summary[MAXSUMMARY + 2];
-	const git_signature* author;
-	int                  isbranch = 1;
+	int  isbranch = 1;
 
 	writerefheader(fp, "Branches");
 
@@ -42,7 +41,7 @@ int writerefs(FILE* fp, const struct repoinfo* info, int relpath, git_reference*
 			isbranch = 0;
 		}
 
-		author = git_commit_author(commit);
+		const git_signature* author = git_commit_author(commit);
 		strlcpy(summary, git_commit_summary(commit), sizeof(summary));
 		git_oid_tostr(oid, sizeof(oid), git_commit_id(commit));
 

@@ -32,6 +32,13 @@ ssize_t execute(struct executeinfo* params) {
 		return n;
 	}
 
+	if (verbose) {
+		fprintf(stderr, "$ ");
+		for (int i = 0; i < params->nenviron; i++)
+			fprintf(stderr, "%s=%s ", params->environ[i * 2], params->environ[i * 2 + 1]);
+		fprintf(stderr, "%s\n", params->command);
+	}
+
 	pipe((int*) &inpipefd);
 	pipe((int*) &outpipefd);
 
