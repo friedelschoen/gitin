@@ -27,39 +27,39 @@ func WriteConfigTree(w io.Writer, r io.Reader, fileType string) error {
 	case "json":
 		dec := json.NewDecoder(r)
 		if err = dec.Decode(&data); err != nil {
-			fail(w)
+			fail(w, err)
 			return err
 		}
 	case "yaml", "yml":
 		dec := yaml.NewDecoder(r)
 		if err = dec.Decode(&data); err != nil {
-			fail(w)
+			fail(w, err)
 			return err
 		}
 	case "ini":
 		data, err = parseINI(r)
 		if err != nil {
-			fail(w)
+			fail(w, err)
 			return err
 		}
 	case "toml":
 		dec := toml.NewDecoder(r)
 		if err = dec.Decode(&data); err != nil {
-			fail(w)
+			fail(w, err)
 			return err
 		}
 	case "plist":
 		data, err := io.ReadAll(r)
 		if err != nil {
-			fail(w)
+			fail(w, err)
 			return err
 		}
 		if _, err = plist.Unmarshal(data, &data); err != nil {
-			fail(w)
+			fail(w, err)
 			return err
 		}
 	default:
-		fail(w)
+		fail(w, err)
 		return ErrFileType
 	}
 
@@ -67,8 +67,8 @@ func WriteConfigTree(w io.Writer, r io.Reader, fileType string) error {
 	return nil
 }
 
-func fail(w io.Writer) {
-	fmt.Fprintln(w, "<p><i>Unable to parse config</i></p>")
+func fail(w io.Writer, err error) {
+	fmt.Fprintf(w, "<p><i>Unable to parse config</i>: <code>%s</code></p>\n", html.EscapeString(err.Error()))
 }
 
 // parseINI matches the Python version’s behavior:
