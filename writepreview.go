@@ -1,9 +1,11 @@
 package gitin
 
 import (
+	"bytes"
 	"encoding/xml"
 	"fmt"
 	"io"
+	"os"
 	"path"
 	"strings"
 )
@@ -27,22 +29,13 @@ func writepandoc(fp io.Writer, filename string, content []byte, contenthash uint
 	return err // return ret;
 }
 
-func writepreviewtree(fp io.Writer, content []byte, contenthash uint32, typ string) error { // static ssize_t writetree(io.Writer fp, const char* content, ssize_t len, uint32_t contenthash,
-	// const char* type) {
-
-	var params = executeinfo{ // struct executeinfo params = {
-		command:     config.Configtreecmd,
-		cachename:   "preview",
-		content:     content,
-		contenthash: contenthash,
-		fp:          fp,
-		environ:     map[string]string{"type": typ}, // .environ     = (const char*[]){ "type", type },
-	} // };
-
+func writepreviewtree(fp io.Writer, content []byte, typ string) { // static ssize_t writetree(io.Writer fp, const char* content, ssize_t len, uint32_t contenthash,
 	fmt.Fprintf(fp, "<div class=\"preview\">\n") // fmt.Fprintf(fp, "<div class=\"preview\">\n");
-	err := execute(&params)                      // ret = execute(&params);
-	fmt.Fprintf(fp, "</div>\n")                  // fmt.Fprintf(fp, "</div>\n");
-	return err                                   // return ret;
+	err := WriteConfigTree(fp, bytes.NewReader(content), typ)
+	if err != nil {
+		fmt.Fprint(os.Stdout, "error: ", err)
+	}
+	fmt.Fprintf(fp, "</div>\n") // fmt.Fprintf(fp, "</div>\n");
 }
 
 func writeimage(fp io.Writer, relpath int, filename string) { // static void writeimage(io.Writer fp, int relpath, const char* filename) {
@@ -98,7 +91,7 @@ func writepreview(fp io.Writer, relpath int, blob *blobinfo, printplain int) err
 		}
 
 		if param != "" { // if (param)
-			return writepreviewtree(fp, blob.blob.Contents(), blob.hash, param) // param);
+			writepreviewtree(fp, blob.blob.Contents(), param) // param);
 		}
 	case "image":
 		writeimage(fp, relpath, blob.name) // writeimage(fp, relpath, blob->name);

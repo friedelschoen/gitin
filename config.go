@@ -25,9 +25,8 @@ type MainConfig struct {
 	Splitdirectories     bool   `conf:"splitdirectories"`
 	SplitdirectoriesAuto bool   `conf:"splitdirectories-auto"`
 
-	Highlightcmd  string `conf:"command/highlight"`
-	Pandoccmd     string `conf:"command/pandoc"`
-	Configtreecmd string `conf:"command/configtree"`
+	Highlightcmd string `conf:"command/highlight"`
+	Pandoccmd    string `conf:"command/pandoc"`
 
 	/* Limits for commits and file sizes */
 	Maxcommits  int `conf:"limit/commits"`
@@ -84,8 +83,6 @@ var config MainConfig = MainConfig{
 	Highlightcmd: "chroma --html --html-only --html-lines --html-inline-styles --style=$scheme --lexer=$type",
 
 	Pandoccmd: "pandoc --from=$type --to=html",
-
-	Configtreecmd: "gitin-configtree $type",
 
 	/* Color scheme to use for syntax highlighting in the HTML output. */
 	Colorscheme: "pastie",
