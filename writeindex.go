@@ -33,9 +33,9 @@ func writecategory(index io.Writer, name string) error {
 		des string `conf:"description"`
 	}
 
-	if file, err := os.Open(path.Join(category, config.Configfile)); err == nil {
+	if file, err := os.Open(path.Join(category, Config.Configfile)); err == nil {
 		defer file.Close()
-		for _, value := range ParseConfig(file, path.Join(category, config.Configfile)) {
+		for _, value := range ParseConfig(file, path.Join(category, Config.Configfile)) {
 			if err := UnmarshalConf(value, "", &keys); err != nil {
 				return err
 			}
@@ -55,14 +55,14 @@ func iscategory(repodir string, category *string) bool {
 	return false
 }
 
-func writeindex(fp io.Writer, info *gitininfo) error {
+func WriteIndex(fp io.Writer, info *gitininfo) error {
 	os.MkdirAll(".cache", 0777)
 
 	cachefp, err := os.Create(".cache/index")
 	if err != nil {
 		return err
 	}
-	writeheader(fp, nil, 0, false, config.Sitename, html.EscapeString(config.Sitedescription))
+	writeheader(fp, nil, 0, false, Config.Sitename, html.EscapeString(Config.Sitedescription))
 	fmt.Fprintf(fp, "<table id=\"index\"><thead>\n"+
 		"<tr><td>Name</td><td class=\"expand\">Description</td><td>Last changes</td></tr>"+
 		"</thead><tbody>\n")
@@ -75,7 +75,7 @@ func writeindex(fp io.Writer, info *gitininfo) error {
 			}
 		}
 		if index.name == "" {
-			repoinfo, err := getrepo(info.indexes[i].repodir, 0)
+			repoinfo, err := Getrepo(info.indexes[i].repodir, 0)
 			if err != nil {
 				return err
 			}

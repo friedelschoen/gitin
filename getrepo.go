@@ -17,7 +17,7 @@ func haspinfile(info *repoinfo, pinfile string) bool {
 	return obj.Type() == git.ObjectBlob
 }
 
-func getrepo(repodir string, relpath int) (*repoinfo, error) {
+func Getrepo(repodir string, relpath int) (*repoinfo, error) {
 	var info repoinfo
 
 	info.repodir = repodir
@@ -30,9 +30,9 @@ func getrepo(repodir string, relpath int) (*repoinfo, error) {
 		return nil, err
 	}
 
-	if file, err := os.Open(path.Join(info.repodir, config.Configfile)); err == nil {
+	if file, err := os.Open(path.Join(info.repodir, Config.Configfile)); err == nil {
 		defer file.Close()
-		for _, value := range ParseConfig(file, path.Join(info.repodir, config.Configfile)) {
+		for _, value := range ParseConfig(file, path.Join(info.repodir, Config.Configfile)) {
 			if err := UnmarshalConf(value, "", &info); err != nil {
 				return nil, err
 			}

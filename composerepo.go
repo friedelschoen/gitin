@@ -6,9 +6,9 @@ import (
 	"path"
 )
 
-func composerepo(info *repoinfo) error {
-	if !quiet {
-		if columnate {
+func Composerepo(info *repoinfo) error {
+	if !Quiet {
+		if Columnate {
 			fmt.Printf("%s\t%s\n", info.name, info.repodir)
 		} else {
 			fmt.Printf("updating '%s' . %s\n", info.name, info.repodir)

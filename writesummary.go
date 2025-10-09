@@ -44,19 +44,19 @@ func writesummary(fp io.Writer, info *repoinfo, refinfo *referenceinfo) error {
 
 	fmt.Fprintf(fp, "<hr />")
 
-	if config.Clonepull != "" {
+	if Config.Clonepull != "" {
 		fmt.Fprintf(fp, "<h2>Clone</h2>")
 
 		fmt.Fprintf(fp, "<i>Pulling</i>")
-		fmt.Fprintf(fp, "<pre>git clone %s%s</pre>\n", config.Clonepull, info.repodir)
+		fmt.Fprintf(fp, "<pre>git clone %s%s</pre>\n", Config.Clonepull, info.repodir)
 
-		if config.Clonepush != "" {
+		if Config.Clonepush != "" {
 			fmt.Fprintf(fp, "<i>Pushing</i>")
-			if config.Clonepull == config.Clonepush {
+			if Config.Clonepull == Config.Clonepush {
 				fmt.Fprintf(fp, "<pre>git push origin %s</pre>\n", refinfo.refname)
 			} else {
 				fmt.Fprintf(fp, "<pre>git remote add my-remote %s%s\ngit push my-remote %s</pre>\n",
-					config.Clonepush, info.repodir, refinfo.refname)
+					Config.Clonepush, info.repodir, refinfo.refname)
 			}
 		}
 	}

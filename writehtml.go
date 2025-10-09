@@ -19,11 +19,11 @@ func writeheader(fp io.Writer, info *repoinfo, relpath int, inbranch bool, name,
 		"<html>\n<head>\n"+
 		"<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n"+
 		"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />")
-	fmt.Fprintf(fp, "<title>%s - %s</title>\n", html.EscapeString(name), html.EscapeString(config.Sitename))
-	fmt.Fprintf(fp, "<link rel=\"icon\" type=\"%s\" href=\"%s%s\" />\n", config.Favicontype, indexrelstr, config.Favicon)
-	fmt.Fprintf(fp, "<link rel=\"stylesheet\" type=\"text/css\" href=\"%s%s\" />\n", indexrelstr, config.Stylesheet)
+	fmt.Fprintf(fp, "<title>%s - %s</title>\n", html.EscapeString(name), html.EscapeString(Config.Sitename))
+	fmt.Fprintf(fp, "<link rel=\"icon\" type=\"%s\" href=\"%s%s\" />\n", Config.Favicontype, indexrelstr, Config.Favicon)
+	fmt.Fprintf(fp, "<link rel=\"stylesheet\" type=\"text/css\" href=\"%s%s\" />\n", indexrelstr, Config.Stylesheet)
 	fmt.Fprint(fp, "</head>\n<body>\n<table><tr><td>")
-	fmt.Fprintf(fp, "<a href=\"%s\"><img src=\"%s%s\" alt=\"\" width=\"50\" height=\"50\" /></a>", indexrelstr, indexrelstr, config.Logoicon)
+	fmt.Fprintf(fp, "<a href=\"%s\"><img src=\"%s%s\" alt=\"\" width=\"50\" height=\"50\" /></a>", indexrelstr, indexrelstr, Config.Logoicon)
 	fmt.Fprintf(fp, "</td><td class=\"expand\"><h1>%s</h1>\n<span class=\"desc\">%s</span></td></tr>", html.EscapeString(name), html.EscapeString(description))
 
 	if info != nil && info.cloneurl != "" {
@@ -50,8 +50,8 @@ func writeheader(fp io.Writer, info *repoinfo, relpath int, inbranch bool, name,
 }
 
 func writefooter(fp io.Writer) {
-	if config.Footertext != "" {
-		fmt.Fprintf(fp, "</div><div id=\"footer\">%s", config.Footertext)
+	if Config.Footertext != "" {
+		fmt.Fprintf(fp, "</div><div id=\"footer\">%s", Config.Footertext)
 	}
 	fmt.Fprintf(fp, "</div>\n</body>\n</html>\n")
 }

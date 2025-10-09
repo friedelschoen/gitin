@@ -25,7 +25,7 @@ func parsecache(buffer io.Reader) []indexinfo {
 	return indexes
 }
 
-func getindex(repos iter.Seq[string]) *gitininfo {
+func GetIndex(repos iter.Seq[string]) *gitininfo {
 	var info gitininfo
 
 	/* parse cache */

@@ -18,7 +18,7 @@ func checkrepo(base, pathname string) bool {
 	return false
 }
 
-func findrepos(base_path string) iter.Seq[string] {
+func Findrepos(base_path string) iter.Seq[string] {
 	return func(yield func(string) bool) {
 		_ = filepath.WalkDir(base_path, func(entry string, d fs.DirEntry, err error) error {
 			if !d.IsDir() {

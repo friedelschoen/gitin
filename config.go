@@ -48,7 +48,7 @@ type MainConfig struct {
 }
 
 /* Configuration keys for the configuration parser. */
-var config MainConfig = MainConfig{
+var Config MainConfig = MainConfig{
 
 	/* --- Site information settings --- */
 
@@ -114,6 +114,22 @@ var config MainConfig = MainConfig{
 	Clonepush: "",
 }
 
+func (cfg *MainConfig) archiveTypes() (at []ArchiveType) {
+	if cfg.Archivetargz {
+		at = append(at, ArchiveTarGz)
+	}
+	if cfg.Archivetarxz {
+		at = append(at, ArchiveTarXz)
+	}
+	if cfg.Archivetarbz2 {
+		at = append(at, ArchiveTarBz2)
+	}
+	if Config.Archivezip {
+		at = append(at, ArchiveZip)
+	}
+	return at
+}
+
 var pinfiles = []string{
 	"README", "README.md", "CONTRIBUTING",
 	"CONTRIBUTING.md", "CHANGELOG", "CHANGELOG.md",
@@ -127,8 +143,6 @@ var aboutfiles = []string{
 	"README.md",
 	"README.rst",
 }
-
-var archivetypes []ArchiveType
 
 var archiveexts = map[ArchiveType]string{
 	ArchiveTarGz:  "tar.gz",

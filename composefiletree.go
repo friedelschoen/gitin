@@ -24,12 +24,12 @@ func highlight(fp io.Writer, blob *blobinfo) error {
 	}
 
 	params := executeinfo{
-		command:     config.Highlightcmd,
+		command:     Config.Highlightcmd,
 		cachename:   "files",
 		content:     blob.blob.Contents(),
 		contenthash: blob.hash,
 		fp:          fp,
-		environ:     map[string]string{"filename": blob.name, "type": typ, "scheme": config.Colorscheme},
+		environ:     map[string]string{"filename": blob.name, "type": typ, "scheme": Config.Colorscheme},
 	}
 
 	return execute(&params)
@@ -38,7 +38,7 @@ func highlight(fp io.Writer, blob *blobinfo) error {
 func writeblob(refname string, relpath int, blob *blobinfo) error {
 	os.MkdirAll(".cache/blobs", 0777)
 	destpath := path.Join(".cache/blobs", fmt.Sprintf("%x-%s", blob.hash, blob.name))
-	if force || !FileExist(destpath) {
+	if Force || !FileExist(destpath) {
 		file, err := os.Create(destpath)
 		if err != nil {
 			return err
@@ -60,7 +60,7 @@ func writeblob(refname string, relpath int, blob *blobinfo) error {
 func writefile(info *repoinfo, refname string, relpath int, blob *blobinfo) error {
 	os.MkdirAll(".cache/files", 0777)
 	destpath := path.Join(".cache/files", fmt.Sprintf("%x-%s", blob.hash, blob.name))
-	if force || !FileExist(destpath) {
+	if Force || !FileExist(destpath) {
 		fp, err := os.Create(destpath)
 		if err != nil {
 			return err
@@ -76,7 +76,7 @@ func writefile(info *repoinfo, refname string, relpath int, blob *blobinfo) erro
 
 		if blob.blob.IsBinary() {
 			fmt.Fprintf(fp, "<p>Binary file.</p>\n")
-		} else if config.Maxfilesize != -1 && blob.blob.Size() >= int64(config.Maxfilesize) {
+		} else if Config.Maxfilesize != -1 && blob.blob.Size() >= int64(Config.Maxfilesize) {
 			fmt.Fprintf(fp, "<p>File too big.</p>\n")
 		} else if blob.blob.Size() > 0 {
 			if err := highlight(fp, blob); err != nil {
@@ -126,9 +126,9 @@ func writetree(fp io.Writer, info *repoinfo, refname string, baserelpath int,
 	os.MkdirAll(path.Join(refname, "files", basepath), 0777)
 	os.MkdirAll(path.Join(refname, "blobs", basepath), 0777)
 
-	dosplit := config.Splitdirectories
-	if config.SplitdirectoriesAuto {
-		dosplit = maxfiles > uint64(config.Autofilelimit)
+	dosplit := Config.Splitdirectories
+	if Config.SplitdirectoriesAuto {
+		dosplit = maxfiles > uint64(Config.Autofilelimit)
 	}
 
 	var file *os.File
@@ -226,7 +226,7 @@ func composefiletree(info *repoinfo, refinfo *referenceinfo) error {
 	os.MkdirAll("cache/blobs", 0777)
 
 	headoid := refinfo.commit.Id().String()
-	if !force {
+	if !Force {
 		if file, err := os.Open(".cache/filetree"); err == nil {
 			defer file.Close()
 			b, err := io.ReadAll(file)
@@ -251,7 +251,7 @@ func composefiletree(info *repoinfo, refinfo *referenceinfo) error {
 			return err
 		}
 
-		if !verbose && !quiet {
+		if !Verbose && !Quiet {
 			fmt.Println()
 		}
 	}

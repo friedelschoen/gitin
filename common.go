@@ -7,13 +7,15 @@ import (
 	"strings"
 )
 
-var force bool
-var verbose bool
-var columnate bool
-var quiet bool
+var Force bool
+var Verbose bool
+var Columnate bool
+var Quiet bool
+
+const bar_width = 80 /* The width of the progress bar */
 
 func printprogress[T Integer](indx T, ncommits T, what string) {
-	if verbose || quiet {
+	if Verbose || Quiet {
 		return
 	}
 
@@ -25,10 +27,9 @@ func printprogress[T Integer](indx T, ncommits T, what string) {
 		line.WriteString("##################################################] 100.0%% (0 / 0)")
 	} else {
 		progress := float64(indx) / float64(ncommits)
-		bar_width := 50 /* The width of the progress bar */
 
 		/* Print the progress bar */
-		var pos int = int(float64(bar_width) * progress)
+		var pos int = int(bar_width * progress)
 		for i := range bar_width {
 			if i < pos {
 				line.WriteRune('#')

@@ -51,7 +51,7 @@ type logstate struct {
 
 func writelogcommit(s *logstate, info *repoinfo, index int, commit *git.Commit) error {
 	pat := path.Join("commit", commit.Id().String()+".html")
-	cachedcommit := !force && FileExist(pat)
+	cachedcommit := !Force && FileExist(pat)
 	ci, err := getdiff(info, commit, cachedcommit)
 	if err != nil {
 		return err
@@ -63,7 +63,7 @@ func writelogcommit(s *logstate, info *repoinfo, index int, commit *git.Commit) 
 			return err
 		}
 		defer commitfile.Close()
-		if err := writecommit(commitfile, info, commit, &ci, index == config.Maxcommits); err != nil {
+		if err := writecommit(commitfile, info, commit, &ci, index == Config.Maxcommits); err != nil {
 			return err
 		}
 	}
@@ -88,7 +88,7 @@ func writelog(fp io.Writer, atom io.Writer, json io.Writer, info *repoinfo, refi
 			"<td class=\"num\">Size</td></tr>\n</thead><tbody>\n")
 	}
 
-	for _, typ := range archivetypes {
+	for _, typ := range Config.archiveTypes() {
 		arfp, err := os.Create(path.Join(refinfo.refname, refinfo.refname+"."+archiveexts[typ]))
 		if err != nil {
 			return err
@@ -142,7 +142,7 @@ func writelog(fp io.Writer, atom io.Writer, json io.Writer, info *repoinfo, refi
 	var indx int = 0
 	state := logstate{fp: fp}
 	_ = w.Iterate(func(commit *git.Commit) bool {
-		if config.Maxcommits > 0 && indx >= config.Maxcommits {
+		if Config.Maxcommits > 0 && indx >= Config.Maxcommits {
 			return false
 		}
 		if err = writelogcommit(&state, info, indx, commit); err != nil {
@@ -156,17 +156,17 @@ func writelog(fp io.Writer, atom io.Writer, json io.Writer, info *repoinfo, refi
 	if err != nil {
 		return err
 	}
-	if !verbose && !quiet {
+	if !Verbose && !Quiet {
 		fmt.Println()
 	}
 
 	if fp != nil {
-		if config.Maxcommits > 0 && ncommits > config.Maxcommits {
+		if Config.Maxcommits > 0 && ncommits > Config.Maxcommits {
 			var plural string
-			if ncommits-config.Maxcommits != 1 {
+			if ncommits-Config.Maxcommits != 1 {
 				plural = "s"
 			}
-			fmt.Fprintf(fp, "<tr><td></td><td colspan=\"5\">%d%s commits left out...</td></tr>\n", ncommits-config.Maxcommits, plural)
+			fmt.Fprintf(fp, "<tr><td></td><td colspan=\"5\">%d%s commits left out...</td></tr>\n", ncommits-Config.Maxcommits, plural)
 		}
 
 		fmt.Fprintf(fp, "</tbody></table>")

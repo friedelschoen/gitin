@@ -23,7 +23,7 @@ type executeinfo struct {
 func execute(params *executeinfo) error {
 	os.MkdirAll(path.Join(".cache", params.cachename), 0777)
 
-	if !force {
+	if !Force {
 		cache, err := os.Open(path.Join(".cache", params.cachename, strconv.FormatUint(uint64(params.contenthash), 16)))
 		if err == nil {
 			defer cache.Close()
@@ -33,7 +33,7 @@ func execute(params *executeinfo) error {
 		}
 	}
 
-	if verbose {
+	if Verbose {
 		fmt.Fprintf(os.Stderr, "$ ")
 		for key, value := range params.environ {
 			fmt.Fprintf(os.Stderr, "%s=%s ", key, value)

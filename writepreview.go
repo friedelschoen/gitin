@@ -13,7 +13,7 @@ import (
 func writepandoc(fp io.Writer, filename string, content []byte, contenthash uint32, typ string) error {
 
 	var params = executeinfo{
-		command:     config.Pandoccmd,
+		command:     Config.Pandoccmd,
 		cachename:   "preview",
 		content:     content,
 		contenthash: contenthash,
