@@ -41,7 +41,7 @@ func UnmarshalConf(data map[string]string, prefix string, out any) error {
 
 			valStr, ok = data[tag]
 			if !ok {
-				continue // Key not found, skip
+				continue
 			}
 		}
 		if valStr == "" {
@@ -53,7 +53,6 @@ func UnmarshalConf(data map[string]string, prefix string, out any) error {
 			continue
 		}
 
-		// Handle time.Duration explicitly
 		if field.Type == reflect.TypeOf(time.Duration(0)) {
 			dur, err := time.ParseDuration(valStr)
 			if err != nil {
@@ -63,7 +62,6 @@ func UnmarshalConf(data map[string]string, prefix string, out any) error {
 			continue
 		}
 
-		// Parse built-in kinds
 		switch fv.Kind() {
 		case reflect.String:
 			fv.SetString(valStr)

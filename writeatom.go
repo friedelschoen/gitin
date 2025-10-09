@@ -11,8 +11,6 @@ import (
 
 const atomNS = "http://www.w3.org/2005/Atom"
 
-// ---- Atom struct types ----
-
 type atomFeed struct {
 	XMLName  xml.Name    `xml:"feed"`
 	XMLNS    string      `xml:"xmlns,attr"`
@@ -23,7 +21,7 @@ type atomFeed struct {
 
 type atomEntry struct {
 	ID        string      `xml:"id"`
-	Published string      `xml:"published,omitempty"` // RFC3339
+	Published string      `xml:"published,omitempty"`
 	Title     string      `xml:"title,omitempty"`
 	Link      atomLink    `xml:"link"`
 	Author    *atomPerson `xml:"author,omitempty"`
@@ -42,17 +40,15 @@ type atomPerson struct {
 }
 
 type atomContent struct {
-	Type string `xml:"type,attr,omitempty"` // "text", "html", or "xhtml"
+	Type string `xml:"type,attr,omitempty"`
 	Body string `xml:",chardata"`
 }
-
-// ---- Helpers ----
 
 func rfc3339(t time.Time) string {
 	if t.IsZero() {
 		return ""
 	}
-	// Atom prefers RFC3339; publish in UTC for consistency.
+
 	return t.UTC().Format(time.RFC3339)
 }
 
@@ -68,7 +64,6 @@ func makeEntry(commit *git.Commit, refname string) atomEntry {
 		parent = parentcommit.String()
 	}
 
-	// published: author.when, anders committer.when
 	var published string
 	if author != nil {
 		published = rfc3339(author.When)
@@ -76,13 +71,11 @@ func makeEntry(commit *git.Commit, refname string) atomEntry {
 		published = rfc3339(committer.When)
 	}
 
-	// title met ref-prefix als aanwezig
 	title := summary
 	if refname != "" && summary != "" {
 		title = fmt.Sprintf("[%s] %s", refname, summary)
 	}
 
-	// content "text" (encoder escapt)
 	var body string
 	body += fmt.Sprintf("commit %s\n", oid)
 	if parent != "" {
@@ -115,8 +108,6 @@ func makeEntry(commit *git.Commit, refname string) atomEntry {
 	}
 }
 
-// ---- Public API (vervanging voor je write*-functies) ----
-
 func writeatomrefs(w io.Writer, info *repoinfo) error {
 	var entries []atomEntry
 	for _, r := range info.refs {
@@ -136,12 +127,10 @@ func writeatomfeed(w io.Writer, info *repoinfo, entries []atomEntry) error {
 	enc := xml.NewEncoder(w)
 	enc.Indent("", "  ")
 
-	// XML header
 	if _, err := io.WriteString(w, xml.Header); err != nil {
 		return err
 	}
 
-	// Encode <feed> … </feed>
 	if err := enc.Encode(feed); err != nil {
 		return err
 	}

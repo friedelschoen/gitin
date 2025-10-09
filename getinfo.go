@@ -2,70 +2,65 @@ package gitin
 
 import git "github.com/jeffwelling/git2go/v37"
 
-// #pragma once
-
-// #include <git2/patch.h>
-// #include <git2/types.h>
-
 type blobinfo struct {
-	name string // const char* name;
-	path string // const char* path;
+	name string
+	path string
 
-	blob *git.Blob // const git.Blob* blob;
-	hash uint32    // uint32_t        hash;
-} // };
+	blob *git.Blob
+	hash uint32
+}
 
 type commitinfo struct {
 	diff     *git.Diff
-	Addcount int `json:"addcount"` // size_t addcount;
-	Delcount int `json:"delcount"` // size_t delcount;
+	Addcount int `json:"addcount"`
+	Delcount int `json:"delcount"`
 
-	Deltas []deltainfo `json:"deltas"` // struct deltainfo* deltas;
-} // };
+	Deltas []deltainfo `json:"deltas"`
+}
 
 type deltainfo struct {
 	delta    git.DiffDelta `json:"-"`
-	Addcount int           `json:"addcount"` // size_t     addcount;
-	Delcount int           `json:"delcount"` // size_t     delcount;
-} // };
+	Addcount int           `json:"addcount"`
+	Delcount int           `json:"delcount"`
+}
 
 type gitininfo struct {
-	cache *byte // char* cache;
+	cache *byte
 
-	indexes []indexinfo // struct indexinfo* indexes;
-} // };
+	indexes []indexinfo
+}
 
 type indexinfo struct {
-	repodir     string // const char* repodir;
-	name        string // const char* name;
-	description string // const char* description;
+	repodir     string
+	name        string
+	description string
 
-	repoinfo *repoinfo // struct repoinfo* repoinfo;
-} // };
+	repoinfo *repoinfo
+}
 
 type referenceinfo struct {
-	ref     *git.Reference // git.Reference* ref;
-	refname string         // char*          refname;
-	commit  *git.Commit    // git.Commit*    commit;
-	istag   bool           // int            istag;
-} // };
+	ref     *git.Reference
+	refname string
+	commit  *git.Commit
+	istag   bool
+}
 
 type repoinfo struct {
-	repo   *git.Repository // git.Repository*      repo;
-	branch *referenceinfo  // struct referenceinfo branch;
+	repo   *git.Repository
+	branch *referenceinfo
 
-	repodir string // const char* repodir;
-	relpath int    // int         relpath;
+	repodir string
+	relpath int
 
 	name        string
 	description string `ini:"description"`
 	cloneurl    string `ini:"cloneurl,url"`
 	branchname  string `ini:"branch"`
 
-	submodules string // const char* submodules;
+	submodules string
 
 	pinfiles  []string
 	headfiles []string
 
-	refs []*referenceinfo // struct referenceinfo* refs;
-} // };
+	refs []*referenceinfo
+}

@@ -28,11 +28,11 @@ type ZipArchiver struct {
 func (a *ZipArchiver) WriteHeader(hdr *tar.Header) error {
 	fh := &zip.FileHeader{
 		Name:          hdr.Name,
-		Method:        zip.Deflate, // gebruik deflate
+		Method:        zip.Deflate,
 		Modified:      hdr.ModTime,
 		ExternalAttrs: uint32(hdr.Mode&0o777) << 16,
 	}
-	// UNIX perm-bits in upper 16 bits
+
 	w, err := a.CreateHeader(fh)
 	if err != nil {
 		return err
@@ -59,12 +59,11 @@ func writeArchiveBlob(blob *git.Blob, pathname string, te *git.TreeEntry, a Arch
 		ModTime: mtime,
 	}
 
-	// Symlink detectie (0120000)
 	const gitModeSymlink = 0o120000
 	if int64(te.Filemode)&gitModeSymlink == gitModeSymlink {
 		hdr.Typeflag = tar.TypeSymlink
 		hdr.Linkname = string(blob.Contents())
-		hdr.Size = 0 // symlinks hebben geen data payload in tar
+		hdr.Size = 0
 	}
 
 	if err := a.WriteHeader(&hdr); err != nil {
@@ -134,7 +133,6 @@ func writearchive(fp io.Writer, info *repoinfo, typ ArchiveType, refinfo *refere
 		return 0, fmt.Errorf("invalid archive type: %d", typ)
 	}
 
-	// git2go v34: Tree.Walk(mode, cb) error. Gebruik Pre-order.
 	err = tree.Walk(func(pfx string, te *git.TreeEntry) error {
 		switch te.Type {
 		case git.ObjectBlob:
@@ -144,7 +142,7 @@ func writearchive(fp io.Writer, info *repoinfo, typ ArchiveType, refinfo *refere
 			}
 			name := te.Name
 			if pfx != "" {
-				name = path.Join(pfx, name) // altijd forward slashes
+				name = path.Join(pfx, name)
 			}
 
 			if err := writeArchiveBlob(blob, name, te, a, mtime); err != nil {

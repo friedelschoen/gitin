@@ -71,11 +71,6 @@ func fail(w io.Writer, err error) {
 	fmt.Fprintf(w, "<p><i>Unable to parse config</i>: <code>%s</code></p>\n", html.EscapeString(err.Error()))
 }
 
-// parseINI matches the Python version’s behavior:
-// - ignores empty lines
-// - ignores whole-line comments starting with ';' or '#'
-// - requires a [section] before key=value pairs
-// - no inline comments, no continued lines
 func parseINI(r io.Reader) (map[string]map[string]string, error) {
 	cfg := make(map[string]map[string]string)
 	sc := bufio.NewScanner(r)
@@ -87,7 +82,6 @@ func parseINI(r io.Reader) (map[string]map[string]string, error) {
 		lineNo++
 		line := sc.Text()
 
-		// Handle whole-line comments first (like the Python startswith check)
 		if strings.HasPrefix(line, ";") || strings.HasPrefix(line, "#") {
 			line = ""
 		}
@@ -97,7 +91,6 @@ func parseINI(r io.Reader) (map[string]map[string]string, error) {
 			continue
 		}
 
-		// [section]
 		if strings.HasPrefix(line, "[") && strings.HasSuffix(line, "]") {
 			section = strings.TrimSpace(line[1 : len(line)-1])
 			if section == "" {
@@ -109,7 +102,6 @@ func parseINI(r io.Reader) (map[string]map[string]string, error) {
 			continue
 		}
 
-		// key=value (only if we’re inside a section)
 		if eq := strings.IndexByte(line, '='); eq >= 0 && section != "" {
 			key := strings.TrimSpace(line[:eq])
 			val := strings.TrimSpace(line[eq+1:])
@@ -139,7 +131,7 @@ func writeHTML(w io.Writer, v any, indent int) {
 
 	case map[string]any:
 		fmt.Fprintf(w, "%s<ul>\n", ind)
-		// Stable order
+
 		keys := make([]string, 0, len(x))
 		for k := range x {
 			keys = append(keys, k)

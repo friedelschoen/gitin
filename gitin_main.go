@@ -38,9 +38,7 @@ func GitinMain() {
 		}
 	}
 
-	// signal(SIGPIPE, SIG_IGN)
-
-	if file, err := os.Open(config.Configfile); err == nil { // if ((fp = efopen("!.r", "%s/%s", info->repodir, configfile))) {
+	if file, err := os.Open(config.Configfile); err == nil {
 		defer file.Close()
 		for _, value := range ParseConfig(file, config.Configfile) {
 			if err := UnmarshalConf(value, "", &config); err != nil {
@@ -61,14 +59,6 @@ func GitinMain() {
 	if config.Archivezip {
 		archivetypes = append(archivetypes, ArchiveZip)
 	}
-
-	// /* do not search outside the git repository:
-	//    GIT_CONFIG_LEVEL_APP is the highest level currently */
-	// git_libgit2_init();
-	// for (int i = 1; i <= GIT_CONFIG_LEVEL_APP; i++)
-	// 	git_libgit2_opts(GIT_OPT_SET_SEARCH_PATH, i, "");
-	// /* do not require the git repository to be owned by the current user */
-	// git_libgit2_opts(GIT_OPT_SET_OWNER_VALIDATION, 0);
 
 	repoinfo, err := getrepo(repodir, relpath)
 	if err != nil {

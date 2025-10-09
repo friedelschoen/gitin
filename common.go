@@ -18,9 +18,7 @@ func printprogress[T Integer](indx T, ncommits T, what string) {
 	}
 
 	var line bytes.Buffer
-	line.WriteRune('\r')
-	line.WriteString(what)
-	line.WriteString(" [")
+	fmt.Fprintf(&line, "\r%s [", what)
 
 	/* Handle zero commits case */
 	if ncommits == 0 {
@@ -31,7 +29,7 @@ func printprogress[T Integer](indx T, ncommits T, what string) {
 
 		/* Print the progress bar */
 		var pos int = int(float64(bar_width) * progress)
-		for i := 0; i < bar_width; i++ {
+		for i := range bar_width {
 			if i < pos {
 				line.WriteRune('#')
 			} else {

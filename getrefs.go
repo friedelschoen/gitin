@@ -7,28 +7,28 @@ import (
 	git "github.com/jeffwelling/git2go/v37"
 )
 
-func comparerefs(left, right *referenceinfo) int { // static int comparerefs(const void* v1, const void* v2) {
-	if left.istag != right.istag { // if (r1->istag != r2->istag)
+func comparerefs(left, right *referenceinfo) int {
+	if left.istag != right.istag {
 		intbool := func(v bool) int {
 			if v {
 				return 1
 			}
 			return 0
 		}
-		return intbool(left.istag) - intbool(right.istag) // return r1->istag - r2->istag;
+		return intbool(left.istag) - intbool(right.istag)
 	}
 
 	tleft := left.commit.Committer().When
 	tright := right.commit.Committer().When
 
-	if tleft != tright { // if (t1 != t2)
-		return int(tright.UnixNano() - tleft.UnixNano()) // return t2 - t1;
+	if tleft != tright {
+		return int(tright.UnixNano() - tleft.UnixNano())
 	}
 	return strings.Compare(left.ref.Shorthand(), right.ref.Shorthand())
 }
 
-func getreference(ref *git.Reference) (*referenceinfo, error) { // int getreference(struct referenceinfo* out, git.Reference* ref) {
-	if !ref.IsBranch() && !ref.IsTag() { // if (!git.Reference_is_branch(ref) && !git.Reference_is_tag(ref)) {
+func getreference(ref *git.Reference) (*referenceinfo, error) {
+	if !ref.IsBranch() && !ref.IsTag() {
 		return nil, nil
 	}
 
@@ -51,9 +51,8 @@ func getreference(ref *git.Reference) (*referenceinfo, error) { // int getrefere
 	return &out, nil
 }
 
-func getrefs(repo *git.Repository) ([]*referenceinfo, error) { // int getrefs(struct repoinfo* info) {
-	// var iter *git.Reference_iterator // git.Reference_iterator* iter;
-	// var ref *git.Reference           // git.Reference*          ref;
+func getrefs(repo *git.Repository) ([]*referenceinfo, error) {
+
 	iter, err := repo.NewReferenceIterator()
 	if err != nil {
 		return nil, err

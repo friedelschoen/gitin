@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 )
 
-func checkrepo(base, pathname string) bool { // static int checkrepo(const char* path) {
+func checkrepo(base, pathname string) bool {
 	if stat, err := os.Stat(path.Join(base, pathname, "HEAD")); err == nil && stat.Mode().IsRegular() {
 		return true
 	}

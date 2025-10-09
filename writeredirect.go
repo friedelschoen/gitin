@@ -5,13 +5,7 @@ import (
 	"io"
 )
 
-// #include "writer.h"
-
-// #include <limits.h>
-// #include <stdarg.h>
-// #include <stdio.h>
-
-func writeredirect(fp io.Writer, to string) { // void writeredirect(io.Writer fp, const char* to, ...) {
+func writeredirect(fp io.Writer, to string) {
 	fmt.Fprintf(fp,
 		"<!DOCTYPE HTML>\n"+
 			"<html>\n"+
@@ -25,5 +19,5 @@ func writeredirect(fp io.Writer, to string) { // void writeredirect(io.Writer fp
 			"        If you are not redirected automatically, follow this <a href=\"%s\">link</a>.\n"+
 			"    </body>\n"+
 			"</html>",
-		to, to) // path, path);
+		to, to)
 }

@@ -8,7 +8,7 @@ import (
 	git "github.com/jeffwelling/git2go/v37"
 )
 
-func haspinfile(info *repoinfo, pinfile string) bool { // static void addpinfile(struct repoinfo* info, const char* pinfile) {
+func haspinfile(info *repoinfo, pinfile string) bool {
 	obj, err := info.repo.RevparseSingle("HEAD:" + pinfile)
 	if err != nil {
 		/* it's okay, not everyone has a GUIDE_TO_BREAKING_PRODUCTION_IN_ONE_SIMPLE_STEP.md in their repository. */
@@ -17,18 +17,12 @@ func haspinfile(info *repoinfo, pinfile string) bool { // static void addpinfile
 	return obj.Type() == git.ObjectBlob
 }
 
-func getrepo(repodir string, relpath int) (*repoinfo, error) { // void getrepo(struct repoinfo* info, const char* repodir, int relpath) {
+func getrepo(repodir string, relpath int) (*repoinfo, error) {
 	var info repoinfo
-	// var obj *git.Object = nil // git.Object*    obj = NULL;
-	// var fp io.Writer       // io.Writer          fp;
-	// var start string
-	// var reqbranchname string        // const char *   start, *reqbranchname = NULL;
-	// var end *byte                   // char*          end;
-	// var branch *git.Reference = nil // git.Reference* branch = NULL;
 
-	info.repodir = repodir         // info->repodir     = repodir;
-	info.relpath = relpath         // info->relpath = relpath;
-	info.name = path.Base(repodir) // QUESTION: how many slashes in name, include user?
+	info.repodir = repodir
+	info.relpath = relpath
+	info.name = path.Base(repodir)
 
 	var err error
 	info.repo, err = git.OpenRepository(repodir)
@@ -36,7 +30,7 @@ func getrepo(repodir string, relpath int) (*repoinfo, error) { // void getrepo(s
 		return nil, err
 	}
 
-	if file, err := os.Open(path.Join(info.repodir, config.Configfile)); err == nil { // if ((fp = efopen("!.r", "%s/%s", info->repodir, configfile))) {
+	if file, err := os.Open(path.Join(info.repodir, config.Configfile)); err == nil {
 		defer file.Close()
 		for _, value := range ParseConfig(file, path.Join(info.repodir, config.Configfile)) {
 			if err := UnmarshalConf(value, "", &info); err != nil {
@@ -46,18 +40,18 @@ func getrepo(repodir string, relpath int) (*repoinfo, error) { // void getrepo(s
 	}
 
 	/* check pinfiles */
-	for _, pf := range pinfiles { // for (int i = 0; pinfiles[i] && info->pinfileslen < (int) LEN(info->pinfiles); i++) {
+	for _, pf := range pinfiles {
 		if haspinfile(&info, pf) {
 			info.pinfiles = append(info.pinfiles, pf)
 		}
 	}
 
-	if obj, err := info.repo.RevparseSingle("HEAD:.gitmodules"); err == nil && obj.Type() == git.ObjectBlob { // if (!git.Revparse_single(&obj, info->repo, "HEAD:.gitmodules")) {
-		info.submodules = ".gitmodules" // info->submodules = ".gitmodules";
+	if obj, err := info.repo.RevparseSingle("HEAD:.gitmodules"); err == nil && obj.Type() == git.ObjectBlob {
+		info.submodules = ".gitmodules"
 	}
 
 	var branch *git.Reference
-	if info.branchname != "" { // if (reqbranchname) {
+	if info.branchname != "" {
 		branch, err = info.repo.References.Lookup(info.branchname)
 		if err != nil {
 			return nil, fmt.Errorf("unable to get branch %s: %w", info.branchname, err)

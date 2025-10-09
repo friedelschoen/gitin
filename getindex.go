@@ -13,7 +13,7 @@ func parsecache(buffer io.Reader) []indexinfo {
 	scan := bufio.NewScanner(buffer)
 
 	var indexes []indexinfo
-	for scan.Scan() { // while (start) {
+	for scan.Scan() {
 		fields := strings.SplitN(scan.Text(), ",", 3)
 		indexes = append(indexes, indexinfo{
 			repodir:     fields[0],
@@ -35,7 +35,7 @@ func getindex(repos iter.Seq[string]) *gitininfo {
 	}
 
 	/* fill cache with to update repos */
-	for repodir := range repos { // for (int i = 0; i < nrepos; i++) {
+	for repodir := range repos {
 		if idx := slices.IndexFunc(info.indexes, func(ii indexinfo) bool { return ii.repodir == repodir }); idx != -1 {
 			info.indexes[idx].name = ""        /* to be filled */
 			info.indexes[idx].description = "" /* to be filled */

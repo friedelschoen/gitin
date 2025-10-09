@@ -33,7 +33,7 @@ func GitinIndexMain() {
 		}
 	}
 
-	if file, err := os.Open(config.Configfile); err == nil { // if ((fp = efopen("!.r", "%s/%s", info->repodir, configfile))) {
+	if file, err := os.Open(config.Configfile); err == nil {
 		defer file.Close()
 		for _, value := range ParseConfig(file, config.Configfile) {
 			if err := UnmarshalConf(value, "", &config); err != nil {

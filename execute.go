@@ -10,27 +10,17 @@ import (
 	"strconv"
 )
 
-// #include "execute.h"
-
-// #include "common.h"
-// #include "config.h"
-// #include "getinfo.h"
-// #include "fmt.Fprintf.h"
-
-// #include <sys/wait.h>
-// #include <unistd.h>
-
 type executeinfo struct {
-	command     string            // const char*  command;
-	fp          io.Writer         // io.Writer        fp;
-	filename    string            // const char*  filename;
-	contenthash uint32            // uint32_t     contenthash;
-	cachename   string            // const char*  cachename;
-	content     []byte            // const char*  content;
-	environ     map[string]string // const char** environ;
-} // };
+	command     string
+	fp          io.Writer
+	filename    string
+	contenthash uint32
+	cachename   string
+	content     []byte
+	environ     map[string]string
+}
 
-func execute(params *executeinfo) error { // ssize_t execute(struct executeinfo* params) {
+func execute(params *executeinfo) error {
 	os.MkdirAll(path.Join(".cache", params.cachename), 0777)
 
 	if !force {

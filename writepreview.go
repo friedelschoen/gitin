@@ -10,44 +10,43 @@ import (
 	"strings"
 )
 
-func writepandoc(fp io.Writer, filename string, content []byte, contenthash uint32, typ string) error { // static ssize_t writepandoc(io.Writer fp, const char* filename, const char* content, ssize_t len,
-	// uint32_t contenthash, const char* type) {
+func writepandoc(fp io.Writer, filename string, content []byte, contenthash uint32, typ string) error {
 
-	var params = executeinfo{ // struct executeinfo params = {
+	var params = executeinfo{
 		command:     config.Pandoccmd,
 		cachename:   "preview",
 		content:     content,
 		contenthash: contenthash,
 		fp:          fp,
-		environ:     map[string]string{"filename": filename, "type": typ}, // .environ     = (const char*[]){ "filename", filename, "type", type },
-	} // };
+		environ:     map[string]string{"filename": filename, "type": typ},
+	}
 
-	fmt.Fprintf(fp, "<div class=\"preview\">\n") // fmt.Fprintf(fp, "<div class=\"preview\">\n");
-	err := execute(&params)                      // ret = execute(&params);
-	fmt.Fprintf(fp, "</div>\n")                  // fmt.Fprintf(fp, "</div>\n");
+	fmt.Fprintf(fp, "<div class=\"preview\">\n")
+	err := execute(&params)
+	fmt.Fprintf(fp, "</div>\n")
 
-	return err // return ret;
+	return err
 }
 
-func writepreviewtree(fp io.Writer, content []byte, typ string) { // static ssize_t writetree(io.Writer fp, const char* content, ssize_t len, uint32_t contenthash,
-	fmt.Fprintf(fp, "<div class=\"preview\">\n") // fmt.Fprintf(fp, "<div class=\"preview\">\n");
+func writepreviewtree(fp io.Writer, content []byte, typ string) {
+	fmt.Fprintf(fp, "<div class=\"preview\">\n")
 	err := WriteConfigTree(fp, bytes.NewReader(content), typ)
 	if err != nil {
 		fmt.Fprint(os.Stdout, "error: ", err)
 	}
-	fmt.Fprintf(fp, "</div>\n") // fmt.Fprintf(fp, "</div>\n");
+	fmt.Fprintf(fp, "</div>\n")
 }
 
-func writeimage(fp io.Writer, relpath int, filename string) { // static void writeimage(io.Writer fp, int relpath, const char* filename) {
-	fmt.Fprintf(fp, "<div class=\"preview\">\n")                                                              // fmt.Fprintf(fp, "<div class=\"preview\">\n");
-	fmt.Fprintf(fp, "<img height=\"100px\" src=\"%sblob/%s\" />\n", strings.Repeat("../", relpath), filename) // fmt.Fprintf(fp, "<img height=\"100px\" src=\"%rblob/%s\" />\n", relpath, filename);
-	fmt.Fprintf(fp, "</div>\n")                                                                               // fmt.Fprintf(fp, "</div>\n");
+func writeimage(fp io.Writer, relpath int, filename string) {
+	fmt.Fprintf(fp, "<div class=\"preview\">\n")
+	fmt.Fprintf(fp, "<img height=\"100px\" src=\"%sblob/%s\" />\n", strings.Repeat("../", relpath), filename)
+	fmt.Fprintf(fp, "</div>\n")
 }
 
-func writeplain(fp io.Writer, content []byte) (err error) { // static void writeplain(io.Writer fp, const char* content, size_t size) {
-	fmt.Fprintf(fp, "<div class=\"preview\">\n<pre>\n") // fmt.Fprintf(fp, "<div class=\"preview\">\n<pre>\n");
+func writeplain(fp io.Writer, content []byte) (err error) {
+	fmt.Fprintf(fp, "<div class=\"preview\">\n<pre>\n")
 	err = xml.EscapeText(fp, content)
-	fmt.Fprintf(fp, "</pre>\n</div>\n") // fmt.Fprintf(fp, "</pre>\n</div>\n");
+	fmt.Fprintf(fp, "</pre>\n</div>\n")
 	return
 }
 
@@ -65,10 +64,10 @@ func (ft FileType) Match(s string) bool {
 	return strings.HasPrefix(s, pre) && strings.HasSuffix(s, suf)
 }
 
-func writepreview(fp io.Writer, relpath int, blob *blobinfo, printplain int) error { // void writepreview(io.Writer fp, int relpath, struct blobinfo* blob, int printplain) {
+func writepreview(fp io.Writer, relpath int, blob *blobinfo, printplain int) error {
 	var typ string
-	for _, ft := range filetypes { // for (int i = 0; filetypes[i][0] != NULL; i++) {
-		if ft.Match(blob.name) { // if (issuffix(blob->name, filetypes[i][0])) {
+	for _, ft := range filetypes {
+		if ft.Match(blob.name) {
 			typ = ft.preview
 			break
 		}
@@ -90,11 +89,11 @@ func writepreview(fp io.Writer, relpath int, blob *blobinfo, printplain int) err
 			param = strings.TrimLeft(path.Ext(blob.name), ".")
 		}
 
-		if param != "" { // if (param)
-			writepreviewtree(fp, blob.blob.Contents(), param) // param);
+		if param != "" {
+			writepreviewtree(fp, blob.blob.Contents(), param)
 		}
 	case "image":
-		writeimage(fp, relpath, blob.name) // writeimage(fp, relpath, blob->name);
+		writeimage(fp, relpath, blob.name)
 		return nil
 	}
 	return writeplain(fp, blob.blob.Contents())

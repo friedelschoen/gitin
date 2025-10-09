@@ -8,7 +8,6 @@ import (
 	git "github.com/jeffwelling/git2go/v37"
 )
 
-// JSON-vormen (bewust met pointers zodat ontbrekende waarden als null verschijnen)
 type JSONSignature struct {
 	Name  string    `json:"name"`
 	Email string    `json:"email"`
@@ -17,11 +16,11 @@ type JSONSignature struct {
 
 type JSONCommit struct {
 	ID        string         `json:"id"`
-	Parent    *string        `json:"parent"`    // null als geen parent
-	Author    *JSONSignature `json:"author"`    // null als onbekend
-	Committer *JSONSignature `json:"committer"` // null als onbekend
-	Summary   *string        `json:"summary"`   // null als leeg
-	Message   *string        `json:"message"`   // null als leeg
+	Parent    *string        `json:"parent"`
+	Author    *JSONSignature `json:"author"`
+	Committer *JSONSignature `json:"committer"`
+	Summary   *string        `json:"summary"`
+	Message   *string        `json:"message"`
 }
 
 type JSONRef struct {
@@ -42,7 +41,7 @@ func toJSONSignature(sig *git.Signature) *JSONSignature {
 	return &JSONSignature{
 		Name:  sig.Name,
 		Email: sig.Email,
-		Date:  sig.When, // encoding/json -> RFC3339
+		Date:  sig.When,
 	}
 }
 
@@ -59,7 +58,7 @@ func toJSONCommit(c *git.Commit) JSONCommit {
 	var parent *string
 	if c.ParentCount() > 0 {
 		p := c.ParentId(0).String()
-		// sommige bindings geven "" i.p.v. nil; normaliseer:
+
 		if p != "" {
 			parent = &p
 		}
@@ -75,7 +74,6 @@ func toJSONCommit(c *git.Commit) JSONCommit {
 	}
 }
 
-// Vervanging voor writejsonrefs: schrijft netjes geformatteerde JSON.
 func writejsonrefs(w io.Writer, info *repoinfo) error {
 	out := JSONOut{
 		Branches: make([]JSONRef, 0, len(info.refs)),
@@ -101,7 +99,6 @@ func writejsonrefs(w io.Writer, info *repoinfo) error {
 	return enc.Encode(out)
 }
 
-// Vervanging voor writejsonrefs: schrijft netjes geformatteerde JSON.
 func writejsoncommits(w io.Writer, c []JSONCommit) error {
 	out := JSONOut{
 		Commits: c,

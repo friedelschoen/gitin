@@ -4,10 +4,10 @@ type ArchiveType int
 
 /* Enums */
 const (
-	ArchiveTarGz ArchiveType = 1 << iota // ArchiveTarGz  = 1 << 0,
-	ArchiveTarXz                         // ArchiveTarXz  = 1 << 1,
+	ArchiveTarGz ArchiveType = 1 << iota
+	ArchiveTarXz
 	ArchiveTarBz2
-	ArchiveZip // ArchiveZip    = 1 << 3,
+	ArchiveZip
 )
 
 type MainConfig struct {
@@ -119,20 +119,20 @@ var pinfiles = []string{
 	"CONTRIBUTING.md", "CHANGELOG", "CHANGELOG.md",
 	"LICENSE", "LICENSE.md", "COPYING",
 	"COPYING.md", "CODE_OF_CONDUCT", "CODE_OF_CONDUCT.md",
-	"SECURITY", "SECURITY.md", // "SECURITY",        "SECURITY.md",     NULL,
-} // };
+	"SECURITY", "SECURITY.md",
+}
 
 var aboutfiles = []string{
 	"README",
 	"README.md",
 	"README.rst",
-} // };
+}
 
-var archivetypes []ArchiveType // int archivetypes = 0;
+var archivetypes []ArchiveType
 
 var archiveexts = map[ArchiveType]string{
 	ArchiveTarGz:  "tar.gz",
 	ArchiveTarXz:  "tar.xz",
 	ArchiveTarBz2: "tar.bz2",
 	ArchiveZip:    "zip",
-} // };
+}
