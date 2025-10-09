@@ -7,120 +7,120 @@
 #  - image: pastes an image pointing at this file
 #  - pandoc: generates html using pandoc, input-type is either its extension or parameter
 
-.ini source configtree
-.toml source configtree
-.json source configtree:yaml
-.yaml source configtree:yaml
-.yml source configtree:yaml
-.jpeg image image
-.jpg image image
-.png image image
-.svg image image
-.webp image image
-.csv text pandoc
-.tsv text pandoc
-.md text pandoc:gfm
-.rst text pandoc:rst
+*.ini source configtree
+*.toml source configtree
+*.json source configtree:yaml
+*.yaml source configtree:yaml
+*.yml source configtree:yaml
+*.jpeg image image
+*.jpg image image
+*.png image image
+*.svg image image
+*.webp image image
+*.csv text pandoc
+*.tsv text pandoc
+*.md text pandoc:gfm
+*.rst text pandoc:rst
 
-.1 text pandoc:man
-.2 text pandoc:man
-.3 text pandoc:man
-.4 text pandoc:man
-.5 text pandoc:man
-.6 text pandoc:man
-.7 text pandoc:man
-.8 text pandoc:man
+*.1 text pandoc:man
+*.2 text pandoc:man
+*.3 text pandoc:man
+*.4 text pandoc:man
+*.5 text pandoc:man
+*.6 text pandoc:man
+*.7 text pandoc:man
+*.8 text pandoc:man
 
-.ai image
-.asm source
-.bash command
-.bash_profile text
-.bashrc text
-.bat command
-.bmp image
-.build command
-.c source
-.cfg text
-.clj source
-.cmd command
-.conf text
-.config command
-.cpp source
-.cs source
-.csh command
-.css source
-.dockerignore text
-.ebuild command
-.editorconfig text
-.el source
-.env text
-.eps image
-.erl source
-.eslintrc text
-.ex source
-.f source
-.fish command
-.for source
-.fs source
-.gif image
-.gitignore text
-.go source
-.gradle command
-.h source
-.heic image
-.hpp source
-.html source
-.ico image
-.java source
-.js source
-.jsx source
-.kt source
-.less text
-.lisp source
-.log text
-.lua source
-.m source
-.makefile command
-.mk command
-.ml source
-.ninja command
-.pas source
-.php source
-.pl source
-.prettierrc text
-.properties text
-.ps1 command
-.psd image
-.py source
-.r source
-.rb source
-.rs source
-.scons command
-.scss text
-.sh command
-.sql source
-.swift source
-.tiff image
-.ts source
-.tsx source
-.txt text
-.v source
-.vhdl source
-.waf command
-.xcf image
-.xml source
-.xsl source
-.zsh command
-.zshrc text
+*.ai image
+*.asm source
+*.bash command
+*.bash_profile text
+*.bashrc text
+*.bat command
+*.bmp image
+*.build command
+*.c source
+*.cfg text
+*.clj source
+*.cmd command
+*.conf text
+*.config command
+*.cpp source
+*.cs source
+*.csh command
+*.css source
+*.dockerignore text
+*.ebuild command
+*.editorconfig text
+*.el source
+*.env text
+*.eps image
+*.erl source
+*.eslintrc text
+*.ex source
+*.f source
+*.fish command
+*.for source
+*.fs source
+*.gif image
+*.gitignore text
+*.go source
+*.gradle command
+*.h source
+*.heic image
+*.hpp source
+*.html source
+*.ico image
+*.java source
+*.js source
+*.jsx source
+*.kt source
+*.less text
+*.lisp source
+*.log text
+*.lua source
+*.m source
+*.makefile command
+*.mk command
+*.ml source
+*.ninja command
+*.pas source
+*.php source
+*.pl source
+*.prettierrc text
+*.properties text
+*.ps1 command
+*.psd image
+*.py source
+*.r source
+*.rb source
+*.rs source
+*.scons command
+*.scss text
+*.sh command
+*.sql source
+*.swift source
+*.tiff image
+*.ts source
+*.tsx source
+*.txt text
+*.v source
+*.vhdl source
+*.waf command
+*.xcf image
+*.xml source
+*.xsl source
+*.zsh command
+*.zshrc text
 
 makefile command
-%license license
-%copying license
-%readme readme
-%changelog readme
-%support readme
-%security readme
-%code_of_conduct readme
-%contributing readme
-%contributors license
-%author license
+license license
+copying license
+readme readme
+changelog readme
+support readme
+security readme
+code_of_conduct readme
+contributing readme
+contributors license
+author license
