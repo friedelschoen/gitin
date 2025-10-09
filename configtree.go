@@ -2,6 +2,7 @@ package gitin
 
 import (
 	"bufio"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"html"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/pelletier/go-toml/v2"
 	"gopkg.in/yaml.v3"
+	"howett.net/plist"
 )
 
 var ErrFileType = errors.New("unsupported filetype")
@@ -21,7 +23,14 @@ func WriteConfigTree(w io.Writer, r io.Reader, fileType string) error {
 	var data any
 	var err error
 	switch fileType {
-	case "yaml", "yml", "json":
+
+	case "json":
+		dec := json.NewDecoder(r)
+		if err = dec.Decode(&data); err != nil {
+			fail(w)
+			return err
+		}
+	case "yaml", "yml":
 		dec := yaml.NewDecoder(r)
 		if err = dec.Decode(&data); err != nil {
 			fail(w)
@@ -34,9 +43,18 @@ func WriteConfigTree(w io.Writer, r io.Reader, fileType string) error {
 			return err
 		}
 	case "toml":
-		// Read all from stdin (toml v2 needs a []byte or string)
 		dec := toml.NewDecoder(r)
 		if err = dec.Decode(&data); err != nil {
+			fail(w)
+			return err
+		}
+	case "plist":
+		data, err := io.ReadAll(r)
+		if err != nil {
+			fail(w)
+			return err
+		}
+		if _, err = plist.Unmarshal(data, &data); err != nil {
 			fail(w)
 			return err
 		}

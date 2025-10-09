@@ -9,7 +9,7 @@ import (
 
 func main() {
 	if len(os.Args) != 2 {
-		fmt.Fprintln(os.Stderr, "Usage: gitin-configtree <yaml|ini|toml>")
+		fmt.Fprintln(os.Stderr, "Usage: gitin-configtree <json|yaml|yml|ini|toml|plist>")
 		os.Exit(1)
 	}
 
