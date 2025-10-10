@@ -46,24 +46,14 @@ func printprogress[T Integer](indx T, ncommits T, what string) {
 }
 
 func splitunit(size int64) (int64, string) {
-	unit := "B"
-	if size > 1024 {
-		unit = "KiB"
-		size /= 1024
-		if size > 1024 {
-			unit = "MiB"
-			size /= 1024
-			if size > 1024 {
-				unit = "GiB"
-				size /= 1024
-				if size > 1024 {
-					unit = "TiB"
-					size /= 1024
-				}
-			}
+	units := []string{"B", "KiB", "MiB", "GiB", "TiB"}
+	for i, unit := range units {
+		if size < 1024 || i == len(units)-1 {
+			return size, unit
 		}
+		size /= 1024
 	}
-	return size, unit
+	return size, "<invalid>"
 }
 
 func escaperefname(refname string) string {

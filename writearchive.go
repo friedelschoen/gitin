@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"io"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/dsnet/compress/bzip2"
 	git "github.com/jeffwelling/git2go/v37"
+	"github.com/klauspost/compress/zstd"
 	"github.com/ulikunitz/xz"
 )
 
@@ -93,8 +95,8 @@ func NewCounter(w io.Writer) (io.Writer, *int64) {
 }
 
 /* Stream een archief van de commit-tree naar fp */
-func writearchive(fp io.Writer, info *repoinfo, typ ArchiveType, refinfo *referenceinfo) (int64, error) {
-	fp, counter := NewCounter(fp)
+func writearchive(w io.Writer, info *repoinfo, ext string, refinfo *referenceinfo) (int64, error) {
+	w, counter := NewCounter(w)
 	commit := refinfo.commit
 	committer := commit.Committer()
 	mtime := time.Now().UTC()
@@ -108,30 +110,53 @@ func writearchive(fp io.Writer, info *repoinfo, typ ArchiveType, refinfo *refere
 	}
 
 	var (
-		wc io.WriteCloser
-		a  Archiver
+		cls io.Closer = io.NopCloser(nil)
+		a   Archiver
 	)
-	switch typ {
-	case ArchiveTarGz:
-		wc = gzip.NewWriter(fp)
-		a = tar.NewWriter(wc)
-	case ArchiveTarXz:
-		wc, err = xz.NewWriter(fp)
+	extarchive, extcompress, _ := strings.Cut(ext, ".")
+	switch extcompress {
+	case "gz":
+		gw := gzip.NewWriter(w)
+		cls = gw
+		w = gw
+	case "xz":
+		gw, err := xz.NewWriter(w)
 		if err != nil {
 			return 0, err
 		}
-		a = tar.NewWriter(wc)
-	case ArchiveTarBz2:
-		wc, err = bzip2.NewWriter(fp, nil)
+		cls = gw
+		w = gw
+	case "bzip2", "b2":
+		gw, err := bzip2.NewWriter(w, nil)
 		if err != nil {
 			return 0, err
 		}
-		a = tar.NewWriter(wc)
-	case ArchiveZip:
-		a = &ZipArchiver{Writer: zip.NewWriter(fp)}
+		cls = gw
+		w = gw
+	case "zstd":
+		gw, err := zstd.NewWriter(w, nil)
+		if err != nil {
+			return 0, err
+		}
+		cls = gw
+		w = gw
+	case "":
+		/* do nothing */
 	default:
-		return 0, fmt.Errorf("invalid archive type: %d", typ)
+		return 0, fmt.Errorf("unknown compression: %s", extcompress)
 	}
+	/* defers are closed in Last-In-First-Out order */
+	defer cls.Close()
+
+	switch extarchive {
+	case "tar":
+		a = tar.NewWriter(w)
+	case "zip":
+		a = &ZipArchiver{Writer: zip.NewWriter(w)}
+	default:
+		return 0, fmt.Errorf("unknown archiver: %s", extcompress)
+	}
+	defer a.Close()
 
 	err = tree.Walk(func(pfx string, te *git.TreeEntry) error {
 		switch te.Type {
@@ -152,20 +177,7 @@ func writearchive(fp io.Writer, info *repoinfo, typ ArchiveType, refinfo *refere
 		return nil
 	})
 	if err != nil {
-		a.Close()
-		if wc != nil {
-			wc.Close()
-		}
 		return 0, fmt.Errorf("tree walk: %w", err)
-	}
-
-	if err := a.Close(); err != nil {
-		return 0, err
-	}
-	if wc != nil {
-		if err := wc.Close(); err != nil {
-			return 0, err
-		}
 	}
 	return *counter, nil
 }

@@ -8,37 +8,37 @@ import (
 	git "github.com/jeffwelling/git2go/v37"
 )
 
-type JSONSignature struct {
+type signatureJSON struct {
 	Name  string    `json:"name"`
 	Email string    `json:"email"`
 	Date  time.Time `json:"date"`
 }
 
-type JSONCommit struct {
+type commitJSON struct {
 	ID        string         `json:"id"`
 	Parent    *string        `json:"parent"`
-	Author    *JSONSignature `json:"author"`
-	Committer *JSONSignature `json:"committer"`
+	Author    *signatureJSON `json:"author"`
+	Committer *signatureJSON `json:"committer"`
 	Summary   *string        `json:"summary"`
 	Message   *string        `json:"message"`
 }
 
-type JSONRef struct {
+type refJSON struct {
 	Name   string     `json:"name"`
-	Commit JSONCommit `json:"commit"`
+	Commit commitJSON `json:"commit"`
 }
 
-type JSONOut struct {
-	Branches []JSONRef    `json:"branches,omitempty"`
-	Tags     []JSONRef    `json:"tags,omitempty"`
-	Commits  []JSONCommit `json:"commits,omitempty"`
+type outJSON struct {
+	Branches []refJSON    `json:"branches,omitempty"`
+	Tags     []refJSON    `json:"tags,omitempty"`
+	Commits  []commitJSON `json:"commits,omitempty"`
 }
 
-func toJSONSignature(sig *git.Signature) *JSONSignature {
+func toJSONSignature(sig *git.Signature) *signatureJSON {
 	if sig == nil {
 		return nil
 	}
-	return &JSONSignature{
+	return &signatureJSON{
 		Name:  sig.Name,
 		Email: sig.Email,
 		Date:  sig.When,
@@ -52,7 +52,7 @@ func strPtrNonEmpty(s string) *string {
 	return &s
 }
 
-func toJSONCommit(c *git.Commit) JSONCommit {
+func toJSONCommit(c *git.Commit) commitJSON {
 	id := c.Id().String()
 
 	var parent *string
@@ -64,7 +64,7 @@ func toJSONCommit(c *git.Commit) JSONCommit {
 		}
 	}
 
-	return JSONCommit{
+	return commitJSON{
 		ID:        id,
 		Parent:    parent,
 		Author:    toJSONSignature(c.Author()),
@@ -75,15 +75,15 @@ func toJSONCommit(c *git.Commit) JSONCommit {
 }
 
 func writejsonrefs(w io.Writer, info *repoinfo) error {
-	out := JSONOut{
-		Branches: make([]JSONRef, 0, len(info.refs)),
-		Tags:     make([]JSONRef, 0),
+	out := outJSON{
+		Branches: make([]refJSON, 0, len(info.refs)),
+		Tags:     make([]refJSON, 0),
 	}
 	for _, r := range info.refs {
 		if r == nil || r.commit == nil {
 			continue
 		}
-		jr := JSONRef{
+		jr := refJSON{
 			Name:   r.refname,
 			Commit: toJSONCommit(r.commit),
 		}
@@ -99,8 +99,8 @@ func writejsonrefs(w io.Writer, info *repoinfo) error {
 	return enc.Encode(out)
 }
 
-func writejsoncommits(w io.Writer, c []JSONCommit) error {
-	out := JSONOut{
+func writejsoncommits(w io.Writer, c []commitJSON) error {
+	out := outJSON{
 		Commits: c,
 	}
 	enc := json.NewEncoder(w)

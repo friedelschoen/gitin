@@ -5,6 +5,7 @@ go 1.24.0
 require (
 	github.com/dsnet/compress v0.0.1
 	github.com/jeffwelling/git2go/v37 v37.0.4
+	github.com/klauspost/compress v1.18.0
 	github.com/pelletier/go-toml/v2 v2.2.4
 	github.com/ulikunitz/xz v0.5.15
 	gopkg.in/yaml.v3 v3.0.1

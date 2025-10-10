@@ -1,7 +1,8 @@
 package gitin
 
 import (
-	"bufio"
+	"encoding/json"
+	"fmt"
 	"io"
 	"iter"
 	"os"
@@ -9,44 +10,36 @@ import (
 	"strings"
 )
 
-func parsecache(buffer io.Reader) []indexinfo {
-	scan := bufio.NewScanner(buffer)
-
-	var indexes []indexinfo
-	for scan.Scan() {
-		fields := strings.SplitN(scan.Text(), ",", 3)
-		indexes = append(indexes, indexinfo{
-			repodir:     fields[0],
-			name:        fields[1],
-			description: fields[2],
-		})
-	}
-
-	return indexes
+func parsecache(buffer io.Reader) (indexes []indexinfo, err error) {
+	err = json.NewDecoder(buffer).Decode(&indexes)
+	return
 }
 
-func GetIndex(repos iter.Seq[string]) *gitininfo {
-	var info gitininfo
+func GetIndex(repos iter.Seq[string]) []indexinfo {
+	var info []indexinfo
 
 	/* parse cache */
 	if cachefp, err := os.Open(".cache/index"); err == nil {
 		defer cachefp.Close()
-		info.indexes = parsecache(cachefp)
+		info, err = parsecache(cachefp)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: unable to load index-cache: %v\n", err)
+		}
 	}
 
 	/* fill cache with to update repos */
 	for repodir := range repos {
-		if idx := slices.IndexFunc(info.indexes, func(ii indexinfo) bool { return ii.repodir == repodir }); idx != -1 {
-			info.indexes[idx].name = ""        /* to be filled */
-			info.indexes[idx].description = "" /* to be filled */
+		if idx := slices.IndexFunc(info, func(ii indexinfo) bool { return ii.Repodir == repodir }); idx != -1 {
+			info[idx].Name = ""        /* to be filled */
+			info[idx].Description = "" /* to be filled */
 		} else {
-			info.indexes = append(info.indexes, indexinfo{repodir: repodir})
+			info = append(info, indexinfo{Repodir: repodir})
 		}
 	}
 
-	slices.SortFunc(info.indexes, func(left, right indexinfo) int {
-		return strings.Compare(left.repodir, right.repodir)
+	slices.SortFunc(info, func(left, right indexinfo) int {
+		return strings.Compare(left.Repodir, right.Repodir)
 	})
 
-	return &info
+	return info
 }

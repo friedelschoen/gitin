@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"strings"
 
 	git "github.com/jeffwelling/git2go/v37"
 )
@@ -45,7 +46,7 @@ func FileExist(pat string) bool {
 
 type logstate struct {
 	fp   io.Writer
-	json []JSONCommit
+	json []commitJSON
 	atom []atomEntry
 }
 
@@ -88,18 +89,17 @@ func writelog(fp io.Writer, atom io.Writer, json io.Writer, info *repoinfo, refi
 			"<td class=\"num\">Size</td></tr>\n</thead><tbody>\n")
 	}
 
-	for _, typ := range Config.archiveTypes() {
-		arfp, err := os.Create(path.Join(refinfo.refname, refinfo.refname+"."+archiveexts[typ]))
+	for _, ext := range Config.Archives {
+		ext = strings.TrimPrefix(ext, ".") /* .tar.xz -> tar.xz, .zip -> zip */
+		arfp, err := os.Create(path.Join(refinfo.refname, refinfo.refname+"."+ext))
 		if err != nil {
 			return err
 		}
 		defer arfp.Close()
-		arsize, err := writearchive(arfp, info, typ, refinfo)
+		arsize, err := writearchive(arfp, info, ext, refinfo)
 		arsize, unit := splitunit(arsize)
 		if fp != nil {
-			fmt.Fprintf(fp, "<tr><td><a href=\"%s.%s\">%s.%s</a></td><td>%d%s</td></tr>",
-				refinfo.refname, archiveexts[typ], refinfo.refname, archiveexts[typ],
-				arsize, unit)
+			fmt.Fprintf(fp, "<tr><td><a href=\"%s.%s\">%s.%s</a></td><td>%d%s</td></tr>", refinfo.refname, ext, refinfo.refname, ext, arsize, unit)
 		}
 	}
 

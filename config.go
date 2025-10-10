@@ -1,15 +1,5 @@
 package gitin
 
-type ArchiveType int
-
-/* Enums */
-const (
-	ArchiveTarGz ArchiveType = 1 << iota
-	ArchiveTarXz
-	ArchiveTarBz2
-	ArchiveZip
-)
-
 type MainConfig struct {
 	/* Site information settings */
 	Sitename        string `conf:"name"`
@@ -32,10 +22,7 @@ type MainConfig struct {
 	Maxcommits  int `conf:"limit/commits"`
 	Maxfilesize int `conf:"limit/filesize"`
 
-	Archivezip    bool `conf:"archive/zip"`
-	Archivetargz  bool `conf:"archive/tarball-gzip"`
-	Archivetarxz  bool `conf:"archive/tarball-lzma"`
-	Archivetarbz2 bool `conf:"archive/tarball-bzip2"`
+	Archives []string `conf:"archives"`
 
 	/* Files and output configurations */
 	Tagatomfile string `conf:"files/tag-atom"`
@@ -114,22 +101,6 @@ var Config MainConfig = MainConfig{
 	Clonepush: "",
 }
 
-func (cfg *MainConfig) archiveTypes() (at []ArchiveType) {
-	if cfg.Archivetargz {
-		at = append(at, ArchiveTarGz)
-	}
-	if cfg.Archivetarxz {
-		at = append(at, ArchiveTarXz)
-	}
-	if cfg.Archivetarbz2 {
-		at = append(at, ArchiveTarBz2)
-	}
-	if Config.Archivezip {
-		at = append(at, ArchiveZip)
-	}
-	return at
-}
-
 var pinfiles = []string{
 	"README", "README.md", "CONTRIBUTING",
 	"CONTRIBUTING.md", "CHANGELOG", "CHANGELOG.md",
@@ -142,11 +113,4 @@ var aboutfiles = []string{
 	"README",
 	"README.md",
 	"README.rst",
-}
-
-var archiveexts = map[ArchiveType]string{
-	ArchiveTarGz:  "tar.gz",
-	ArchiveTarXz:  "tar.xz",
-	ArchiveTarBz2: "tar.bz2",
-	ArchiveZip:    "zip",
 }

@@ -1,13 +1,14 @@
+// package gitin
 package gitin
 
 import git "github.com/jeffwelling/git2go/v37"
 
 type blobinfo struct {
-	name string
-	path string
-
-	blob *git.Blob
-	hash uint32
+	name     string
+	path     string
+	binary   bool
+	contents []byte
+	hash     uint32
 }
 
 type commitinfo struct {
@@ -24,16 +25,10 @@ type deltainfo struct {
 	Delcount int           `json:"delcount"`
 }
 
-type gitininfo struct {
-	cache *byte
-
-	indexes []indexinfo
-}
-
 type indexinfo struct {
-	repodir     string
-	name        string
-	description string
+	Repodir     string `json:"repodir"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
 
 	repoinfo *repoinfo
 }

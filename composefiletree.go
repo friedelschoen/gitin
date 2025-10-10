@@ -26,7 +26,7 @@ func highlight(fp io.Writer, blob *blobinfo) error {
 	params := executeinfo{
 		command:     Config.Highlightcmd,
 		cachename:   "files",
-		content:     blob.blob.Contents(),
+		content:     blob.contents,
 		contenthash: blob.hash,
 		fp:          fp,
 		environ:     map[string]string{"filename": blob.name, "type": typ, "scheme": Config.Colorscheme},
@@ -44,7 +44,7 @@ func writeblob(refname string, relpath int, blob *blobinfo) error {
 			return err
 		}
 		defer file.Close()
-		file.Write(blob.blob.Contents())
+		file.Write(blob.contents)
 	}
 
 	hashpath := strings.Repeat("../", relpath) + destpath
@@ -68,17 +68,17 @@ func writefile(info *repoinfo, refname string, relpath int, blob *blobinfo) erro
 		defer fp.Close()
 		writeheader(fp, info, relpath, true, info.name, fmt.Sprintf("%s in %s", html.EscapeString(blob.path), refname))
 		fmt.Fprintf(fp, "<p> %s (%dB) <a href='%sblob/%s/%s'>download</a></p><hr/>", html.EscapeString(blob.name),
-			blob.blob.Size(), strings.Repeat("../", relpath), refname, pathunhide(blob.path))
+			len(blob.contents), strings.Repeat("../", relpath), refname, pathunhide(blob.path))
 
-		if err := writepreview(fp, relpath, blob, 0); err != nil {
+		if err := writepreview(fp, relpath, blob); err != nil {
 			return err
 		}
 
-		if blob.blob.IsBinary() {
+		if blob.binary {
 			fmt.Fprintf(fp, "<p>Binary file.</p>\n")
-		} else if Config.Maxfilesize != -1 && blob.blob.Size() >= int64(Config.Maxfilesize) {
+		} else if Config.Maxfilesize != -1 && len(blob.contents) >= Config.Maxfilesize {
 			fmt.Fprintf(fp, "<p>File too big.</p>\n")
-		} else if blob.blob.Size() > 0 {
+		} else if len(blob.contents) > 0 {
 			if err := highlight(fp, blob); err != nil {
 				return err
 			}
@@ -147,7 +147,7 @@ func writetree(fp io.Writer, info *repoinfo, refname string, baserelpath int,
 	for i := range tree.EntryCount() {
 		entry := tree.EntryByIndex(i)
 		entryname := entry.Name
-		if entry == nil || entryname == "" {
+		if entryname == "" {
 			/* invalid entry */
 			continue
 		}
@@ -167,7 +167,8 @@ func writetree(fp io.Writer, info *repoinfo, refname string, baserelpath int,
 			var blob blobinfo
 			blob.name = entryname
 			blob.path = entrypath
-			blob.blob = obj
+			blob.binary = obj.IsBinary()
+			blob.contents = obj.Contents()
 			blob.hash = filehash(obj.Contents())
 
 			if err := writefile(info, refname, relpath, &blob); err != nil {

@@ -55,7 +55,7 @@ func iscategory(repodir string, category *string) bool {
 	return false
 }
 
-func WriteIndex(fp io.Writer, info *gitininfo) error {
+func WriteIndex(fp io.Writer, info []indexinfo) error {
 	os.MkdirAll(".cache", 0777)
 
 	cachefp, err := os.Create(".cache/index")
@@ -68,22 +68,22 @@ func WriteIndex(fp io.Writer, info *gitininfo) error {
 		"</thead><tbody>\n")
 
 	var category string = ""
-	for i, index := range info.indexes {
-		if iscategory(index.repodir, &category) {
+	for _, index := range info {
+		if iscategory(index.Repodir, &category) {
 			if err := writecategory(fp, category); err != nil {
 				return err
 			}
 		}
-		if index.name == "" {
-			repoinfo, err := Getrepo(info.indexes[i].repodir, 0)
+		if index.Name == "" {
+			repoinfo, err := Getrepo(index.Repodir, 0)
 			if err != nil {
 				return err
 			}
-			writeindexline(fp, cachefp, repoinfo.branch, info.indexes[i].repodir, repoinfo.name,
+			writeindexline(fp, cachefp, repoinfo.branch, index.Repodir, repoinfo.name,
 				repoinfo.description)
 		} else {
-			writeindexline(fp, cachefp, nil, info.indexes[i].repodir, info.indexes[i].name,
-				info.indexes[i].description)
+			writeindexline(fp, cachefp, nil, index.Repodir, index.Name,
+				index.Description)
 		}
 	}
 	fmt.Fprintf(fp, "</tbody>\n</table>")

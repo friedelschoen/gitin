@@ -78,9 +78,10 @@ func writesummary(fp io.Writer, info *repoinfo, refinfo *referenceinfo) error {
 		var blobinfo blobinfo
 		blobinfo.name = readmename
 		blobinfo.path = readmename
-		blobinfo.blob = readme
-		blobinfo.hash = filehash(readme.Contents())
-		if err := writepreview(fp, 1, &blobinfo, 1); err != nil {
+		blobinfo.binary = readme.IsBinary()
+		blobinfo.contents = readme.Contents()
+		blobinfo.hash = filehash(blobinfo.contents)
+		if err := writepreview(fp, 1, &blobinfo); err != nil {
 			return err
 		}
 	}

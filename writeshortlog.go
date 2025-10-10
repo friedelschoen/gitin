@@ -78,10 +78,10 @@ func writediagram(file io.Writer, li *loginfo) {
 
 	/* Draw the line graph from right to left */
 	for i, dc := range li.datecount {
-		var x1 int = width - padding_right - int(float64(i)*x_scale)
-		var y1 int = height - padding_bottom - int(float64(dc.count)*y_scale)
-		var x2 int = width - padding_right - int(float64(i+1)*x_scale)
-		var y2 int = height - padding_bottom - int(float64(dc.count)*y_scale)
+		x1 := width - padding_right - int(float64(i)*x_scale)
+		y1 := height - padding_bottom - int(float64(dc.count)*y_scale)
+		x2 := width - padding_right - int(float64(i+1)*x_scale)
+		y2 := height - padding_bottom - int(float64(dc.count)*y_scale)
 
 		fmt.Fprintf(
 			file,
