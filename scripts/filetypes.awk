@@ -1,14 +1,15 @@
 #!/usr/bin/awk -f
 
 BEGIN {
-    print "package gitin"
-    print "import \"github.com/friedelschoen/gitin-go/preview\""
-    print "var Filetypes = []preview.FileType{"
+    print "package preview"
+    print "var Filetypes = []FileType{"
 }
 /^#/ {
     next
 }
 $0 {
-    printf("{ \"%s\", \"%s\", \"%s\" },\n", $1, $2, $3)
+    prev = $3
+    if (!prev) prev = "nil"
+    printf("{ \"%s\", \"%s\", %s, \"%s\" },\n", $1, $2, prev, $4)
 }
 END { print "}" }

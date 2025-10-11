@@ -5,7 +5,8 @@ import "strings"
 type FileType struct {
 	Pattern string
 	Image   string
-	Preview string
+	Preview Previewer
+	Param   string
 }
 
 func (ft FileType) Match(s string) bool {

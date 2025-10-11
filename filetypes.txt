@@ -1,35 +1,37 @@
+# scripts/filetypes.awk < filetypes.txt > internal/preview/filetypes.go
+#
 # this is a space-delimited tabel
 # 1st: extension, the file ends with ...
 # 2nd: icon, must be an icon in ./icons
 # 3rd: preview (optional), can be followed by an parameter, delimited by colon (:). Must be one of the following
-#  - configtree: parses this file as either its extension or parameter,
+#  - ConfigPreviewer: parses this file as either its extension or parameter,
 #    supported is 'ini', 'toml' and 'yaml' (json is a subset of yaml)
-#  - image: pastes an image pointing at this file
-#  - pandoc: generates html using pandoc, input-type is either its extension or parameter
+#  - ImagePreviewer: pastes an ImagePreviewer pointing at this file
+#  - CommandPreviewer("pandoc")  : generates html using CommandPreviewer("pandoc")  , input-type is either its extension or parameter
 
-*.ini source configtree
-*.toml source configtree
-*.json source configtree:yaml
-*.yaml source configtree:yaml
-*.yml source configtree:yaml
-*.jpeg image image
-*.jpg image image
-*.png image image
-*.svg image image
-*.webp image image
-*.csv text pandoc
-*.tsv text pandoc
-*.md text pandoc:gfm
-*.rst text pandoc:rst
+*.ini source ConfigPreviewer
+*.toml source ConfigPreviewer
+*.json source ConfigPreviewer
+*.yaml source ConfigPreviewer
+*.yml source ConfigPreviewer
+*.jpeg image ImagePreviewer
+*.jpg image ImagePreviewer
+*.png image ImagePreviewer
+*.svg image ImagePreviewer
+*.webp image ImagePreviewer
+*.csv text CommandPreviewer("pandoc")
+*.tsv text CommandPreviewer("pandoc")
+*.md text CommandPreviewer("pandoc") gfm
+*.rst text CommandPreviewer("pandoc") rst
 
-*.1 text pandoc:man
-*.2 text pandoc:man
-*.3 text pandoc:man
-*.4 text pandoc:man
-*.5 text pandoc:man
-*.6 text pandoc:man
-*.7 text pandoc:man
-*.8 text pandoc:man
+*.1 text CommandPreviewer("pandoc") man
+*.2 text CommandPreviewer("pandoc") man
+*.3 text CommandPreviewer("pandoc") man
+*.4 text CommandPreviewer("pandoc") man
+*.5 text CommandPreviewer("pandoc") man
+*.6 text CommandPreviewer("pandoc") man
+*.7 text CommandPreviewer("pandoc") man
+*.8 text CommandPreviewer("pandoc") man
 
 *.ai image
 *.asm source

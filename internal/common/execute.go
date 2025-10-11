@@ -12,16 +12,15 @@ import (
 )
 
 type ExecuteParams struct {
-	Command     string
-	Destination io.Writer
-	Filename    string
-	Hash        uint32
-	CacheName   string
-	Content     []byte
-	Environ     map[string]string
+	Command   string
+	Filename  string
+	Hash      uint32
+	CacheName string
+	Content   []byte
+	Environ   map[string]string
 }
 
-func ExecuteCache(params *ExecuteParams) error {
+func ExecuteCache(w io.Writer, params *ExecuteParams) error {
 	os.MkdirAll(path.Join(".cache", params.CacheName), 0777)
 
 	if !Force {
@@ -29,7 +28,7 @@ func ExecuteCache(params *ExecuteParams) error {
 		if err == nil {
 			defer cache.Close()
 
-			_, err := cache.WriteTo(params.Destination)
+			_, err := cache.WriteTo(w)
 			return err
 		}
 	}
@@ -57,7 +56,7 @@ func ExecuteCache(params *ExecuteParams) error {
 	cmd := exec.Command("sh", "-c", params.Command)
 	cmd.Dir = tempdir
 	cmd.Stdin = bytes.NewReader(params.Content)
-	cmd.Stdout = io.MultiWriter(params.Destination, cachefile)
+	cmd.Stdout = io.MultiWriter(w, cachefile)
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	env := os.Environ()

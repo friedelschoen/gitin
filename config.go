@@ -15,8 +15,7 @@ type MainConfig struct {
 	Splitdirectories     bool   `toml:"splitdirectories"`
 	SplitdirectoriesAuto bool   `toml:"splitdirectories-auto"`
 
-	Highlightcmd string `toml:"command-highlight"`
-	Pandoccmd    string `toml:"command-pandoc"`
+	PreviewCommands map[string]string `toml:"command-pandoc"`
 
 	/* Limits for commits and file sizes */
 	Maxcommits  int `toml:"limit-commits"`
@@ -68,11 +67,9 @@ var Config MainConfig = MainConfig{
 	/* Path to the stylesheet (CSS file) used for styling the generated HTML. */
 	Stylesheet: "style.css",
 
-	/* Command to execute for highlighting syntax in files within the HTML output. The colorscheme will
-	 * be substituted into this command. */
-	Highlightcmd: "chroma --html --html-only --html-lines --html-inline-styles --style=$scheme --lexer=$type",
-
-	Pandoccmd: "pandoc --from=$type --to=html",
+	PreviewCommands: map[string]string{
+		"preview": "pandoc --from=$type --to=html",
+	},
 
 	/* Color scheme to use for syntax highlighting in the HTML output. */
 	Colorscheme: "pastie",

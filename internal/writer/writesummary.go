@@ -1,7 +1,6 @@
 package writer
 
 import (
-	"errors"
 	"fmt"
 	"hash/crc32"
 	"io"
@@ -11,40 +10,7 @@ import (
 	git "github.com/jeffwelling/git2go/v37"
 )
 
-type blobinfo struct {
-	name     string
-	path     string
-	binary   bool
-	contents []byte
-	hash     uint32
-}
-
-var ErrNoBlob = errors.New("object not a blob")
-
-func getcommitblob(repo *git.Repository, commit *git.Commit, path string) (*git.Blob, error) {
-	tree, err := commit.Tree()
-	if err != nil {
-		return nil, err
-	}
-
-	entry, err := tree.EntryByPath(path)
-	if err != nil {
-		return nil, err
-	}
-
-	if entry.Type != git.ObjectBlob {
-		return nil, ErrNoBlob
-	}
-
-	return repo.LookupBlob(entry.Id)
-}
-
-func filehash(b []byte) uint32 {
-	return crc32.ChecksumIEEE(b)
-}
-
 func writesummary(fp io.Writer, info *wrapper.RepoInfo, refinfo *wrapper.ReferenceInfo) error {
-
 	/* log for HEAD */
 	writeheader(fp, info, 1, true, info.Name, refinfo.Refname)
 
@@ -75,7 +41,7 @@ func writesummary(fp io.Writer, info *wrapper.RepoInfo, refinfo *wrapper.Referen
 	var readmename string
 	for _, af := range gitin.Config.Aboutfiles {
 		var err error
-		readme, err = getcommitblob(info.Repo, refinfo.Commit, readmename)
+		readme, err = wrapper.GetCommitBlob(info.Repo, refinfo.Commit, readmename)
 		readmename = af
 		if err != nil && readme != nil {
 			break
@@ -85,12 +51,13 @@ func writesummary(fp io.Writer, info *wrapper.RepoInfo, refinfo *wrapper.Referen
 	if readme != nil {
 		fmt.Fprintf(fp, "<h2>About</h2>\n")
 
-		var blobinfo blobinfo
-		blobinfo.name = readmename
-		blobinfo.path = readmename
-		blobinfo.binary = readme.IsBinary()
-		blobinfo.contents = readme.Contents()
-		blobinfo.hash = filehash(blobinfo.contents)
+		blobinfo := wrapper.BlobInfo{
+			Name:     readmename,
+			Path:     readmename,
+			IsBinary: readme.IsBinary(),
+			Contents: readme.Contents(),
+			Hash:     crc32.ChecksumIEEE(readme.Contents()),
+		}
 		if err := writepreview(fp, 1, &blobinfo); err != nil {
 			return err
 		}
