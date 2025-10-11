@@ -1,4 +1,4 @@
-package gitin
+package writer
 
 import (
 	"bytes"
@@ -8,9 +8,19 @@ import (
 	"io"
 	"path"
 	"strings"
+
+	"github.com/friedelschoen/gitin-go"
+	"github.com/friedelschoen/gitin-go/internal/common"
+	"github.com/friedelschoen/gitin-go/internal/preview"
 )
 
 type Previewer = func(w io.Writer, blob *blobinfo, relpath int, param string) error
+
+var Previewers = map[string]Previewer{
+	"pandoc":     writepandoc,
+	"configtree": writepreviewtree,
+	"image":      writeimage,
+}
 
 var ErrInvalidParam = errors.New("invalid parameter")
 
@@ -18,17 +28,17 @@ func writepandoc(fp io.Writer, blob *blobinfo, relpath int, typ string) error {
 	if typ == "" {
 		return fmt.Errorf("%w: %s", ErrInvalidParam, typ)
 	}
-	var params = executeinfo{
-		command:     Config.Pandoccmd,
-		cachename:   "preview",
-		content:     blob.contents,
-		contenthash: blob.hash,
-		fp:          fp,
-		environ:     map[string]string{"filename": blob.name, "type": typ},
+	var params = common.ExecuteParams{
+		Command:     gitin.Config.Pandoccmd,
+		CacheName:   "preview",
+		Content:     blob.contents,
+		Hash:        blob.hash,
+		Destination: fp,
+		Environ:     map[string]string{"filename": blob.name, "type": typ},
 	}
 
 	fmt.Fprintf(fp, "<div class=\"preview\">\n")
-	err := execute(&params)
+	err := common.ExecuteCache(&params)
 	fmt.Fprintf(fp, "</div>\n")
 
 	return err
@@ -39,7 +49,7 @@ func writepreviewtree(fp io.Writer, blob *blobinfo, relpath int, typ string) err
 		return fmt.Errorf("%w: %s", ErrInvalidParam, typ)
 	}
 	fmt.Fprintf(fp, "<div class=\"preview\">\n")
-	err := WriteConfigTree(fp, bytes.NewReader(blob.contents), typ)
+	err := preview.WriteConfigTree(fp, bytes.NewReader(blob.contents), typ)
 	fmt.Fprintf(fp, "</div>\n")
 	return err
 }
@@ -51,31 +61,11 @@ func writeimage(fp io.Writer, blob *blobinfo, relpath int, filename string) erro
 	return nil
 }
 
-var Previewers = map[string]Previewer{
-	"pandoc":     writepandoc,
-	"configtree": writepreviewtree,
-	"image":      writeimage,
-}
-
-type FileType struct {
-	pattern string
-	image   string
-	preview string
-}
-
-func (ft FileType) Match(s string) bool {
-	pre, suf, ok := strings.Cut(ft.pattern, "*")
-	if !ok {
-		return s == ft.pattern
-	}
-	return strings.HasPrefix(s, pre) && strings.HasSuffix(s, suf)
-}
-
 func writepreview(fp io.Writer, relpath int, blob *blobinfo) error {
 	var typ string
-	for _, ft := range filetypes {
+	for _, ft := range gitin.Filetypes {
 		if ft.Match(blob.name) {
-			typ = ft.preview
+			typ = ft.Preview
 			break
 		}
 	}

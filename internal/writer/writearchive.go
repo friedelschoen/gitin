@@ -1,4 +1,4 @@
-package gitin
+package writer
 
 import (
 	"archive/tar"
@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/dsnet/compress/bzip2"
+	"github.com/friedelschoen/gitin-go/internal/wrapper"
 	git "github.com/jeffwelling/git2go/v37"
 	"github.com/klauspost/compress/zstd"
 	"github.com/ulikunitz/xz"
@@ -95,9 +96,9 @@ func NewCounter(w io.Writer) (io.Writer, *int64) {
 }
 
 /* Stream een archief van de commit-tree naar fp */
-func writearchive(w io.Writer, info *repoinfo, ext string, refinfo *referenceinfo) (int64, error) {
+func writearchive(w io.Writer, info *wrapper.RepoInfo, ext string, refinfo *wrapper.ReferenceInfo) (int64, error) {
 	w, counter := NewCounter(w)
-	commit := refinfo.commit
+	commit := refinfo.Commit
 	committer := commit.Committer()
 	mtime := time.Now().UTC()
 	if committer != nil && !committer.When.IsZero() {
@@ -161,7 +162,7 @@ func writearchive(w io.Writer, info *repoinfo, ext string, refinfo *referenceinf
 	err = tree.Walk(func(pfx string, te *git.TreeEntry) error {
 		switch te.Type {
 		case git.ObjectBlob:
-			blob, err := info.repo.LookupBlob(te.Id)
+			blob, err := info.Repo.LookupBlob(te.Id)
 			if err != nil {
 				return fmt.Errorf("lookup blob %s: %w", te.Name, err)
 			}

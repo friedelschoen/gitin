@@ -2,36 +2,39 @@ package gitin
 
 type MainConfig struct {
 	/* Site information settings */
-	Sitename        string `conf:"name"`
-	Sitedescription string `conf:"description"`
-	Footertext      string `conf:"footer"`
+	Sitename        string `toml:"name"`
+	Sitedescription string `toml:"description"`
+	Footertext      string `toml:"footer"`
 
 	/* File and path settings */
-	Favicon              string `conf:"favicon"`
-	Favicontype          string `conf:"favicontype"`
-	Logoicon             string `conf:"logoicon"`
-	Stylesheet           string `conf:"stylesheet"`
-	Colorscheme          string `conf:"colorscheme"`
-	Splitdirectories     bool   `conf:"splitdirectories"`
-	SplitdirectoriesAuto bool   `conf:"splitdirectories-auto"`
+	Favicon              string `toml:"favicon"`
+	Favicontype          string `toml:"favicontype"`
+	Logoicon             string `toml:"logoicon"`
+	Stylesheet           string `toml:"stylesheet"`
+	Colorscheme          string `toml:"colorscheme"`
+	Splitdirectories     bool   `toml:"splitdirectories"`
+	SplitdirectoriesAuto bool   `toml:"splitdirectories-auto"`
 
-	Highlightcmd string `conf:"command/highlight"`
-	Pandoccmd    string `conf:"command/pandoc"`
+	Highlightcmd string `toml:"command-highlight"`
+	Pandoccmd    string `toml:"command-pandoc"`
 
 	/* Limits for commits and file sizes */
-	Maxcommits  int `conf:"limit/commits"`
-	Maxfilesize int `conf:"limit/filesize"`
+	Maxcommits  int `toml:"limit-commits"`
+	Maxfilesize int `toml:"limit-filesize"`
 
-	Archives []string `conf:"archives"`
+	Archives []string `toml:"archives"`
 
 	/* Files and output configurations */
-	Tagatomfile string `conf:"files/tag-atom"`
+	Tagatomfile string `toml:"files-tag-atom"`
 
-	Clonepull string `conf:"clone/pull"`
-	Clonepush string `conf:"clone/push"`
+	Clonepull string `toml:"clone-pull"`
+	Clonepush string `toml:"clone-push"`
 
-	Autofilelimit int `conf:"autofilelimit"`
+	Autofilelimit int `toml:"autofilelimit"`
 	Configfile    string
+
+	Pinfiles   []string
+	Aboutfiles []string
 }
 
 /* Configuration keys for the configuration parser. */
@@ -99,18 +102,17 @@ var Config MainConfig = MainConfig{
 
 	Clonepull: "",
 	Clonepush: "",
-}
 
-var pinfiles = []string{
-	"README", "README.md", "CONTRIBUTING",
-	"CONTRIBUTING.md", "CHANGELOG", "CHANGELOG.md",
-	"LICENSE", "LICENSE.md", "COPYING",
-	"COPYING.md", "CODE_OF_CONDUCT", "CODE_OF_CONDUCT.md",
-	"SECURITY", "SECURITY.md",
-}
-
-var aboutfiles = []string{
-	"README",
-	"README.md",
-	"README.rst",
+	Pinfiles: []string{
+		"README", "README.md", "CONTRIBUTING",
+		"CONTRIBUTING.md", "CHANGELOG", "CHANGELOG.md",
+		"LICENSE", "LICENSE.md", "COPYING",
+		"COPYING.md", "CODE_OF_CONDUCT", "CODE_OF_CONDUCT.md",
+		"SECURITY", "SECURITY.md",
+	},
+	Aboutfiles: []string{
+		"README",
+		"README.md",
+		"README.rst",
+	},
 }

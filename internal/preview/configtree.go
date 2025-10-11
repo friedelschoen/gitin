@@ -1,4 +1,4 @@
-package gitin
+package preview
 
 import (
 	"bufio"
@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/pelletier/go-toml/v2"
+	"github.com/BurntSushi/toml"
 	"gopkg.in/yaml.v3"
 	"howett.net/plist"
 )
@@ -44,7 +44,7 @@ func WriteConfigTree(w io.Writer, r io.Reader, fileType string) error {
 		}
 	case "toml":
 		dec := toml.NewDecoder(r)
-		if err = dec.Decode(&data); err != nil {
+		if _, err = dec.Decode(&data); err != nil {
 			fail(w, err)
 			return err
 		}

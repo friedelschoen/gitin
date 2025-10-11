@@ -1,33 +1,34 @@
-package gitin
+package wrapper
 
 import (
 	"slices"
 	"strings"
 
+	"github.com/friedelschoen/gitin-go/internal/common"
 	git "github.com/jeffwelling/git2go/v37"
 )
 
-func comparerefs(left, right *referenceinfo) int {
-	if left.istag != right.istag {
+func comparerefs(left, right *ReferenceInfo) int {
+	if left.IsTag != right.IsTag {
 		intbool := func(v bool) int {
 			if v {
 				return 1
 			}
 			return 0
 		}
-		return intbool(left.istag) - intbool(right.istag)
+		return intbool(left.IsTag) - intbool(right.IsTag)
 	}
 
-	tleft := left.commit.Committer().When
-	tright := right.commit.Committer().When
+	tleft := left.Commit.Committer().When
+	tright := right.Commit.Committer().When
 
 	if tleft != tright {
 		return int(tright.UnixNano() - tleft.UnixNano())
 	}
-	return strings.Compare(left.ref.Shorthand(), right.ref.Shorthand())
+	return strings.Compare(left.Ref.Shorthand(), right.Ref.Shorthand())
 }
 
-func getreference(ref *git.Reference) (*referenceinfo, error) {
+func getreference(ref *git.Reference) (*ReferenceInfo, error) {
 	if !ref.IsBranch() && !ref.IsTag() {
 		return nil, nil
 	}
@@ -43,22 +44,22 @@ func getreference(ref *git.Reference) (*referenceinfo, error) {
 		return nil, err
 	}
 
-	var out referenceinfo
-	out.ref = unref
-	out.commit, _ = commit.AsCommit() /* ignoring error, we were peeling for a commit */
-	out.refname = escaperefname(ref.Shorthand())
-	out.istag = ref.IsTag()
+	var out ReferenceInfo
+	out.Ref = unref
+	out.Commit, _ = commit.AsCommit() /* ignoring error, we were peeling for a commit */
+	out.Refname = common.Escaperefname(ref.Shorthand())
+	out.IsTag = ref.IsTag()
 	return &out, nil
 }
 
-func getrefs(repo *git.Repository) ([]*referenceinfo, error) {
+func getrefs(repo *git.Repository) ([]*ReferenceInfo, error) {
 
 	iter, err := repo.NewReferenceIterator()
 	if err != nil {
 		return nil, err
 	}
 
-	var out []*referenceinfo
+	var out []*ReferenceInfo
 	for {
 		ref, err := iter.Next()
 		if gerr, ok := err.(*git.GitError); ok && gerr.Code == git.ErrorCodeIterOver {

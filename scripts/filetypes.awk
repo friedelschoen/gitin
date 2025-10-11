@@ -2,7 +2,8 @@
 
 BEGIN {
     print "package gitin"
-    print "var filetypes = []FileType{"
+    print "import \"github.com/friedelschoen/gitin-go/preview\""
+    print "var Filetypes = []preview.FileType{"
 }
 /^#/ {
     next

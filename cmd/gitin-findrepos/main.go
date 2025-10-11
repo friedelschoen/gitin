@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/friedelschoen/gitin-go"
+	"github.com/friedelschoen/gitin-go/internal/common"
 )
 
 func main() {
@@ -29,7 +29,7 @@ func main() {
 	}
 
 	printed := false
-	for repo := range gitin.Findrepos(start) {
+	for repo := range common.Findrepos(start) {
 		fmt.Println(repo)
 		printed = true
 	}

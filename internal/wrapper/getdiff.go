@@ -1,4 +1,4 @@
-package gitin
+package wrapper
 
 import (
 	"encoding/json"
@@ -11,17 +11,17 @@ import (
 )
 
 /* Function to dump the commitstats struct into a file */
-func dumpdiff(fp io.Writer, stats commitinfo) error {
+func dumpdiff(fp io.Writer, stats CommitInfo) error {
 	return json.NewEncoder(fp).Encode(stats)
 }
 
 /* Function to parse the commitstats struct from a file */
-func loaddiff(fp io.Reader) (stats commitinfo, err error) {
+func loaddiff(fp io.Reader) (stats CommitInfo, err error) {
 	err = json.NewDecoder(fp).Decode(&stats)
 	return
 }
 
-func getdiff(info *repoinfo, commit *git.Commit, docache bool) (commitinfo, error) {
+func GetDiff(info *RepoInfo, commit *git.Commit, docache bool) (CommitInfo, error) {
 
 	os.MkdirAll(".cache/diffs", 0777)
 
@@ -39,7 +39,7 @@ func getdiff(info *repoinfo, commit *git.Commit, docache bool) (commitinfo, erro
 
 	tree, err := commit.Tree()
 	if err != nil {
-		return commitinfo{}, err
+		return CommitInfo{}, err
 	}
 
 	parent := commit.Parent(0)
@@ -50,34 +50,34 @@ func getdiff(info *repoinfo, commit *git.Commit, docache bool) (commitinfo, erro
 
 	diffopt, err := git.DefaultDiffOptions()
 	if err != nil {
-		return commitinfo{}, err
+		return CommitInfo{}, err
 	}
 	difffindopt, err := git.DefaultDiffFindOptions()
 	if err != nil {
-		return commitinfo{}, err
+		return CommitInfo{}, err
 	}
 	diffopt.Flags |= git.DiffDisablePathspecMatch | git.DiffIgnoreSubmodules
 	difffindopt.Flags |= git.DiffFindRenames | git.DiffFindCopies | git.DiffFindExactMatchOnly
 
-	diff, err := info.repo.DiffTreeToTree(parentTree, tree, &diffopt)
+	diff, err := info.Repo.DiffTreeToTree(parentTree, tree, &diffopt)
 	if err != nil {
-		return commitinfo{}, err
+		return CommitInfo{}, err
 	}
 
 	if err := diff.FindSimilar(&difffindopt); err != nil {
-		return commitinfo{}, err
+		return CommitInfo{}, err
 
 	}
-	var ci commitinfo
-	ci.diff = diff
+	var ci CommitInfo
+	ci.Diff = diff
 	ndeltas, _ := diff.NumDeltas()
-	ci.Deltas = make([]deltainfo, ndeltas)
+	ci.Deltas = make([]DeltaInfo, ndeltas)
 	for i := range ndeltas {
 		delta, err := diff.GetDelta(i)
 		if err != nil {
 			log.Printf("unable to load deltas %d of commit %s\n", i, oid)
 		}
-		ci.Deltas[i].delta = delta
+		ci.Deltas[i].Delta = delta
 		if delta.Flags&git.DiffFlagBinary > 0 {
 			continue
 		}
@@ -91,7 +91,7 @@ func getdiff(info *repoinfo, commit *git.Commit, docache bool) (commitinfo, erro
 	if file, err := os.Create(path.Join(".cache/diffs", oid)); err == nil {
 		defer file.Close()
 		if err := dumpdiff(file, ci); err != nil {
-			return commitinfo{}, err
+			return CommitInfo{}, err
 		}
 	}
 	return ci, err

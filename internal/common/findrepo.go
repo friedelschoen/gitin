@@ -1,4 +1,4 @@
-package gitin
+package common
 
 import (
 	"io/fs"

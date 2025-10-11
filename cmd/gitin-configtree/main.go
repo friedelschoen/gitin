@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/friedelschoen/gitin-go"
+	"github.com/friedelschoen/gitin-go/internal/preview"
 )
 
 func main() {
@@ -13,7 +13,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	err := gitin.WriteConfigTree(os.Stdout, os.Stdin, os.Args[1])
+	err := preview.WriteConfigTree(os.Stdout, os.Stdin, os.Args[1])
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "error: ", err)
 	}

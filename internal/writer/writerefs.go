@@ -1,4 +1,4 @@
-package gitin
+package writer
 
 import (
 	"fmt"
@@ -6,6 +6,8 @@ import (
 	"io"
 	"strings"
 
+	"github.com/friedelschoen/gitin-go/internal/common"
+	"github.com/friedelschoen/gitin-go/internal/wrapper"
 	git "github.com/jeffwelling/git2go/v37"
 )
 
@@ -25,30 +27,29 @@ func writereffooter(fp io.Writer) {
 	fmt.Fprintf(fp, "</tbody></table></div>\n")
 }
 
-func writerefs(fp io.Writer, info *repoinfo, relpath int, current *git.Reference) int {
-
+func writerefs(fp io.Writer, info *wrapper.RepoInfo, relpath int, current *git.Reference) int {
 	isbranch := true
 
 	writerefheader(fp, "Branches")
 
-	for _, refinfo := range info.refs {
-		iscurrent := current.Cmp(refinfo.ref) == 0
+	for _, refinfo := range info.Refs {
+		iscurrent := current.Cmp(refinfo.Ref) == 0
 
-		if isbranch && refinfo.istag {
+		if isbranch && refinfo.IsTag {
 			writereffooter(fp)
 			writerefheader(fp, "Tags")
 			isbranch = false
 		}
 
-		author := refinfo.commit.Author()
-		summary := refinfo.commit.Summary()
-		oid := refinfo.commit.Id().String()
+		author := refinfo.Commit.Author()
+		summary := refinfo.Commit.Summary()
+		oid := refinfo.Commit.Id().String()
 
 		if len(summary) > MAXSUMMARY {
 			summary = summary[:MAXSUMMARY] + "..."
 		}
 
-		escapename := pathunhide(refinfo.refname)
+		escapename := common.Pathunhide(refinfo.Refname)
 
 		if iscurrent {
 			fmt.Fprintf(fp, "<tr class=\"current-ref\"><td>")
@@ -56,7 +57,7 @@ func writerefs(fp io.Writer, info *repoinfo, relpath int, current *git.Reference
 			fmt.Fprintf(fp, "<tr><td>")
 		}
 		/* is current */
-		fmt.Fprintf(fp, "<a href=\"%s%s/\">%s</a>", strings.Repeat("../", relpath), escapename, html.EscapeString(refinfo.refname))
+		fmt.Fprintf(fp, "<a href=\"%s%s/\">%s</a>", strings.Repeat("../", relpath), escapename, html.EscapeString(refinfo.Refname))
 		fmt.Fprintf(fp, " <small>at \"<a href=\"%scommit/%s.html\">%s</a>\"</small>", strings.Repeat("../", relpath), oid, summary)
 
 		fmt.Fprintf(fp, "</td><td>")

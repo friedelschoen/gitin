@@ -1,4 +1,4 @@
-package gitin
+package writer
 
 import (
 	"encoding/xml"
@@ -6,6 +6,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/friedelschoen/gitin-go/internal/wrapper"
 	git "github.com/jeffwelling/git2go/v37"
 )
 
@@ -108,19 +109,19 @@ func makeEntry(commit *git.Commit, refname string) atomEntry {
 	}
 }
 
-func writeatomrefs(w io.Writer, info *repoinfo) error {
+func writeatomrefs(w io.Writer, info *wrapper.RepoInfo) error {
 	var entries []atomEntry
-	for _, r := range info.refs {
-		entries = append(entries, makeEntry(r.commit, r.refname))
+	for _, r := range info.Refs {
+		entries = append(entries, makeEntry(r.Commit, r.Refname))
 	}
 	return writeatomfeed(w, info, entries)
 }
 
-func writeatomfeed(w io.Writer, info *repoinfo, entries []atomEntry) error {
+func writeatomfeed(w io.Writer, info *wrapper.RepoInfo, entries []atomEntry) error {
 	feed := atomFeed{
 		XMLNS:    atomNS,
-		Title:    fmt.Sprintf("%s, branch HEAD", info.name),
-		Subtitle: info.description,
+		Title:    fmt.Sprintf("%s, branch HEAD", info.Name),
+		Subtitle: info.Description,
 		Entries:  entries,
 	}
 

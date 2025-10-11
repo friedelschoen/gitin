@@ -1,4 +1,4 @@
-package gitin
+package wrapper
 
 import (
 	"encoding/json"
@@ -10,13 +10,13 @@ import (
 	"strings"
 )
 
-func parsecache(buffer io.Reader) (indexes []indexinfo, err error) {
+func parsecache(buffer io.Reader) (indexes []IndexInfo, err error) {
 	err = json.NewDecoder(buffer).Decode(&indexes)
 	return
 }
 
-func GetIndex(repos iter.Seq[string]) []indexinfo {
-	var info []indexinfo
+func GetIndex(repos iter.Seq[string]) []IndexInfo {
+	var info []IndexInfo
 
 	/* parse cache */
 	if cachefp, err := os.Open(".cache/index"); err == nil {
@@ -29,15 +29,15 @@ func GetIndex(repos iter.Seq[string]) []indexinfo {
 
 	/* fill cache with to update repos */
 	for repodir := range repos {
-		if idx := slices.IndexFunc(info, func(ii indexinfo) bool { return ii.Repodir == repodir }); idx != -1 {
+		if idx := slices.IndexFunc(info, func(ii IndexInfo) bool { return ii.Repodir == repodir }); idx != -1 {
 			info[idx].Name = ""        /* to be filled */
 			info[idx].Description = "" /* to be filled */
 		} else {
-			info = append(info, indexinfo{Repodir: repodir})
+			info = append(info, IndexInfo{Repodir: repodir})
 		}
 	}
 
-	slices.SortFunc(info, func(left, right indexinfo) int {
+	slices.SortFunc(info, func(left, right IndexInfo) int {
 		return strings.Compare(left.Repodir, right.Repodir)
 	})
 

@@ -1,4 +1,4 @@
-package gitin
+package writer
 
 import (
 	"fmt"
@@ -7,6 +7,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/friedelschoen/gitin-go/internal/wrapper"
 	git "github.com/jeffwelling/git2go/v37"
 )
 
@@ -179,9 +180,9 @@ func mergedatecount(li *loginfo) {
 	li.datecount = li.datecount[:writeptr+1]
 }
 
-func countlog(info *repoinfo, head *git.Commit, li *loginfo) error {
+func countlog(info *wrapper.RepoInfo, head *git.Commit, li *loginfo) error {
 
-	w, err := info.repo.Walk()
+	w, err := info.Repo.Walk()
 	if err != nil {
 		return err
 	}
@@ -229,9 +230,9 @@ func countlog(info *repoinfo, head *git.Commit, li *loginfo) error {
 	return nil
 }
 
-func addrefcount(info *repoinfo, li *loginfo) error {
+func addrefcount(info *wrapper.RepoInfo, li *loginfo) error {
 
-	iter, err := info.repo.NewReferenceIterator()
+	iter, err := info.Repo.NewReferenceIterator()
 	if err != nil {
 		return err
 	}
@@ -292,7 +293,7 @@ func writeauthorlog(fp io.Writer, li *loginfo) {
 	fmt.Fprintf(fp, "</tbody></table>")
 }
 
-func writeshortlog(fp io.Writer, info *repoinfo, head *git.Commit) error {
+func writeshortlog(fp io.Writer, info *wrapper.RepoInfo, head *git.Commit) error {
 	var li loginfo
 	if err := countlog(info, head, &li); err != nil {
 		return err

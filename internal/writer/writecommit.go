@@ -1,4 +1,4 @@
-package gitin
+package writer
 
 import (
 	"fmt"
@@ -7,16 +7,18 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/friedelschoen/gitin-go/internal/common"
+	"github.com/friedelschoen/gitin-go/internal/wrapper"
 	git "github.com/jeffwelling/git2go/v37"
 )
 
 const MAXLINESTR = 80
 
-func hasheadfile(info *repoinfo, filename string) bool {
-	return slices.Contains(info.headfiles, filename)
+func hasheadfile(info *wrapper.RepoInfo, filename string) bool {
+	return slices.Contains(info.Headfiles, filename)
 }
 
-func writecommit(fp io.Writer, info *repoinfo, commit *git.Commit, ci *commitinfo, parentlink bool) error {
+func writecommit(fp io.Writer, info *wrapper.RepoInfo, commit *git.Commit, ci *wrapper.CommitInfo, parentlink bool) error {
 
 	author := commit.Author()
 	summary := commit.Summary()
@@ -27,7 +29,7 @@ func writecommit(fp io.Writer, info *repoinfo, commit *git.Commit, ci *commitinf
 		parentoid = parentcommit.String()
 	}
 
-	writeheader(fp, info, 1, false, info.name, fmt.Sprintf("%s (%s)", html.EscapeString(summary), oid))
+	writeheader(fp, info, 1, false, info.Name, fmt.Sprintf("%s (%s)", html.EscapeString(summary), oid))
 	fmt.Fprintf(fp, "<pre>")
 
 	fmt.Fprintf(fp, "<b>commit</b> <a href=\"%s.html\">%s</a>\n", oid, oid)
@@ -57,7 +59,7 @@ func writecommit(fp io.Writer, info *repoinfo, commit *git.Commit, ci *commitinf
 	/* diff stat */
 	fmt.Fprintf(fp, "<b>Diffstat:</b>\n<table>")
 	for i, del := range ci.Deltas {
-		delta := del.delta
+		delta := del.Delta
 
 		var c rune
 		switch delta.Status {
@@ -115,16 +117,16 @@ func writecommit(fp io.Writer, info *repoinfo, commit *git.Commit, ci *commitinf
 	fmt.Fprintf(fp, "<hr/>")
 
 	for i, del := range ci.Deltas {
-		delta := del.delta
+		delta := del.Delta
 
 		if hasheadfile(info, delta.OldFile.Path) {
 			fmt.Fprintf(fp, "<b>diff --git a/<a id=\"h%d\" href=\"../file/%s.html\">%s</a> ", i,
-				pathunhide(delta.OldFile.Path), html.EscapeString(delta.OldFile.Path))
+				common.Pathunhide(delta.OldFile.Path), html.EscapeString(delta.OldFile.Path))
 		} else {
 			fmt.Fprintf(fp, "<b>diff --git a/%s ", html.EscapeString(delta.OldFile.Path))
 		}
 		if hasheadfile(info, delta.NewFile.Path) {
-			fmt.Fprintf(fp, "b/<a href=\"../file/%s.html\">%s</a></b>\n", pathunhide(delta.NewFile.Path), html.EscapeString(delta.NewFile.Path))
+			fmt.Fprintf(fp, "b/<a href=\"../file/%s.html\">%s</a></b>\n", common.Pathunhide(delta.NewFile.Path), html.EscapeString(delta.NewFile.Path))
 		} else {
 			fmt.Fprintf(fp, "b/%s</b>\n", html.EscapeString(delta.NewFile.Path))
 		}
@@ -133,7 +135,7 @@ func writecommit(fp io.Writer, info *repoinfo, commit *git.Commit, ci *commitinf
 			continue
 		}
 
-		err := ci.diff.ForEach(func(file git.DiffDelta, progress float64) (git.DiffForEachHunkCallback, error) {
+		err := ci.Diff.ForEach(func(file git.DiffDelta, progress float64) (git.DiffForEachHunkCallback, error) {
 			j := 0
 			return func(hunk git.DiffHunk) (git.DiffForEachLineCallback, error) {
 				fmt.Fprintf(fp, "<a href=\"#h%d-%d\" id=\"h%d-%d\" class=\"h\">%s</a>\n", i, j, i, j, html.EscapeString(hunk.Header))

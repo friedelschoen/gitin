@@ -1,4 +1,4 @@
-package gitin
+package writer
 
 import (
 	"errors"
@@ -9,10 +9,13 @@ import (
 	"path"
 	"strings"
 
+	"github.com/friedelschoen/gitin-go"
+	"github.com/friedelschoen/gitin-go/internal/common"
+	"github.com/friedelschoen/gitin-go/internal/wrapper"
 	git "github.com/jeffwelling/git2go/v37"
 )
 
-func writelogline(fp io.Writer, commit *git.Commit, ci *commitinfo) {
+func writelogline(fp io.Writer, commit *git.Commit, ci *wrapper.CommitInfo) {
 	author := commit.Author()
 	summary := commit.Summary()
 
@@ -50,10 +53,10 @@ type logstate struct {
 	atom []atomEntry
 }
 
-func writelogcommit(s *logstate, info *repoinfo, index int, commit *git.Commit) error {
+func writelogcommit(s *logstate, info *wrapper.RepoInfo, index int, commit *git.Commit) error {
 	pat := path.Join("commit", commit.Id().String()+".html")
-	cachedcommit := !Force && FileExist(pat)
-	ci, err := getdiff(info, commit, cachedcommit)
+	cachedcommit := !common.Force && FileExist(pat)
+	ci, err := wrapper.GetDiff(info, commit, cachedcommit)
 	if err != nil {
 		return err
 	}
@@ -64,7 +67,7 @@ func writelogcommit(s *logstate, info *repoinfo, index int, commit *git.Commit) 
 			return err
 		}
 		defer commitfile.Close()
-		if err := writecommit(commitfile, info, commit, &ci, index == Config.Maxcommits); err != nil {
+		if err := writecommit(commitfile, info, commit, &ci, index == gitin.Config.Maxcommits); err != nil {
 			return err
 		}
 	}
@@ -76,41 +79,41 @@ func writelogcommit(s *logstate, info *repoinfo, index int, commit *git.Commit) 
 	return nil
 }
 
-func writelog(fp io.Writer, atom io.Writer, json io.Writer, info *repoinfo, refinfo *referenceinfo) error {
+func writelog(fp io.Writer, atom io.Writer, json io.Writer, info *wrapper.RepoInfo, refinfo *wrapper.ReferenceInfo) error {
 
 	os.Mkdir("commit", 0777)
-	os.Mkdir(refinfo.refname, 0777)
+	os.Mkdir(refinfo.Refname, 0777)
 
 	if fp != nil {
-		writeheader(fp, info, 1, true, info.name, refinfo.refname)
+		writeheader(fp, info, 1, true, info.Name, refinfo.Refname)
 
 		fmt.Fprintf(fp, "<h2>Archives</h2>")
 		fmt.Fprintf(fp, "<table><thead>\n<tr><td class=\"expand\">Name</td>"+
 			"<td class=\"num\">Size</td></tr>\n</thead><tbody>\n")
 	}
 
-	for _, ext := range Config.Archives {
+	for _, ext := range gitin.Config.Archives {
 		ext = strings.TrimPrefix(ext, ".") /* .tar.xz -> tar.xz, .zip -> zip */
-		arfp, err := os.Create(path.Join(refinfo.refname, refinfo.refname+"."+ext))
+		arfp, err := os.Create(path.Join(refinfo.Refname, refinfo.Refname+"."+ext))
 		if err != nil {
 			return err
 		}
 		defer arfp.Close()
 		arsize, err := writearchive(arfp, info, ext, refinfo)
-		arsize, unit := splitunit(arsize)
+		arsize, unit := common.Splitunit(arsize)
 		if fp != nil {
-			fmt.Fprintf(fp, "<tr><td><a href=\"%s.%s\">%s.%s</a></td><td>%d%s</td></tr>", refinfo.refname, ext, refinfo.refname, ext, arsize, unit)
+			fmt.Fprintf(fp, "<tr><td><a href=\"%s.%s\">%s.%s</a></td><td>%d%s</td></tr>", refinfo.Refname, ext, refinfo.Refname, ext, arsize, unit)
 		}
 	}
 
 	if fp != nil {
 		fmt.Fprintf(fp, "</tbody></table>")
 
-		if err := writeshortlog(fp, info, refinfo.commit); err != nil {
+		if err := writeshortlog(fp, info, refinfo.Commit); err != nil {
 			return err
 		}
 
-		fmt.Fprintf(fp, "<h2>Commits of %s</h2>", refinfo.refname)
+		fmt.Fprintf(fp, "<h2>Commits of %s</h2>", refinfo.Refname)
 
 		fmt.Fprintf(fp, "<table id=\"log\"><thead>\n<tr><td>Date</td>"+
 			"<td class=\"expand\">Commit message</td>"+
@@ -120,12 +123,12 @@ func writelog(fp io.Writer, atom io.Writer, json io.Writer, info *repoinfo, refi
 	}
 
 	/* Create a revwalk to iterate through the commits */
-	w, err := info.repo.Walk()
+	w, err := info.Repo.Walk()
 	if err != nil {
 		return fmt.Errorf("unable to initialize revwalk: %w", err)
 	}
 
-	if err := w.Push(refinfo.commit.Id()); err != nil {
+	if err := w.Push(refinfo.Commit.Id()); err != nil {
 		return err
 	}
 	ncommits := 0
@@ -134,7 +137,7 @@ func writelog(fp io.Writer, atom io.Writer, json io.Writer, info *repoinfo, refi
 		return true
 	})
 	w.Reset()
-	if err := w.Push(refinfo.commit.Id()); err != nil {
+	if err := w.Push(refinfo.Commit.Id()); err != nil {
 		return err
 	}
 
@@ -142,7 +145,7 @@ func writelog(fp io.Writer, atom io.Writer, json io.Writer, info *repoinfo, refi
 	var indx int = 0
 	state := logstate{fp: fp}
 	_ = w.Iterate(func(commit *git.Commit) bool {
-		if Config.Maxcommits > 0 && indx >= Config.Maxcommits {
+		if gitin.Config.Maxcommits > 0 && indx >= gitin.Config.Maxcommits {
 			return false
 		}
 		if err = writelogcommit(&state, info, indx, commit); err != nil {
@@ -150,23 +153,23 @@ func writelog(fp io.Writer, atom io.Writer, json io.Writer, info *repoinfo, refi
 		}
 		indx++
 
-		printprogress(indx, ncommits, fmt.Sprintf("write log:   %-20s", refinfo.refname))
+		common.Printprogress(indx, ncommits, fmt.Sprintf("write log:   %-20s", refinfo.Refname))
 		return true
 	})
 	if err != nil {
 		return err
 	}
-	if !Verbose && !Quiet {
+	if !common.Verbose && !common.Quiet {
 		fmt.Println()
 	}
 
 	if fp != nil {
-		if Config.Maxcommits > 0 && ncommits > Config.Maxcommits {
+		if gitin.Config.Maxcommits > 0 && ncommits > gitin.Config.Maxcommits {
 			var plural string
-			if ncommits-Config.Maxcommits != 1 {
+			if ncommits-gitin.Config.Maxcommits != 1 {
 				plural = "s"
 			}
-			fmt.Fprintf(fp, "<tr><td></td><td colspan=\"5\">%d%s commits left out...</td></tr>\n", ncommits-Config.Maxcommits, plural)
+			fmt.Fprintf(fp, "<tr><td></td><td colspan=\"5\">%d%s commits left out...</td></tr>\n", ncommits-gitin.Config.Maxcommits, plural)
 		}
 
 		fmt.Fprintf(fp, "</tbody></table>")

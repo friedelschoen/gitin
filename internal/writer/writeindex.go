@@ -1,4 +1,4 @@
-package gitin
+package writer
 
 import (
 	"fmt"
@@ -6,16 +6,20 @@ import (
 	"io"
 	"os"
 	"path"
+
+	"github.com/friedelschoen/gitin-go"
+	"github.com/friedelschoen/gitin-go/internal/common"
+	"github.com/friedelschoen/gitin-go/internal/wrapper"
 )
 
-func writeindexline(fp, cachefp io.Writer, ref *referenceinfo, repodir, name, description string) int {
+func writeindexline(fp, cachefp io.Writer, ref *wrapper.ReferenceInfo, repodir, name, description string) int {
 
 	var ret int = 0
 
 	fmt.Fprintf(fp, "<tr><td><a href=\"%s/\">%s</a></td><td>%s</td><td>", repodir, html.EscapeString(name), html.EscapeString(description))
 	if ref != nil {
-		fmt.Fprint(fp, rfc3339(ref.commit.Author().When))
-		sig := ref.commit.Author()
+		fmt.Fprint(fp, rfc3339(ref.Commit.Author().When))
+		sig := ref.Commit.Author()
 		if sig != nil && sig.Name != "" {
 			fmt.Fprintf(fp, " by %s", sig.Name)
 		}
@@ -33,10 +37,10 @@ func writecategory(index io.Writer, name string) error {
 		des string `conf:"description"`
 	}
 
-	if file, err := os.Open(path.Join(category, Config.Configfile)); err == nil {
+	if file, err := os.Open(path.Join(category, gitin.Config.Configfile)); err == nil {
 		defer file.Close()
-		for _, value := range ParseConfig(file, path.Join(category, Config.Configfile)) {
-			if err := UnmarshalConf(value, "", &keys); err != nil {
+		for _, value := range common.ParseConfig(file, path.Join(category, gitin.Config.Configfile)) {
+			if err := common.UnmarshalConf(value, "", &keys); err != nil {
 				return err
 			}
 		}
@@ -55,14 +59,14 @@ func iscategory(repodir string, category *string) bool {
 	return false
 }
 
-func WriteIndex(fp io.Writer, info []indexinfo) error {
+func WriteIndex(fp io.Writer, info []wrapper.IndexInfo) error {
 	os.MkdirAll(".cache", 0777)
 
 	cachefp, err := os.Create(".cache/index")
 	if err != nil {
 		return err
 	}
-	writeheader(fp, nil, 0, false, Config.Sitename, html.EscapeString(Config.Sitedescription))
+	writeheader(fp, nil, 0, false, gitin.Config.Sitename, html.EscapeString(gitin.Config.Sitedescription))
 	fmt.Fprintf(fp, "<table id=\"index\"><thead>\n"+
 		"<tr><td>Name</td><td class=\"expand\">Description</td><td>Last changes</td></tr>"+
 		"</thead><tbody>\n")
@@ -75,12 +79,12 @@ func WriteIndex(fp io.Writer, info []indexinfo) error {
 			}
 		}
 		if index.Name == "" {
-			repoinfo, err := Getrepo(index.Repodir, 0)
+			repoinfo, err := wrapper.Getrepo(index.Repodir, 0)
 			if err != nil {
 				return err
 			}
-			writeindexline(fp, cachefp, repoinfo.branch, index.Repodir, repoinfo.name,
-				repoinfo.description)
+			writeindexline(fp, cachefp, repoinfo.Branch, index.Repodir, repoinfo.Name,
+				repoinfo.Description)
 		} else {
 			writeindexline(fp, cachefp, nil, index.Repodir, index.Name,
 				index.Description)

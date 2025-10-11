@@ -1,10 +1,11 @@
-package gitin
+package writer
 
 import (
 	"encoding/json"
 	"io"
 	"time"
 
+	"github.com/friedelschoen/gitin-go/internal/wrapper"
 	git "github.com/jeffwelling/git2go/v37"
 )
 
@@ -74,20 +75,20 @@ func toJSONCommit(c *git.Commit) commitJSON {
 	}
 }
 
-func writejsonrefs(w io.Writer, info *repoinfo) error {
+func writejsonrefs(w io.Writer, info *wrapper.RepoInfo) error {
 	out := outJSON{
-		Branches: make([]refJSON, 0, len(info.refs)),
+		Branches: make([]refJSON, 0, len(info.Refs)),
 		Tags:     make([]refJSON, 0),
 	}
-	for _, r := range info.refs {
-		if r == nil || r.commit == nil {
+	for _, r := range info.Refs {
+		if r == nil || r.Commit == nil {
 			continue
 		}
 		jr := refJSON{
-			Name:   r.refname,
-			Commit: toJSONCommit(r.commit),
+			Name:   r.Refname,
+			Commit: toJSONCommit(r.Commit),
 		}
-		if r.istag {
+		if r.IsTag {
 			out.Tags = append(out.Tags, jr)
 		} else {
 			out.Branches = append(out.Branches, jr)

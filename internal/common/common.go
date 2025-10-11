@@ -1,4 +1,4 @@
-package gitin
+package common
 
 import (
 	"bytes"
@@ -14,7 +14,7 @@ var Quiet bool
 
 const bar_width = 80 /* The width of the progress bar */
 
-func printprogress[T Integer](indx T, ncommits T, what string) {
+func Printprogress[T Integer](indx T, ncommits T, what string) {
 	if Verbose || Quiet {
 		return
 	}
@@ -45,7 +45,7 @@ func printprogress[T Integer](indx T, ncommits T, what string) {
 	line.WriteTo(os.Stdout)
 }
 
-func splitunit(size int64) (int64, string) {
+func Splitunit(size int64) (int64, string) {
 	units := []string{"B", "KiB", "MiB", "GiB", "TiB"}
 	for i, unit := range units {
 		if size < 1024 || i == len(units)-1 {
@@ -56,6 +56,16 @@ func splitunit(size int64) (int64, string) {
 	return size, "<invalid>"
 }
 
-func escaperefname(refname string) string {
+func Escaperefname(refname string) string {
 	return strings.ReplaceAll(refname, "/", "-")
+}
+
+func Pathunhide(path string) string {
+	runes := []rune(path)
+	for i, chr := range runes {
+		if chr == '.' && (i == 0 || runes[i-1] == '/' && runes[i+1] != '/') {
+			runes[i] = '-'
+		}
+	}
+	return string(runes)
 }

@@ -1,24 +1,27 @@
-package gitin
+package writer
 
 import (
 	"fmt"
 	"os"
 	"path"
+
+	"github.com/friedelschoen/gitin-go/internal/common"
+	"github.com/friedelschoen/gitin-go/internal/wrapper"
 )
 
-func Composerepo(info *repoinfo) error {
-	if !Quiet {
-		if Columnate {
-			fmt.Printf("%s\t%s\n", info.name, info.repodir)
+func Composerepo(info *wrapper.RepoInfo) error {
+	if !common.Quiet {
+		if common.Columnate {
+			fmt.Printf("%s\t%s\n", info.Name, info.Repodir)
 		} else {
-			fmt.Printf("updating '%s' . %s\n", info.name, info.repodir)
+			fmt.Printf("updating '%s' . %s\n", info.Name, info.Repodir)
 		}
 	}
 
-	for _, ref := range info.refs {
-		os.MkdirAll(pathunhide(ref.refname), 0777)
+	for _, ref := range info.Refs {
+		os.MkdirAll(common.Pathunhide(ref.Refname), 0777)
 
-		file, err := os.Create(path.Join(pathunhide(ref.refname), "index.html"))
+		file, err := os.Create(path.Join(common.Pathunhide(ref.Refname), "index.html"))
 		if err != nil {
 			return err
 		}
@@ -27,17 +30,17 @@ func Composerepo(info *repoinfo) error {
 			return err
 		}
 
-		logf, err := os.Create(path.Join(pathunhide(ref.refname), "log.html"))
+		logf, err := os.Create(path.Join(common.Pathunhide(ref.Refname), "log.html"))
 		if err != nil {
 			return err
 		}
 		defer logf.Close()
-		logjson, err := os.Create(path.Join(pathunhide(ref.refname), "log.json"))
+		logjson, err := os.Create(path.Join(common.Pathunhide(ref.Refname), "log.json"))
 		if err != nil {
 			return err
 		}
 		defer logjson.Close()
-		logatom, err := os.Create(path.Join(pathunhide(ref.refname), "log.xml"))
+		logatom, err := os.Create(path.Join(common.Pathunhide(ref.Refname), "log.xml"))
 		if err != nil {
 			return err
 		}
@@ -57,7 +60,7 @@ func Composerepo(info *repoinfo) error {
 			return err
 		}
 		defer file.Close()
-		writeredirect(file, info.branch.refname+"/")
+		writeredirect(file, info.Branch.Refname+"/")
 	}
 	{
 		file, err := os.Create("atom.xml")
