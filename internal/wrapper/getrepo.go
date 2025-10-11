@@ -5,8 +5,8 @@ import (
 	"os"
 	"path"
 
+	"github.com/BurntSushi/toml"
 	"github.com/friedelschoen/gitin-go"
-	"github.com/friedelschoen/gitin-go/internal/common"
 	git "github.com/jeffwelling/git2go/v37"
 )
 
@@ -32,12 +32,10 @@ func Getrepo(repodir string, relpath int) (*RepoInfo, error) {
 		return nil, err
 	}
 
-	if file, err := os.Open(path.Join(info.Repodir, gitin.Config.Configfile)); err == nil {
+	if file, err := os.Open(path.Join(info.Repodir, gitin.Configfile)); err == nil {
 		defer file.Close()
-		for _, value := range common.ParseConfig(file, path.Join(info.Repodir, gitin.Config.Configfile)) {
-			if err := common.UnmarshalConf(value, "", &info); err != nil {
-				return nil, err
-			}
+		if _, err := toml.NewDecoder(file).Decode(&info); err != nil {
+			return nil, err
 		}
 	}
 

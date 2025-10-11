@@ -7,8 +7,8 @@ import (
 	"os"
 	"path"
 
+	"github.com/BurntSushi/toml"
 	"github.com/friedelschoen/gitin-go"
-	"github.com/friedelschoen/gitin-go/internal/common"
 	"github.com/friedelschoen/gitin-go/internal/wrapper"
 )
 
@@ -34,15 +34,13 @@ func writeindexline(fp, cachefp io.Writer, ref *wrapper.ReferenceInfo, repodir, 
 func writecategory(index io.Writer, name string) error {
 	var category = name
 	var keys struct {
-		des string `conf:"description"`
+		des string `toml:"description"`
 	}
 
-	if file, err := os.Open(path.Join(category, gitin.Config.Configfile)); err == nil {
+	if file, err := os.Open(path.Join(category, gitin.Configfile)); err == nil {
 		defer file.Close()
-		for _, value := range common.ParseConfig(file, path.Join(category, gitin.Config.Configfile)) {
-			if err := common.UnmarshalConf(value, "", &keys); err != nil {
-				return err
-			}
+		if _, err := toml.NewDecoder(file).Decode(&keys); err != nil {
+			return err
 		}
 	}
 

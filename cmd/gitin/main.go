@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/BurntSushi/toml"
 	"github.com/friedelschoen/gitin-go"
 	"github.com/friedelschoen/gitin-go/internal/common"
 	"github.com/friedelschoen/gitin-go/internal/wrapper"
@@ -18,7 +19,7 @@ func main() {
 	var printVersion bool
 
 	flag.StringVar(&pwd, "C", "", "usage")
-	flag.StringVar(&gitin.Config.Configfile, "c", gitin.Config.Configfile, "configfile")
+	flag.StringVar(&gitin.Configfile, "c", gitin.Configfile, "configfile")
 	flag.IntVar(&relpath, "d", 0, "relpath")
 	flag.BoolVar(&common.Force, "f", false, "force")
 	flag.BoolVar(&common.Quiet, "q", false, "quite")
@@ -44,12 +45,10 @@ func main() {
 		}
 	}
 
-	if file, err := os.Open(gitin.Config.Configfile); err == nil {
+	if file, err := os.Open(gitin.Configfile); err == nil {
 		defer file.Close()
-		for _, value := range common.ParseConfig(file, gitin.Config.Configfile) {
-			if err := common.UnmarshalConf(value, "", &gitin.Config); err != nil {
-				panic(err)
-			}
+		if _, err := toml.NewDecoder(file).Decode(&gitin.Config); err != nil {
+			panic(err)
 		}
 	}
 
