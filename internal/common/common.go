@@ -69,3 +69,7 @@ func Pathunhide(path string) string {
 	}
 	return string(runes)
 }
+
+func Relpath(n int) string {
+	return strings.Repeat("../", n)
+}

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/friedelschoen/gitin-go"
 	"github.com/friedelschoen/gitin-go/internal/common"
@@ -49,7 +48,7 @@ func ConfigPreviewer(fp io.Writer, blob *wrapper.BlobInfo, relpath int, typ stri
 
 func ImagePreviewer(fp io.Writer, blob *wrapper.BlobInfo, relpath int, filename string) error {
 	fmt.Fprintf(fp, "<div class=\"preview\">\n")
-	fmt.Fprintf(fp, "<img height=\"100px\" src=\"%sblob/%s\" />\n", strings.Repeat("../", relpath), filename)
+	fmt.Fprintf(fp, "<img height=\"100px\" src=\"%sblob/%s\" />\n", common.Relpath(relpath), filename)
 	fmt.Fprintf(fp, "</div>\n")
 	return nil
 }

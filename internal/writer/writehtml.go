@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"html"
 	"io"
-	"strings"
 
 	"github.com/friedelschoen/gitin-go"
+	"github.com/friedelschoen/gitin-go/internal/common"
 	"github.com/friedelschoen/gitin-go/internal/wrapper"
 )
 
@@ -16,7 +16,7 @@ func writeheader(fp io.Writer, info *wrapper.RepoInfo, relpath int, inbranch boo
 		indexrelpath += info.Relpath
 	}
 
-	indexrelstr := strings.Repeat("../", indexrelpath)
+	indexrelstr := common.Relpath(indexrelpath)
 
 	fmt.Fprintf(fp, "<!DOCTYPE html>\n"+
 		"<html>\n<head>\n"+
@@ -36,15 +36,15 @@ func writeheader(fp io.Writer, info *wrapper.RepoInfo, relpath int, inbranch boo
 	if info != nil {
 		fmt.Fprintf(fp, "<a href=\"%s\">Repositories</a> ", indexrelstr)
 		if inbranch {
-			fmt.Fprintf(fp, "| <a href=\"%sindex.html\">Summary</a> ", strings.Repeat("../", relpath-1))
-			fmt.Fprintf(fp, "| <a href=\"%slog.html\">Log</a> ", strings.Repeat("../", relpath-1))
-			fmt.Fprintf(fp, "| <a href=\"%sfiles/\">Files</a> ", strings.Repeat("../", relpath-1))
+			fmt.Fprintf(fp, "| <a href=\"%sindex.html\">Summary</a> ", common.Relpath(relpath-1))
+			fmt.Fprintf(fp, "| <a href=\"%slog.html\">Log</a> ", common.Relpath(relpath-1))
+			fmt.Fprintf(fp, "| <a href=\"%sfiles/\">Files</a> ", common.Relpath(relpath-1))
 		}
 		if info.Submodules != "" {
-			fmt.Fprintf(fp, " | <a href=\"%s%s/files/%s.html\">Submodules</a>", strings.Repeat("../", relpath), info.Branch.Refname, info.Submodules)
+			fmt.Fprintf(fp, " | <a href=\"%s%s/files/%s.html\">Submodules</a>", common.Relpath(relpath), info.Branch.Refname, info.Submodules)
 		}
 		for _, pf := range info.Pinfiles {
-			fmt.Fprintf(fp, " | <a href=\"%s%s/files/%s.html\">%s</a>", strings.Repeat("../", relpath), info.Branch.Refname, pf, pf)
+			fmt.Fprintf(fp, " | <a href=\"%s%s/files/%s.html\">%s</a>", common.Relpath(relpath), info.Branch.Refname, pf, pf)
 		}
 	} else {
 		fmt.Fprintf(fp, "</td><td>")

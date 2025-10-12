@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"html"
 	"io"
-	"strings"
 
 	"github.com/friedelschoen/gitin-go/internal/common"
 	"github.com/friedelschoen/gitin-go/internal/wrapper"
@@ -57,8 +56,8 @@ func writerefs(fp io.Writer, info *wrapper.RepoInfo, relpath int, current *git.R
 			fmt.Fprintf(fp, "<tr><td>")
 		}
 		/* is current */
-		fmt.Fprintf(fp, "<a href=\"%s%s/\">%s</a>", strings.Repeat("../", relpath), escapename, html.EscapeString(refinfo.Refname))
-		fmt.Fprintf(fp, " <small>at \"<a href=\"%scommit/%s.html\">%s</a>\"</small>", strings.Repeat("../", relpath), oid, summary)
+		fmt.Fprintf(fp, "<a href=\"%s%s/\">%s</a>", common.Relpath(relpath), escapename, html.EscapeString(refinfo.Refname))
+		fmt.Fprintf(fp, " <small>at \"<a href=\"%scommit/%s.html\">%s</a>\"</small>", common.Relpath(relpath), oid, summary)
 
 		fmt.Fprintf(fp, "</td><td>")
 		if author != nil {

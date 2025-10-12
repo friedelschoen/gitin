@@ -7,7 +7,6 @@ import (
 	"io"
 	"os"
 	"path"
-	"strings"
 
 	"github.com/friedelschoen/gitin-go"
 	"github.com/friedelschoen/gitin-go/internal/common"
@@ -32,7 +31,7 @@ func writeblob(refname string, relpath int, blob *wrapper.BlobInfo) error {
 		file.Write(blob.Contents)
 	}
 
-	hashpath := strings.Repeat("../", relpath) + destpath
+	hashpath := common.Relpath(relpath) + destpath
 	destpath = path.Join(refname, "blobs", blob.Path)
 	destpath = common.Pathunhide(destpath)
 	_ = os.Remove(destpath)
@@ -53,7 +52,7 @@ func writefile(info *wrapper.RepoInfo, refname string, relpath int, blob *wrappe
 		defer fp.Close()
 		writeheader(fp, info, relpath, true, info.Name, fmt.Sprintf("%s in %s", html.EscapeString(blob.Path), refname))
 		fmt.Fprintf(fp, "<p> %s (%dB) <a href='%sblob/%s/%s'>download</a></p><hr/>", html.EscapeString(blob.Name),
-			len(blob.Contents), strings.Repeat("../", relpath), refname, common.Pathunhide(blob.Path))
+			len(blob.Contents), common.Relpath(relpath), refname, common.Pathunhide(blob.Path))
 
 		if err := writepreview(fp, relpath, blob); err != nil {
 			return err
@@ -72,7 +71,7 @@ func writefile(info *wrapper.RepoInfo, refname string, relpath int, blob *wrappe
 		writefooter(fp)
 	}
 
-	hashpath := strings.Repeat("../", relpath) + destpath
+	hashpath := common.Relpath(relpath) + destpath
 	destpath = path.Join(refname, "files", blob.Path)
 	destpath = common.Pathunhide(destpath)
 	_ = os.Remove(destpath)
@@ -146,7 +145,7 @@ func writetree(fp io.Writer, info *wrapper.RepoInfo, refname string, baserelpath
 				return err
 			}
 			fmt.Fprintf(fp, "<tr><td><img src=\"%sicons/%s.svg\" /></td><td>%s</td>\n",
-				strings.Repeat("../", info.Relpath+relpath), geticon(obj, entryname),
+				common.Relpath(info.Relpath+relpath), geticon(obj, entryname),
 				filemode(entry.Filemode))
 
 			blob := wrapper.BlobInfo{
@@ -185,7 +184,7 @@ func writetree(fp io.Writer, info *wrapper.RepoInfo, refname string, baserelpath
 				fmt.Fprintf(
 					fp,
 					"<tr><td><img src=\"%sicons/directory.svg\" /></td><td>d---------</td><td colspan=\"2\"><a href=\"%s/\">%s</a></td></tr>\n",
-					strings.Repeat("../", info.Relpath+relpath), common.Pathunhide(entrypath), html.EscapeString(entrypath))
+					common.Relpath(info.Relpath+relpath), common.Pathunhide(entrypath), html.EscapeString(entrypath))
 			}
 			if err := writetree(fp, info, refname, baserelpath, relpath+1, obj, entrypath, index, maxfiles); err != nil {
 				return err
