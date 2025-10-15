@@ -127,7 +127,7 @@ func writearchive(w io.Writer, info *wrapper.RepoInfo, ext string, refinfo *wrap
 		}
 		cls = gw
 		w = gw
-	case "bzip2", "b2":
+	case "bzip2", "bz2":
 		gw, err := bzip2.NewWriter(w, nil)
 		if err != nil {
 			return 0, err
@@ -142,11 +142,11 @@ func writearchive(w io.Writer, info *wrapper.RepoInfo, ext string, refinfo *wrap
 		cls = gw
 		w = gw
 	case "":
-		/* do nothing */
+		/* do not compress */
 	default:
 		return 0, fmt.Errorf("unknown compression: %s", extcompress)
 	}
-	/* defers are closed in Last-In-First-Out order */
+	/* defers are executed in Last-In-First-Out order */
 	defer cls.Close()
 
 	switch extarchive {

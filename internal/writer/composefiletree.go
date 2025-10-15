@@ -35,6 +35,7 @@ func writeblob(refname string, relpath int, blob *wrapper.BlobInfo) error {
 	destpath = path.Join(refname, "blobs", blob.Path)
 	destpath = common.Pathunhide(destpath)
 	_ = os.Remove(destpath)
+	os.MkdirAll(path.Dir(destpath), 0777)
 	if err := os.Symlink(hashpath, destpath); err != nil {
 		return fmt.Errorf("unable to create symlink %s -> %s: %w", destpath, hashpath, err)
 	}
@@ -75,6 +76,7 @@ func writefile(info *wrapper.RepoInfo, refname string, relpath int, blob *wrappe
 	destpath = path.Join(refname, "files", blob.Path)
 	destpath = common.Pathunhide(destpath)
 	_ = os.Remove(destpath)
+	os.MkdirAll(path.Dir(destpath), 0777)
 	if err := os.Symlink(hashpath, destpath); err != nil {
 		return fmt.Errorf("unable to create symlink %s -> %s: %w", destpath, hashpath, err)
 	}
@@ -128,6 +130,7 @@ func writetree(fp io.Writer, info *wrapper.RepoInfo, refname string, baserelpath
 		fmt.Fprint(fp, "<table id=\"files\"><thead>\n<tr><td></td><td>Mode</td><td class=\"expand\">Name</td><td class=\"num\" align=\"right\">Size</td></tr>\n</thead><tbody>\n")
 	}
 
+	msg := "write files: " + refname
 	for i := range tree.EntryCount() {
 		entry := tree.EntryByIndex(i)
 		entryname := entry.Name
@@ -174,7 +177,7 @@ func writetree(fp io.Writer, info *wrapper.RepoInfo, refname string, baserelpath
 
 			(*index)++
 
-			common.Printprogress(*index, maxfiles, fmt.Sprintf("write files: %-20s", refname))
+			common.Printer.Progress(msg, int(*index), int(maxfiles))
 		case git.ObjectTree:
 			obj, err := info.Repo.LookupTree(entry.Id)
 			if err != nil {
@@ -231,6 +234,8 @@ func composefiletree(info *wrapper.RepoInfo, refinfo *wrapper.ReferenceInfo) err
 
 	var indx uint64
 	if tree, err := refinfo.Commit.Tree(); err == nil {
+		msg := "write files: " + refinfo.Refname
+		defer common.Printer.Done(msg)
 		err = writetree(nil, info, refinfo.Refname, 2, 2, tree, "", &indx, countfiles(tree))
 
 		if err != nil {

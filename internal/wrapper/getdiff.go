@@ -22,7 +22,6 @@ func loaddiff(fp io.Reader) (stats CommitInfo, err error) {
 }
 
 func GetDiff(info *RepoInfo, commit *git.Commit, docache bool) (CommitInfo, error) {
-
 	os.MkdirAll(".cache/diffs", 0777)
 
 	oid := commit.Id().String()

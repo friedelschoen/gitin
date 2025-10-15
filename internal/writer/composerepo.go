@@ -1,9 +1,11 @@
 package writer
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path"
+	"sync"
 
 	"github.com/friedelschoen/gitin-go/internal/common"
 	"github.com/friedelschoen/gitin-go/internal/wrapper"
@@ -18,40 +20,65 @@ func Composerepo(info *wrapper.RepoInfo) error {
 		}
 	}
 
+	var (
+		wg   sync.WaitGroup
+		errs []error
+	)
 	for _, ref := range info.Refs {
 		os.MkdirAll(common.Pathunhide(ref.Refname), 0777)
 
-		file, err := os.Create(path.Join(common.Pathunhide(ref.Refname), "index.html"))
-		if err != nil {
-			return err
-		}
-		defer file.Close()
-		if err := writesummary(file, info, ref); err != nil {
-			return err
-		}
+		wg.Add(3)
+		go func() {
+			defer wg.Done()
+			file, err := os.Create(path.Join(common.Pathunhide(ref.Refname), "index.html"))
+			if err != nil {
+				errs = append(errs, err)
+				return
+			}
+			defer file.Close()
+			if err := writesummary(file, info, ref); err != nil {
+				errs = append(errs, err)
+				return
+			}
+		}()
 
-		logf, err := os.Create(path.Join(common.Pathunhide(ref.Refname), "log.html"))
-		if err != nil {
-			return err
-		}
-		defer logf.Close()
-		logjson, err := os.Create(path.Join(common.Pathunhide(ref.Refname), "log.json"))
-		if err != nil {
-			return err
-		}
-		defer logjson.Close()
-		logatom, err := os.Create(path.Join(common.Pathunhide(ref.Refname), "log.xml"))
-		if err != nil {
-			return err
-		}
-		defer logatom.Close()
-		if err := writelog(logf, logjson, logatom, info, ref); err != nil {
-			return err
-		}
+		go func() {
+			defer wg.Done()
+			logf, err := os.Create(path.Join(common.Pathunhide(ref.Refname), "log.html"))
+			if err != nil {
+				errs = append(errs, err)
+				return
+			}
+			defer logf.Close()
+			logjson, err := os.Create(path.Join(common.Pathunhide(ref.Refname), "log.json"))
+			if err != nil {
+				errs = append(errs, err)
+				return
+			}
+			defer logjson.Close()
+			logatom, err := os.Create(path.Join(common.Pathunhide(ref.Refname), "log.xml"))
+			if err != nil {
+				errs = append(errs, err)
+				return
+			}
+			defer logatom.Close()
+			if err := writelog(logf, logjson, logatom, info, ref); err != nil {
+				errs = append(errs, err)
+				return
+			}
+		}()
 
-		if err := composefiletree(info, ref); err != nil {
-			return err
-		}
+		go func() {
+			defer wg.Done()
+			if err := composefiletree(info, ref); err != nil {
+				errs = append(errs, err)
+				return
+			}
+		}()
+	}
+	wg.Wait()
+	if len(errs) > 0 {
+		return errors.Join(errs...)
 	}
 
 	{

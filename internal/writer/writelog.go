@@ -141,6 +141,9 @@ func writelog(fp io.Writer, atom io.Writer, json io.Writer, info *wrapper.RepoIn
 		return err
 	}
 
+	msg := fmt.Sprintf("write log:   %s", refinfo.Refname)
+	defer common.Printer.Done(msg)
+
 	/* Iterate through the commits */
 	var indx int = 0
 	state := logstate{fp: fp}
@@ -153,7 +156,7 @@ func writelog(fp io.Writer, atom io.Writer, json io.Writer, info *wrapper.RepoIn
 		}
 		indx++
 
-		common.Printprogress(indx, ncommits, fmt.Sprintf("write log:   %-20s", refinfo.Refname))
+		common.Printer.Progress(msg, indx, ncommits)
 		return true
 	})
 	if err != nil {
