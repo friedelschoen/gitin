@@ -10,6 +10,26 @@ import (
 	git "github.com/jeffwelling/git2go/v37"
 )
 
+type RepoInfo struct {
+	Repo   *git.Repository
+	Branch *ReferenceInfo
+
+	Repodir string
+	Relpath int
+
+	Name        string
+	Description string `ini:"description"`
+	Cloneurl    string `ini:"cloneurl,url"`
+	Branchname  string `ini:"branch"`
+
+	Submodules string
+
+	Pinfiles  []string
+	Headfiles []string
+
+	Refs []*ReferenceInfo
+}
+
 func haspinfile(info *RepoInfo, pinfile string) bool {
 	obj, err := info.Repo.RevparseSingle("HEAD:" + pinfile)
 	if err != nil {

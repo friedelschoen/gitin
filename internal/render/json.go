@@ -1,4 +1,4 @@
-package writer
+package render
 
 import (
 	"encoding/json"
@@ -75,7 +75,7 @@ func toJSONCommit(c *git.Commit) commitJSON {
 	}
 }
 
-func writejsonrefs(w io.Writer, info *wrapper.RepoInfo) error {
+func WriteJsonRefs(w io.Writer, info *wrapper.RepoInfo) error {
 	out := outJSON{
 		Branches: make([]refJSON, 0, len(info.Refs)),
 		Tags:     make([]refJSON, 0),

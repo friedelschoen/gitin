@@ -9,8 +9,8 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/friedelschoen/gitin-go"
 	"github.com/friedelschoen/gitin-go/internal/common"
+	"github.com/friedelschoen/gitin-go/internal/render"
 	"github.com/friedelschoen/gitin-go/internal/wrapper"
-	"github.com/friedelschoen/gitin-go/internal/writer"
 )
 
 func main() {
@@ -63,7 +63,7 @@ func main() {
 	}
 
 	info := wrapper.GetIndex(repos)
-	if err := writer.WriteIndex(os.Stdout, info); err != nil {
+	if err := render.WriteIndex(os.Stdout, info); err != nil {
 		panic(err)
 	}
 }

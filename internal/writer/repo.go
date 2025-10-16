@@ -3,13 +3,56 @@ package writer
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path"
+	"strings"
 	"sync"
 
+	"github.com/friedelschoen/gitin-go"
 	"github.com/friedelschoen/gitin-go/internal/common"
+	"github.com/friedelschoen/gitin-go/internal/render"
 	"github.com/friedelschoen/gitin-go/internal/wrapper"
 )
+
+func composelog(fp io.Writer, atom io.Writer, json io.Writer, info *wrapper.RepoInfo, refinfo *wrapper.ReferenceInfo) error {
+	os.Mkdir("commit", 0777)
+	os.Mkdir(refinfo.Refname, 0777)
+
+	if fp != nil {
+		render.WriteHeader(fp, info, 1, true, info.Name, refinfo.Refname)
+
+		fmt.Fprintf(fp, "<h2>Archives</h2>")
+		fmt.Fprintf(fp, "<table><thead>\n<tr><td class=\"expand\">Name</td>"+
+			"<td class=\"num\">Size</td></tr>\n</thead><tbody>\n")
+	}
+
+	for _, ext := range gitin.Config.Archives {
+		ext = strings.TrimPrefix(ext, ".") /* .tar.xz -> tar.xz, .zip -> zip */
+		arfp, err := os.Create(path.Join(refinfo.Refname, refinfo.Refname+"."+ext))
+		if err != nil {
+			return err
+		}
+		defer arfp.Close()
+		arsize, err := render.WriteArchive(arfp, info, ext, refinfo)
+		arsize, unit := common.Splitunit(arsize)
+		if fp != nil {
+			fmt.Fprintf(fp, "<tr><td><a href=\"%s.%s\">%s.%s</a></td><td>%d%s</td></tr>", refinfo.Refname, ext, refinfo.Refname, ext, arsize, unit)
+		}
+	}
+
+	if fp != nil {
+		fmt.Fprintf(fp, "</tbody></table>")
+	}
+
+	err := render.WriteLog(fp, json, atom, info, refinfo)
+
+	if fp != nil {
+		render.WriteFooter(fp)
+	}
+
+	return err
+}
 
 func Composerepo(info *wrapper.RepoInfo) error {
 	if !common.Quiet {
@@ -36,7 +79,7 @@ func Composerepo(info *wrapper.RepoInfo) error {
 				return
 			}
 			defer file.Close()
-			if err := writesummary(file, info, ref); err != nil {
+			if err := render.WriteSummary(file, info, ref); err != nil {
 				errs = append(errs, err)
 				return
 			}
@@ -62,7 +105,7 @@ func Composerepo(info *wrapper.RepoInfo) error {
 				return
 			}
 			defer logatom.Close()
-			if err := writelog(logf, logjson, logatom, info, ref); err != nil {
+			if err := composelog(logf, logjson, logatom, info, ref); err != nil {
 				errs = append(errs, err)
 				return
 			}
@@ -87,7 +130,7 @@ func Composerepo(info *wrapper.RepoInfo) error {
 			return err
 		}
 		defer file.Close()
-		writeredirect(file, info.Branch.Refname+"/")
+		render.WriteRedirect(file, info.Branch.Refname+"/")
 	}
 	{
 		file, err := os.Create("atom.xml")
@@ -95,7 +138,7 @@ func Composerepo(info *wrapper.RepoInfo) error {
 			return err
 		}
 		defer file.Close()
-		if err := writeatomrefs(file, info); err != nil {
+		if err := render.WriteAtomRefs(file, info); err != nil {
 			return err
 		}
 	}
@@ -105,7 +148,7 @@ func Composerepo(info *wrapper.RepoInfo) error {
 			return err
 		}
 		defer file.Close()
-		if err := writejsonrefs(file, info); err != nil {
+		if err := render.WriteJsonRefs(file, info); err != nil {
 			return err
 		}
 	}

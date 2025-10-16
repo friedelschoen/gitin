@@ -10,6 +10,20 @@ import (
 	git "github.com/jeffwelling/git2go/v37"
 )
 
+type CommitInfo struct {
+	Diff     *git.Diff
+	Addcount int `json:"addcount"`
+	Delcount int `json:"delcount"`
+
+	Deltas []DeltaInfo `json:"deltas"`
+}
+
+type DeltaInfo struct {
+	Delta    git.DiffDelta `json:"-"`
+	Addcount int           `json:"addcount"`
+	Delcount int           `json:"delcount"`
+}
+
 /* Function to dump the commitstats struct into a file */
 func dumpdiff(fp io.Writer, stats CommitInfo) error {
 	return json.NewEncoder(fp).Encode(stats)

@@ -1,4 +1,4 @@
-package writer
+package render
 
 import (
 	"fmt"
@@ -29,7 +29,7 @@ func writecommit(fp io.Writer, info *wrapper.RepoInfo, commit *git.Commit, ci *w
 		parentoid = parentcommit.String()
 	}
 
-	writeheader(fp, info, 1, false, info.Name, fmt.Sprintf("%s (%s)", html.EscapeString(summary), oid))
+	WriteHeader(fp, info, 1, false, info.Name, fmt.Sprintf("%s (%s)", html.EscapeString(summary), oid))
 	fmt.Fprintf(fp, "<pre>")
 
 	fmt.Fprintf(fp, "<b>commit</b> <a href=\"%s.html\">%s</a>\n", oid, oid)
@@ -166,6 +166,6 @@ func writecommit(fp io.Writer, info *wrapper.RepoInfo, commit *git.Commit, ci *w
 	}
 
 	fmt.Fprintf(fp, "</pre>\n")
-	writefooter(fp)
+	WriteFooter(fp)
 	return nil
 }

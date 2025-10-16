@@ -1,4 +1,4 @@
-package writer
+package render
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ import (
 	"github.com/friedelschoen/gitin-go/internal/wrapper"
 )
 
-func writeindexline(fp, cachefp io.Writer, ref *wrapper.ReferenceInfo, repodir, name, description string) int {
+func writeindexline(fp io.Writer, ref *wrapper.ReferenceInfo, repodir, name, description string) int {
 
 	var ret int = 0
 
@@ -25,8 +25,6 @@ func writeindexline(fp, cachefp io.Writer, ref *wrapper.ReferenceInfo, repodir, 
 		}
 	}
 	fmt.Fprintf(fp, "</td></tr>")
-
-	fmt.Fprintf(cachefp, "%s,%s,%s\n", repodir, name, description)
 
 	return ret
 }
@@ -58,13 +56,7 @@ func iscategory(repodir string, category *string) bool {
 }
 
 func WriteIndex(fp io.Writer, info []wrapper.IndexInfo) error {
-	os.MkdirAll(".cache", 0777)
-
-	cachefp, err := os.Create(".cache/index")
-	if err != nil {
-		return err
-	}
-	writeheader(fp, nil, 0, false, gitin.Config.Sitename, html.EscapeString(gitin.Config.Sitedescription))
+	WriteHeader(fp, nil, 0, false, gitin.Config.Sitename, html.EscapeString(gitin.Config.Sitedescription))
 	fmt.Fprintf(fp, "<table id=\"index\"><thead>\n"+
 		"<tr><td>Name</td><td class=\"expand\">Description</td><td>Last changes</td></tr>"+
 		"</thead><tbody>\n")
@@ -81,14 +73,14 @@ func WriteIndex(fp io.Writer, info []wrapper.IndexInfo) error {
 			if err != nil {
 				return err
 			}
-			writeindexline(fp, cachefp, repoinfo.Branch, index.Repodir, repoinfo.Name,
+			writeindexline(fp, repoinfo.Branch, index.Repodir, repoinfo.Name,
 				repoinfo.Description)
 		} else {
-			writeindexline(fp, cachefp, nil, index.Repodir, index.Name,
+			writeindexline(fp, nil, index.Repodir, index.Name,
 				index.Description)
 		}
 	}
 	fmt.Fprintf(fp, "</tbody>\n</table>")
-	writefooter(fp)
+	WriteFooter(fp)
 	return nil
 }

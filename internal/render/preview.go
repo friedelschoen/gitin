@@ -1,4 +1,4 @@
-package writer
+package render
 
 import (
 	"encoding/xml"
@@ -12,7 +12,7 @@ import (
 	"github.com/friedelschoen/gitin-go/internal/wrapper"
 )
 
-func writepreview(fp io.Writer, relpath int, blob *wrapper.BlobInfo) error {
+func WritePreview(fp io.Writer, relpath int, blob *wrapper.BlobInfo) error {
 	var typ preview.Previewer
 	var param string
 	for _, ft := range preview.Filetypes {

@@ -2,7 +2,6 @@ package writer
 
 import (
 	"fmt"
-	"hash/crc32"
 	"html"
 	"io"
 	"os"
@@ -11,6 +10,7 @@ import (
 	"github.com/friedelschoen/gitin-go"
 	"github.com/friedelschoen/gitin-go/internal/common"
 	"github.com/friedelschoen/gitin-go/internal/preview"
+	"github.com/friedelschoen/gitin-go/internal/render"
 	"github.com/friedelschoen/gitin-go/internal/wrapper"
 	git "github.com/jeffwelling/git2go/v37"
 )
@@ -19,43 +19,33 @@ func filemode(m git.Filemode) string {
 	return os.FileMode(m).String()
 }
 
-func writeblob(refname string, relpath int, blob *wrapper.BlobInfo) error {
-	os.MkdirAll(".cache/blobs", 0777)
-	destpath := path.Join(".cache/blobs", fmt.Sprintf("%x-%s", blob.Hash, blob.Name))
-	if common.Force || !FileExist(destpath) {
-		file, err := os.Create(destpath)
-		if err != nil {
-			return err
-		}
-		defer file.Close()
-		file.Write(blob.Contents)
-	}
-
-	hashpath := common.Relpath(relpath) + destpath
-	destpath = path.Join(refname, "blobs", blob.Path)
-	destpath = common.Pathunhide(destpath)
-	_ = os.Remove(destpath)
+func writeblob(refname string, blob *wrapper.BlobInfo) error {
+	destpath := path.Join(refname, "blobs", blob.Path)
 	os.MkdirAll(path.Dir(destpath), 0777)
-	if err := os.Symlink(hashpath, destpath); err != nil {
-		return fmt.Errorf("unable to create symlink %s -> %s: %w", destpath, hashpath, err)
+	file, err := os.Create(destpath)
+	if err != nil {
+		return err
 	}
+	defer file.Close()
+	file.Write(blob.Contents)
 	return nil
 }
 
 func writefile(info *wrapper.RepoInfo, refname string, relpath int, blob *wrapper.BlobInfo) error {
-	os.MkdirAll(".cache/files", 0777)
-	destpath := path.Join(".cache/files", fmt.Sprintf("%x-%s", blob.Hash, blob.Name))
-	if common.Force || !FileExist(destpath) {
-		fp, err := os.Create(destpath)
-		if err != nil {
-			return err
-		}
-		defer fp.Close()
-		writeheader(fp, info, relpath, true, info.Name, fmt.Sprintf("%s in %s", html.EscapeString(blob.Path), refname))
+	destpath := path.Join(refname, "files", blob.Path)
+	os.MkdirAll(path.Dir(destpath), 0777)
+	file, err := os.Create(destpath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	return common.CachedWriter(file, path.Join(".cache/files", blob.ID), func(fp io.Writer) error {
+		render.WriteHeader(fp, info, relpath, true, info.Name, fmt.Sprintf("%s in %s", html.EscapeString(blob.Path), refname))
 		fmt.Fprintf(fp, "<p> %s (%dB) <a href='%sblob/%s/%s'>download</a></p><hr/>", html.EscapeString(blob.Name),
 			len(blob.Contents), common.Relpath(relpath), refname, common.Pathunhide(blob.Path))
 
-		if err := writepreview(fp, relpath, blob); err != nil {
+		if err := render.WritePreview(fp, relpath, blob); err != nil {
 			return err
 		}
 
@@ -64,23 +54,14 @@ func writefile(info *wrapper.RepoInfo, refname string, relpath int, blob *wrappe
 		} else if gitin.Config.Maxfilesize != -1 && len(blob.Contents) >= gitin.Config.Maxfilesize {
 			fmt.Fprintf(fp, "<p>File too big.</p>\n")
 		} else if len(blob.Contents) > 0 {
-			if err := highlight(fp, blob); err != nil {
+			if err := render.Highlight(fp, blob); err != nil {
 				return err
 			}
 		}
 
-		writefooter(fp)
-	}
-
-	hashpath := common.Relpath(relpath) + destpath
-	destpath = path.Join(refname, "files", blob.Path)
-	destpath = common.Pathunhide(destpath)
-	_ = os.Remove(destpath)
-	os.MkdirAll(path.Dir(destpath), 0777)
-	if err := os.Symlink(hashpath, destpath); err != nil {
-		return fmt.Errorf("unable to create symlink %s -> %s: %w", destpath, hashpath, err)
-	}
-	return nil
+		render.WriteFooter(fp)
+		return nil
+	})
 }
 
 func geticon(blob *git.Blob, filename string) string {
@@ -125,7 +106,7 @@ func writetree(fp io.Writer, info *wrapper.RepoInfo, refname string, baserelpath
 			return err
 		}
 		fp = file
-		writeheader(fp, info, relpath, true, info.Name, fmt.Sprintf("%s in %s", basepath, refname))
+		render.WriteHeader(fp, info, relpath, true, info.Name, fmt.Sprintf("%s in %s", basepath, refname))
 
 		fmt.Fprint(fp, "<table id=\"files\"><thead>\n<tr><td></td><td>Mode</td><td class=\"expand\">Name</td><td class=\"num\" align=\"right\">Size</td></tr>\n</thead><tbody>\n")
 	}
@@ -156,13 +137,13 @@ func writetree(fp io.Writer, info *wrapper.RepoInfo, refname string, baserelpath
 				Path:     entrypath,
 				IsBinary: obj.IsBinary(),
 				Contents: obj.Contents(),
-				Hash:     crc32.ChecksumIEEE(obj.Contents()),
+				ID:       obj.Id().String(),
 			}
 
 			if err := writefile(info, refname, relpath, &blob); err != nil {
 				return err
 			}
-			if err := writeblob(refname, relpath, &blob); err != nil {
+			if err := writeblob(refname, &blob); err != nil {
 				return err
 			}
 
@@ -203,7 +184,7 @@ func writetree(fp io.Writer, info *wrapper.RepoInfo, refname string, baserelpath
 
 	if file != nil {
 		fmt.Fprintf(fp, "</tbody></table>")
-		writefooter(fp)
+		render.WriteFooter(fp)
 		file.Close()
 	}
 

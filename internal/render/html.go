@@ -1,4 +1,4 @@
-package writer
+package render
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ import (
 	"github.com/friedelschoen/gitin-go/internal/wrapper"
 )
 
-func writeheader(fp io.Writer, info *wrapper.RepoInfo, relpath int, inbranch bool, name, description string) {
+func WriteHeader(fp io.Writer, info *wrapper.RepoInfo, relpath int, inbranch bool, name, description string) {
 	var indexrelpath int = relpath
 	if info != nil {
 		indexrelpath += info.Relpath
@@ -52,7 +52,7 @@ func writeheader(fp io.Writer, info *wrapper.RepoInfo, relpath int, inbranch boo
 	fmt.Fprintf(fp, "</td></tr></table>\n<hr/>\n<div id=\"content\">\n")
 }
 
-func writefooter(fp io.Writer) {
+func WriteFooter(fp io.Writer) {
 	if gitin.Config.Footertext != "" {
 		fmt.Fprintf(fp, "</div><div id=\"footer\">%s", gitin.Config.Footertext)
 	}

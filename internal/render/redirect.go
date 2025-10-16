@@ -1,11 +1,11 @@
-package writer
+package render
 
 import (
 	"fmt"
 	"io"
 )
 
-func writeredirect(fp io.Writer, to string) {
+func WriteRedirect(fp io.Writer, to string) {
 	fmt.Fprintf(fp,
 		"<!DOCTYPE HTML>\n"+
 			"<html>\n"+

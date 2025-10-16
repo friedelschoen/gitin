@@ -7,21 +7,20 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	"strconv"
 	"strings"
 )
 
 type ExecuteParams struct {
 	Command   string
 	Filename  string
-	Hash      uint32
+	ID        string
 	CacheName string
 	Content   []byte
 	Environ   map[string]string
 }
 
 func ExecuteCache(w io.Writer, params *ExecuteParams) error {
-	cachepath := path.Join(".cache", params.CacheName, strconv.FormatUint(uint64(params.Hash), 16))
+	cachepath := path.Join(".cache", params.CacheName, params.ID)
 	return CachedWriter(w, cachepath, func(w io.Writer) error {
 		if Verbose {
 			fmt.Fprintf(os.Stderr, "$ ")

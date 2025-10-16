@@ -25,7 +25,7 @@ func CommandPreviewer(cmdID string) Previewer {
 			Command:   command,
 			CacheName: "preview-" + cmdID,
 			Content:   blob.Contents,
-			Hash:      blob.Hash,
+			ID:        blob.ID,
 			Environ:   map[string]string{"filename": blob.Name, "type": param},
 		}
 

@@ -1,4 +1,4 @@
-package writer
+package render
 
 import (
 	"errors"
@@ -7,7 +7,6 @@ import (
 	"io"
 	"os"
 	"path"
-	"strings"
 
 	"github.com/friedelschoen/gitin-go"
 	"github.com/friedelschoen/gitin-go/internal/common"
@@ -79,36 +78,8 @@ func writelogcommit(s *logstate, info *wrapper.RepoInfo, index int, commit *git.
 	return nil
 }
 
-func writelog(fp io.Writer, atom io.Writer, json io.Writer, info *wrapper.RepoInfo, refinfo *wrapper.ReferenceInfo) error {
-
-	os.Mkdir("commit", 0777)
-	os.Mkdir(refinfo.Refname, 0777)
-
+func WriteLog(fp io.Writer, atom io.Writer, json io.Writer, info *wrapper.RepoInfo, refinfo *wrapper.ReferenceInfo) error {
 	if fp != nil {
-		writeheader(fp, info, 1, true, info.Name, refinfo.Refname)
-
-		fmt.Fprintf(fp, "<h2>Archives</h2>")
-		fmt.Fprintf(fp, "<table><thead>\n<tr><td class=\"expand\">Name</td>"+
-			"<td class=\"num\">Size</td></tr>\n</thead><tbody>\n")
-	}
-
-	for _, ext := range gitin.Config.Archives {
-		ext = strings.TrimPrefix(ext, ".") /* .tar.xz -> tar.xz, .zip -> zip */
-		arfp, err := os.Create(path.Join(refinfo.Refname, refinfo.Refname+"."+ext))
-		if err != nil {
-			return err
-		}
-		defer arfp.Close()
-		arsize, err := writearchive(arfp, info, ext, refinfo)
-		arsize, unit := common.Splitunit(arsize)
-		if fp != nil {
-			fmt.Fprintf(fp, "<tr><td><a href=\"%s.%s\">%s.%s</a></td><td>%d%s</td></tr>", refinfo.Refname, ext, refinfo.Refname, ext, arsize, unit)
-		}
-	}
-
-	if fp != nil {
-		fmt.Fprintf(fp, "</tbody></table>")
-
 		if err := writeshortlog(fp, info, refinfo.Commit); err != nil {
 			return err
 		}
@@ -176,7 +147,6 @@ func writelog(fp io.Writer, atom io.Writer, json io.Writer, info *wrapper.RepoIn
 		}
 
 		fmt.Fprintf(fp, "</tbody></table>")
-		writefooter(fp)
 	}
 	if json != nil {
 		if err := writejsoncommits(json, state.json); err != nil {

@@ -1,4 +1,4 @@
-package writer
+package render
 
 import (
 	"fmt"
@@ -13,8 +13,8 @@ import (
 	"github.com/friedelschoen/gitin-go/internal/wrapper"
 )
 
-func highlight(w io.Writer, blob *wrapper.BlobInfo) error {
-	cachepath := path.Join(".cache/highlight", fmt.Sprintf("%s-%x", blob.Name, blob.Hash))
+func Highlight(w io.Writer, blob *wrapper.BlobInfo) error {
+	cachepath := path.Join(".cache/highlight", blob.ID)
 	return common.CachedWriter(w, cachepath, func(w io.Writer) error {
 		lx := lexers.Get(blob.Name)
 		if lx == nil {

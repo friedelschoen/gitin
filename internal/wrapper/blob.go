@@ -11,7 +11,7 @@ type BlobInfo struct {
 	Path     string
 	IsBinary bool
 	Contents []byte
-	Hash     uint32
+	ID       string
 }
 
 var ErrNoBlob = errors.New("object not a blob")

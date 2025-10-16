@@ -8,6 +8,13 @@ import (
 	git "github.com/jeffwelling/git2go/v37"
 )
 
+type ReferenceInfo struct {
+	Ref     *git.Reference
+	Refname string
+	Commit  *git.Commit
+	IsTag   bool
+}
+
 func comparerefs(left, right *ReferenceInfo) int {
 	if left.IsTag != right.IsTag {
 		intbool := func(v bool) int {

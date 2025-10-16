@@ -1,4 +1,4 @@
-package writer
+package render
 
 import (
 	"encoding/xml"
@@ -109,7 +109,7 @@ func makeEntry(commit *git.Commit, refname string) atomEntry {
 	}
 }
 
-func writeatomrefs(w io.Writer, info *wrapper.RepoInfo) error {
+func WriteAtomRefs(w io.Writer, info *wrapper.RepoInfo) error {
 	var entries []atomEntry
 	for _, r := range info.Refs {
 		entries = append(entries, makeEntry(r.Commit, r.Refname))

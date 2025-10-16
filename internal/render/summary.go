@@ -1,8 +1,7 @@
-package writer
+package render
 
 import (
 	"fmt"
-	"hash/crc32"
 	"io"
 
 	"github.com/friedelschoen/gitin-go"
@@ -10,9 +9,9 @@ import (
 	git "github.com/jeffwelling/git2go/v37"
 )
 
-func writesummary(fp io.Writer, info *wrapper.RepoInfo, refinfo *wrapper.ReferenceInfo) error {
+func WriteSummary(fp io.Writer, info *wrapper.RepoInfo, refinfo *wrapper.ReferenceInfo) error {
 	/* log for HEAD */
-	writeheader(fp, info, 1, true, info.Name, refinfo.Refname)
+	WriteHeader(fp, info, 1, true, info.Name, refinfo.Refname)
 
 	fmt.Fprintf(fp, "<div id=\"refcontainer\">")
 	writerefs(fp, info, 1, refinfo.Ref)
@@ -56,14 +55,14 @@ func writesummary(fp io.Writer, info *wrapper.RepoInfo, refinfo *wrapper.Referen
 			Path:     readmename,
 			IsBinary: readme.IsBinary(),
 			Contents: readme.Contents(),
-			Hash:     crc32.ChecksumIEEE(readme.Contents()),
+			ID:       readme.Id().String(),
 		}
-		if err := writepreview(fp, 1, &blobinfo); err != nil {
+		if err := WritePreview(fp, 1, &blobinfo); err != nil {
 			return err
 		}
 	}
 
-	writefooter(fp)
+	WriteFooter(fp)
 
 	return nil
 }

@@ -1,4 +1,4 @@
-package writer
+package render
 
 import (
 	"archive/tar"
@@ -96,7 +96,7 @@ func NewCounter(w io.Writer) (io.Writer, *int64) {
 }
 
 /* Stream een archief van de commit-tree naar fp */
-func writearchive(w io.Writer, info *wrapper.RepoInfo, ext string, refinfo *wrapper.ReferenceInfo) (int64, error) {
+func WriteArchive(w io.Writer, info *wrapper.RepoInfo, ext string, refinfo *wrapper.ReferenceInfo) (int64, error) {
 	w, counter := NewCounter(w)
 	commit := refinfo.Commit
 	committer := commit.Committer()
