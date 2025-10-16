@@ -27,18 +27,13 @@ type datecount struct {
 }
 
 type loginfo struct {
-	authorcount []authorcount
+	authorcount []*authorcount
 
 	datecount []datecount
 	bymonth   bool
 }
 
-var months = []string{
-	"January", "February", "March", "April", "May", "Juni",
-	"July", "August", "September", "October", "November", "December",
-}
-
-func incrementauthor(authorcount []authorcount, author *git.Signature) bool {
+func incrementauthor(authorcount []*authorcount, author *git.Signature) bool {
 	for i, ac := range authorcount {
 		if author.Name == ac.name && author.Email == authorcount[i].email {
 			authorcount[i].count++
@@ -71,22 +66,22 @@ func writediagram(file io.Writer, li *loginfo) {
 	}
 
 	/* SVG header */
-	fmt.Fprintf(file, "<svg id=\"shortlog-graph\" xmlns=\"http://www.w3.org/2000/svg\" viewbox=\"0 0 %d %d\" width=\"100%%\">\n", width, height)
+	fmt.Fprintf(file, "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 %d %d\">\n", width, height)
 
 	/* Scaling factors for graph */
 	var x_scale = float64(width-padding_left-padding_right) / float64(len(li.datecount)-1)
 	var y_scale = float64(height-padding_top-padding_bottom) / float64(max_commits)
 
 	/* Draw the line graph from right to left */
-	for i, dc := range li.datecount {
+	for i := 0; i < len(li.datecount)-1; i++ {
 		x1 := width - padding_right - int(float64(i)*x_scale)
-		y1 := height - padding_bottom - int(float64(dc.count)*y_scale)
+		y1 := height - padding_bottom - int(float64(li.datecount[i].count)*y_scale)
 		x2 := width - padding_right - int(float64(i+1)*x_scale)
-		y2 := height - padding_bottom - int(float64(dc.count)*y_scale)
+		y2 := height - padding_bottom - int(float64(li.datecount[i+1].count)*y_scale)
 
 		fmt.Fprintf(
 			file,
-			"  <line x1=\"%d\" y1=\"%d\" x2=\"%d\" y2=\"%d\" stroke=\"%s\" stroke-width=\"2\"/>\n",
+			"  <line x1=\"%d\" y1=\"%d\" x2=\"%d\" y2=\"%d\" stroke=\"%s\" stroke-width=\"2\" />\n",
 			x1, y1, x2, y2, color)
 	}
 
@@ -181,7 +176,6 @@ func mergedatecount(li *loginfo) {
 }
 
 func countlog(info *wrapper.RepoInfo, head *git.Commit, li *loginfo) error {
-
 	w, err := info.Repo.Walk()
 	if err != nil {
 		return err
@@ -198,7 +192,7 @@ func countlog(info *wrapper.RepoInfo, head *git.Commit, li *loginfo) error {
 
 		if !incrementauthor(li.authorcount, author) {
 			/* set new author */
-			li.authorcount = append(li.authorcount, authorcount{
+			li.authorcount = append(li.authorcount, &authorcount{
 				count: 1,
 				name:  author.Name,
 				email: author.Email,
@@ -224,19 +218,17 @@ func countlog(info *wrapper.RepoInfo, head *git.Commit, li *loginfo) error {
 		return true
 	})
 
-	slices.SortFunc(li.authorcount, func(left, right authorcount) int {
+	slices.SortFunc(li.authorcount, func(left, right *authorcount) int {
 		return right.count - left.count
 	})
 	return nil
 }
 
 func addrefcount(info *wrapper.RepoInfo, li *loginfo) error {
-
 	iter, err := info.Repo.NewReferenceIterator()
 	if err != nil {
 		return err
 	}
-
 	for {
 		ref, err := iter.Next()
 		if gerr, ok := err.(*git.GitError); ok && gerr.Code == git.ErrorCodeIterOver {
@@ -293,7 +285,7 @@ func writeauthorlog(fp io.Writer, li *loginfo) {
 	fmt.Fprintf(fp, "</tbody></table>")
 }
 
-func writeshortlog(fp io.Writer, info *wrapper.RepoInfo, head *git.Commit) error {
+func writeshortlog(fp io.Writer, svgfp io.Writer, info *wrapper.RepoInfo, head *git.Commit) error {
 	var li loginfo
 	if err := countlog(info, head, &li); err != nil {
 		return err
@@ -311,6 +303,8 @@ func writeshortlog(fp io.Writer, info *wrapper.RepoInfo, head *git.Commit) error
 	writeauthorlog(fp, &li)
 
 	fmt.Fprintf(fp, "<h2>Commit Graph</h2>")
-	writediagram(fp, &li)
+	fmt.Fprintf(fp, "<img id=\"shortlog-graph\" src=\"log.svg\" />\n")
+
+	writediagram(svgfp, &li)
 	return nil
 }

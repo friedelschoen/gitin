@@ -60,7 +60,6 @@ func getreference(ref *git.Reference) (*ReferenceInfo, error) {
 }
 
 func getrefs(repo *git.Repository) ([]*ReferenceInfo, error) {
-
 	iter, err := repo.NewReferenceIterator()
 	if err != nil {
 		return nil, err

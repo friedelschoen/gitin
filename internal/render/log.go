@@ -78,9 +78,9 @@ func writelogcommit(s *logstate, info *wrapper.RepoInfo, index int, commit *git.
 	return nil
 }
 
-func WriteLog(fp io.Writer, atom io.Writer, json io.Writer, info *wrapper.RepoInfo, refinfo *wrapper.ReferenceInfo) error {
+func WriteLog(fp io.Writer, svgfp io.Writer, atom io.Writer, json io.Writer, info *wrapper.RepoInfo, refinfo *wrapper.ReferenceInfo) error {
 	if fp != nil {
-		if err := writeshortlog(fp, info, refinfo.Commit); err != nil {
+		if err := writeshortlog(fp, svgfp, info, refinfo.Commit); err != nil {
 			return err
 		}
 

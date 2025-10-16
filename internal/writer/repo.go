@@ -15,7 +15,7 @@ import (
 	"github.com/friedelschoen/gitin-go/internal/wrapper"
 )
 
-func composelog(fp io.Writer, atom io.Writer, json io.Writer, info *wrapper.RepoInfo, refinfo *wrapper.ReferenceInfo) error {
+func composelog(fp io.Writer, svg io.Writer, atom io.Writer, json io.Writer, info *wrapper.RepoInfo, refinfo *wrapper.ReferenceInfo) error {
 	os.Mkdir("commit", 0777)
 	os.Mkdir(refinfo.Refname, 0777)
 
@@ -45,7 +45,7 @@ func composelog(fp io.Writer, atom io.Writer, json io.Writer, info *wrapper.Repo
 		fmt.Fprintf(fp, "</tbody></table>")
 	}
 
-	err := render.WriteLog(fp, json, atom, info, refinfo)
+	err := render.WriteLog(fp, svg, json, atom, info, refinfo)
 
 	if fp != nil {
 		render.WriteFooter(fp)
@@ -92,6 +92,11 @@ func Composerepo(info *wrapper.RepoInfo) error {
 				errs = append(errs, err)
 				return
 			}
+			logsvg, err := os.Create(path.Join(common.Pathunhide(ref.Refname), "log.svg"))
+			if err != nil {
+				errs = append(errs, err)
+				return
+			}
 			defer logf.Close()
 			logjson, err := os.Create(path.Join(common.Pathunhide(ref.Refname), "log.json"))
 			if err != nil {
@@ -105,7 +110,7 @@ func Composerepo(info *wrapper.RepoInfo) error {
 				return
 			}
 			defer logatom.Close()
-			if err := composelog(logf, logjson, logatom, info, ref); err != nil {
+			if err := composelog(logf, logsvg, logjson, logatom, info, ref); err != nil {
 				errs = append(errs, err)
 				return
 			}
