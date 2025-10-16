@@ -99,10 +99,11 @@ func NewCounter(w io.Writer) (io.Writer, *int64) {
 func WriteArchive(w io.Writer, info *wrapper.RepoInfo, ext string, refinfo *wrapper.ReferenceInfo) (int64, error) {
 	w, counter := NewCounter(w)
 	commit := refinfo.Commit
-	committer := commit.Committer()
-	mtime := time.Now().UTC()
-	if committer != nil && !committer.When.IsZero() {
-		mtime = committer.When.UTC()
+	mtime := time.Now()
+	if author := commit.Author(); author != nil && !author.When.IsZero() {
+		mtime = author.When
+	} else if committer := commit.Committer(); committer != nil && !author.When.IsZero() {
+		mtime = committer.When
 	}
 
 	tree, err := commit.Tree()
@@ -135,7 +136,7 @@ func WriteArchive(w io.Writer, info *wrapper.RepoInfo, ext string, refinfo *wrap
 		cls = gw
 		w = gw
 	case "zstd":
-		gw, err := zstd.NewWriter(w, nil)
+		gw, err := zstd.NewWriter(w)
 		if err != nil {
 			return 0, err
 		}

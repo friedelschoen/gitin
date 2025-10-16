@@ -94,7 +94,7 @@ var Config MainConfig = MainConfig{
 
 	Autofilelimit: 100,
 
-	Clonepull: "",
+	Clonepull: "git clone",
 	Clonepush: "",
 
 	Pinfiles: []string{
@@ -109,6 +109,8 @@ var Config MainConfig = MainConfig{
 		"README.md",
 		"README.rst",
 	},
+
+	Archives: []string{"zip", ".tar.gz", "tar.xz", "tar.zstd"},
 }
 
 // Configfile : Path to the config files
