@@ -21,7 +21,6 @@ func main() {
 	flag.StringVar(&pwd, "C", "", "usage")
 	flag.StringVar(&gitin.Configfile, "c", gitin.Configfile, "configfile")
 	flag.BoolVar(&recursive, "r", false, "recusive")
-	flag.BoolVar(&common.Force, "f", false, "force")
 	flag.BoolVar(&common.Quiet, "q", false, "quite")
 	flag.BoolVar(&common.Columnate, "s", false, "columnate")
 	flag.BoolVar(&printVersion, "V", false, "print version")

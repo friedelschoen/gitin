@@ -65,7 +65,7 @@ var Config MainConfig = MainConfig{
 	Stylesheet: "style.css",
 
 	PreviewCommands: map[string]string{
-		"preview": "pandoc --from=$type --to=html",
+		"pandoc": "pandoc --from=$type --to=html",
 	},
 
 	/* Color scheme to use for syntax highlighting in the HTML output. */

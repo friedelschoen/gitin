@@ -26,7 +26,7 @@ func WriteHeader(fp io.Writer, info *wrapper.RepoInfo, relpath int, inbranch boo
 	fmt.Fprintf(fp, "<title>%s - %s</title>\n", html.EscapeString(name), html.EscapeString(gitin.Config.Sitename))
 	fmt.Fprintf(fp, "<link rel=\"icon\" type=\"%s\" href=\"%s%s\" />\n", gitin.Config.Favicontype, indexrelstr, gitin.Config.Favicon)
 	fmt.Fprintf(fp, "<link rel=\"stylesheet\" type=\"text/css\" href=\"%s%s\" />\n", indexrelstr, gitin.Config.Stylesheet)
-	fmt.Fprint(fp, "</head>\n<body>\n<table><tr><td>")
+	fmt.Fprint(fp, "</head>\n<body>\n<div id=\"container\">\n<table><tr><td>")
 	fmt.Fprintf(fp, "<a href=\"%s\"><img src=\"%s%s\" alt=\"\" width=\"50\" height=\"50\" /></a>", indexrelstr, indexrelstr, gitin.Config.Logoicon)
 	fmt.Fprintf(fp, "</td><td class=\"expand\"><h1>%s</h1>\n<span class=\"desc\">%s</span></td></tr>", html.EscapeString(name), html.EscapeString(description))
 
@@ -57,5 +57,5 @@ func WriteFooter(fp io.Writer) {
 	if gitin.Config.Footertext != "" {
 		fmt.Fprintf(fp, "</div><div id=\"footer\">%s", gitin.Config.Footertext)
 	}
-	fmt.Fprintf(fp, "</div>\n</body>\n</html>\n")
+	fmt.Fprintf(fp, "</div>\n</div>\n</body>\n</html>\n")
 }

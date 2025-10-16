@@ -16,7 +16,7 @@ import (
 	"github.com/friedelschoen/gitin-go/internal/wrapper"
 )
 
-func composelog(fp io.Writer, svg io.Writer, atom io.Writer, json io.Writer, info *wrapper.RepoInfo, refinfo *wrapper.ReferenceInfo) error {
+func makelog(fp io.Writer, svg io.Writer, atom io.Writer, json io.Writer, info *wrapper.RepoInfo, refinfo *wrapper.ReferenceInfo) error {
 	os.Mkdir("commit", 0777)
 	os.Mkdir(refinfo.Refname, 0777)
 
@@ -58,7 +58,7 @@ func composelog(fp io.Writer, svg io.Writer, atom io.Writer, json io.Writer, inf
 	return err
 }
 
-func Composerepo(info *wrapper.RepoInfo) error {
+func MakeRepo(info *wrapper.RepoInfo) error {
 	if !common.Quiet {
 		if common.Columnate {
 			fmt.Printf("%s\t%s\n", info.Name, info.Repodir)
@@ -114,7 +114,7 @@ func Composerepo(info *wrapper.RepoInfo) error {
 				return
 			}
 			defer logatom.Close()
-			if err := composelog(logf, logsvg, logjson, logatom, info, ref); err != nil {
+			if err := makelog(logf, logsvg, logjson, logatom, info, ref); err != nil {
 				errs = append(errs, err)
 				return
 			}
@@ -122,7 +122,7 @@ func Composerepo(info *wrapper.RepoInfo) error {
 
 		go func() {
 			defer wg.Done()
-			if err := composefiletree(info, ref); err != nil {
+			if err := makefiletree(info, ref); err != nil {
 				errs = append(errs, err)
 				return
 			}

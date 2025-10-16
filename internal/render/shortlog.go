@@ -5,6 +5,7 @@ import (
 	"html"
 	"io"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/friedelschoen/gitin-go/internal/wrapper"
@@ -23,17 +24,17 @@ type authorcount struct {
 type datecount struct {
 	day   int64
 	count int
-	refs  string
+	refs  []string
 }
 
 type loginfo struct {
-	authorcount []*authorcount
+	authorcount []authorcount
 
 	datecount []datecount
 	bymonth   bool
 }
 
-func incrementauthor(authorcount []*authorcount, author *git.Signature) bool {
+func incrementauthor(authorcount []authorcount, author *git.Signature) bool {
 	for i, ac := range authorcount {
 		if author.Name == ac.name && author.Email == authorcount[i].email {
 			authorcount[i].count++
@@ -55,23 +56,21 @@ func writediagram(file io.Writer, li *loginfo) {
 	padding := padding{bottom: 100, top: 100, left: 20, right: 20}
 
 	pointRadius := 3
-	charWidth := 5
+	charWidth := 4
 
 	color := "#3498db"
 
-	var maxCommits = 0
+	maxCommits := 0
 	for _, dc := range li.datecount {
-		if maxCommits < dc.count {
-			maxCommits = dc.count
-		}
+		maxCommits = max(maxCommits, dc.count)
 	}
 
 	/* SVG header */
 	fmt.Fprintf(file, "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 %d %d\">\n", width, height)
 
 	/* Scaling factors for graph */
-	var xScale = float64(width-padding.left-padding.right) / float64(len(li.datecount)-1)
-	var yScale = float64(height-padding.top-padding.bottom) / float64(maxCommits)
+	xScale := float64(width-padding.left-padding.right) / float64(len(li.datecount)-1)
+	yScale := float64(height-padding.top-padding.bottom) / float64(maxCommits)
 
 	/* Draw the line graph from right to left */
 	for i := 0; i < len(li.datecount)-1; i++ {
@@ -90,11 +89,11 @@ func writediagram(file io.Writer, li *loginfo) {
 	for i, dc := range li.datecount {
 		x := width - padding.right - int(float64(i)*xScale) /* Reversed X */
 
-		if dc.count > 0 {
+		if dc.count > 0 || len(dc.refs) > 0 {
 			y := height - padding.bottom + 10 /* Adjust for spacing below the graph */
 			ty := height - padding.bottom - int(float64(dc.count)*yScale)
 
-			tm := time.Unix(li.datecount[i].day*SECONDSINDAY, 0)
+			tm := time.Unix(dc.day*SECONDSINDAY, 0)
 
 			fmt.Fprintf(
 				file,
@@ -111,21 +110,22 @@ func writediagram(file io.Writer, li *loginfo) {
 			fmt.Fprintf(
 				file,
 				"  <text x=\"%d\" y=\"%d\" font-size=\"10px\" text-anchor=\"middle\">%d</text>\n",
-				x, ty-10, li.datecount[i].count)
+				x, ty-10, dc.count)
 			fmt.Fprintf(file, "  <circle cx=\"%d\" cy=\"%d\" r=\"%d\" fill=\"%s\"/>\n", x, ty,
 				pointRadius, color)
 		}
-		if li.datecount[i].refs != "" {
+		if len(dc.refs) > 0 {
+			str := strings.Join(dc.refs, ", ")
 			y2 := height - int(float64(dc.count)*yScale) - padding.bottom
 			fmt.Fprintf(
 				file,
 				"  <line x1=\"%d\" y1=\"%d\" x2=\"%d\" y2=\"%d\" stroke=\"#000\" stroke-width=\"1\" stroke-dasharray=\"4\"/>\n",
-				x, 20+charWidth*len(dc.refs), x, y2-30)
+				x, 20+charWidth*len(str), x, y2-30)
 
 			fmt.Fprintf(
 				file,
 				"  <text x=\"%d\" y=\"%d\" font-size=\"8px\" text-anchor=\"start\" transform=\"rotate(90 %d,%d)\">%s</text>\n",
-				x-2, 10, x-2, 10, dc.refs)
+				x-2, 10, x-2, 10, str)
 		}
 	}
 
@@ -154,11 +154,8 @@ func mergedatecount(li *loginfo) {
 			li.datecount[writeptr].count += li.datecount[readptr].count
 
 			/* Append references if present */
-			if li.datecount[readptr].refs != "" {
-				if li.datecount[writeptr].refs != "" {
-					li.datecount[writeptr].refs += ", "
-				}
-				li.datecount[writeptr].refs += li.datecount[readptr].refs
+			if len(li.datecount[readptr].refs) > 0 {
+				li.datecount[writeptr].refs = append(li.datecount[writeptr].refs, li.datecount[readptr].refs...)
 			}
 		} else {
 			/* Move to the next month */
@@ -193,7 +190,7 @@ func countlog(info *wrapper.RepoInfo, head *git.Commit, li *loginfo) error {
 
 		if !incrementauthor(li.authorcount, author) {
 			/* set new author */
-			li.authorcount = append(li.authorcount, &authorcount{
+			li.authorcount = append(li.authorcount, authorcount{
 				count: 1,
 				name:  author.Name,
 				email: author.Email,
@@ -219,7 +216,7 @@ func countlog(info *wrapper.RepoInfo, head *git.Commit, li *loginfo) error {
 		return true
 	})
 
-	slices.SortFunc(li.authorcount, func(left, right *authorcount) int {
+	slices.SortFunc(li.authorcount, func(left, right authorcount) int {
 		return right.count - left.count
 	})
 	return nil
@@ -256,16 +253,13 @@ func addrefcount(info *wrapper.RepoInfo, li *loginfo) error {
 
 		for i, dc := range li.datecount {
 			if dc.day == days {
-				if dc.refs != "" {
-					li.datecount[i].refs += ", "
-				}
+				var str string
 				if ref.IsTag() {
-					li.datecount[i].refs += "["
+					str = fmt.Sprintf("[%s]", ref.Shorthand())
+				} else {
+					str = ref.Shorthand()
 				}
-				li.datecount[i].refs += ref.Shorthand()
-				if ref.IsTag() {
-					li.datecount[i].refs += "]"
-				}
+				li.datecount[i].refs = append(li.datecount[i].refs, str)
 				break
 			}
 		}

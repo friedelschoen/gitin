@@ -5,7 +5,6 @@ import (
 	"strings"
 )
 
-var Force bool
 var Verbose bool
 var Columnate bool
 var Quiet bool

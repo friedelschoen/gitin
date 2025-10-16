@@ -1,11 +1,7 @@
 package wrapper
 
 import (
-	"encoding/json"
-	"io"
 	"log"
-	"os"
-	"path"
 
 	git "github.com/jeffwelling/git2go/v37"
 )
@@ -24,31 +20,8 @@ type DeltaInfo struct {
 	Delcount int           `json:"delcount"`
 }
 
-/* Function to dump the commitstats struct into a file */
-func dumpdiff(fp io.Writer, stats CommitInfo) error {
-	return json.NewEncoder(fp).Encode(stats)
-}
-
-/* Function to parse the commitstats struct from a file */
-func loaddiff(fp io.Reader) (stats CommitInfo, err error) {
-	err = json.NewDecoder(fp).Decode(&stats)
-	return
-}
-
-func GetDiff(info *RepoInfo, commit *git.Commit, docache bool) (CommitInfo, error) {
-	os.MkdirAll(".cache/diffs", 0777)
-
+func GetDiff(info *RepoInfo, commit *git.Commit) (CommitInfo, error) {
 	oid := commit.Id().String()
-
-	if docache {
-		if file, err := os.Open(path.Join(".cache/diffs", oid)); err == nil {
-			defer file.Close()
-			stats, err := loaddiff(file)
-			if err != nil {
-				return stats, nil
-			}
-		}
-	}
 
 	tree, err := commit.Tree()
 	if err != nil {
@@ -101,11 +74,5 @@ func GetDiff(info *RepoInfo, commit *git.Commit, docache bool) (CommitInfo, erro
 		ci.Delcount += s.Deletions()
 	}
 
-	if file, err := os.Create(path.Join(".cache/diffs", oid)); err == nil {
-		defer file.Close()
-		if err := dumpdiff(file, ci); err != nil {
-			return CommitInfo{}, err
-		}
-	}
 	return ci, err
 }

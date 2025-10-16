@@ -32,36 +32,37 @@ func writeblob(refname string, blob *wrapper.BlobInfo) error {
 }
 
 func writefile(info *wrapper.RepoInfo, refname string, relpath int, blob *wrapper.BlobInfo) error {
-	destpath := path.Join(refname, "files", blob.Path)
+	destpath := path.Join(refname, "files", blob.Path+".html")
 	os.MkdirAll(path.Dir(destpath), 0777)
-	file, err := os.Create(destpath)
+	fp, err := os.Create(destpath)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer fp.Close()
 
-	return common.CachedWriter(file, path.Join(".cache/files", blob.ID), func(fp io.Writer) error {
-		render.WriteHeader(fp, info, relpath, true, info.Name, fmt.Sprintf("%s in %s", html.EscapeString(blob.Path), refname))
-		fmt.Fprintf(fp, "<p> %s (%dB) <a href='%sblob/%s/%s'>download</a></p><hr/>", html.EscapeString(blob.Name),
-			len(blob.Contents), common.Relpath(relpath), refname, common.Pathunhide(blob.Path))
+	render.WriteHeader(fp, info, relpath, true, info.Name, fmt.Sprintf("%s in %s", html.EscapeString(blob.Path), refname))
+	fmt.Fprintf(fp, "<p> %s (%dB) <a href='%sblob/%s/%s'>download</a></p><hr/>", html.EscapeString(blob.Name),
+		len(blob.Contents), common.Relpath(relpath), refname, common.Pathunhide(blob.Path))
 
-		if err := render.WritePreview(fp, relpath, blob); err != nil {
+	if typ, param, ok := preview.GetPreviewer(blob.Name); ok {
+		if err := render.WritePreview(fp, relpath, blob, typ, param); err != nil {
 			return err
 		}
+		fmt.Fprintf(fp, "<hr/>\n")
+	}
 
-		if blob.IsBinary {
-			fmt.Fprintf(fp, "<p>Binary file.</p>\n")
-		} else if gitin.Config.Maxfilesize != -1 && len(blob.Contents) >= gitin.Config.Maxfilesize {
-			fmt.Fprintf(fp, "<p>File too big.</p>\n")
-		} else if len(blob.Contents) > 0 {
-			if err := render.Highlight(fp, blob); err != nil {
-				return err
-			}
+	if blob.IsBinary {
+		fmt.Fprintf(fp, "<p>Binary file.</p>\n")
+	} else if gitin.Config.Maxfilesize != -1 && len(blob.Contents) >= gitin.Config.Maxfilesize {
+		fmt.Fprintf(fp, "<p>File too big.</p>\n")
+	} else if len(blob.Contents) > 0 {
+		if err := render.Highlight(fp, blob); err != nil {
+			return err
 		}
+	}
 
-		render.WriteFooter(fp)
-		return nil
-	})
+	render.WriteFooter(fp)
+	return nil
 }
 
 func geticon(blob *git.Blob, filename string) string {
@@ -191,21 +192,7 @@ func writetree(fp io.Writer, info *wrapper.RepoInfo, refname string, baserelpath
 	return nil
 }
 
-func composefiletree(info *wrapper.RepoInfo, refinfo *wrapper.ReferenceInfo) error {
-	os.MkdirAll("cache/files", 0777)
-	os.MkdirAll("cache/blobs", 0777)
-
-	headoid := refinfo.Commit.Id().String()
-	if !common.Force {
-		if file, err := os.Open(".cache/filetree"); err == nil {
-			defer file.Close()
-			b, err := io.ReadAll(file)
-			if err == nil && string(b) == headoid {
-				return nil
-			}
-		}
-	}
-
+func makefiletree(info *wrapper.RepoInfo, refinfo *wrapper.ReferenceInfo) error {
 	/* Clean /file and /blob directories since they will be rewritten */
 	os.RemoveAll(path.Join(refinfo.Refname, "files"))
 	os.RemoveAll(path.Join(refinfo.Refname, "blobs"))
@@ -226,11 +213,6 @@ func composefiletree(info *wrapper.RepoInfo, refinfo *wrapper.ReferenceInfo) err
 		if !common.Verbose && !common.Quiet {
 			fmt.Println()
 		}
-	}
-
-	if file, err := os.Create(".cache/filetree"); err == nil {
-		defer file.Close()
-		file.WriteString(headoid)
 	}
 
 	return nil

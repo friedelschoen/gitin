@@ -5,27 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"path"
-	"strings"
 
 	"github.com/friedelschoen/gitin-go/internal/preview"
 	"github.com/friedelschoen/gitin-go/internal/wrapper"
 )
 
-func WritePreview(fp io.Writer, relpath int, blob *wrapper.BlobInfo) error {
-	var typ preview.Previewer
-	var param string
-	for _, ft := range preview.Filetypes {
-		if ft.Match(blob.Name) {
-			typ = ft.Preview
-			param = ft.Param
-			break
-		}
-	}
-	if param == "" {
-		param = strings.TrimLeft(path.Ext(blob.Name), ".")
-	}
-
+func WritePreview(fp io.Writer, relpath int, blob *wrapper.BlobInfo, typ preview.Previewer, param string) error {
 	if typ != nil {
 		err := typ(fp, blob, relpath, param)
 

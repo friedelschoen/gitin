@@ -1,7 +1,6 @@
 package render
 
 import (
-	"errors"
 	"fmt"
 	"html"
 	"io"
@@ -41,11 +40,6 @@ func writelogline(fp io.Writer, commit *git.Commit, ci *wrapper.CommitInfo) {
 	fmt.Fprint(fp, "</td></tr>\n")
 }
 
-func FileExist(pat string) bool {
-	_, err := os.Stat(pat)
-	return !errors.Is(err, os.ErrNotExist)
-}
-
 type logstate struct {
 	fp   io.Writer
 	json []commitJSON
@@ -54,21 +48,18 @@ type logstate struct {
 
 func writelogcommit(s *logstate, info *wrapper.RepoInfo, index int, commit *git.Commit) error {
 	pat := path.Join("commit", commit.Id().String()+".html")
-	cachedcommit := !common.Force && FileExist(pat)
-	ci, err := wrapper.GetDiff(info, commit, cachedcommit)
+	ci, err := wrapper.GetDiff(info, commit)
 	if err != nil {
 		return err
 	}
 
-	if !cachedcommit {
-		commitfile, err := os.Create(pat)
-		if err != nil {
-			return err
-		}
-		defer commitfile.Close()
-		if err := writecommit(commitfile, info, commit, &ci, index == gitin.Config.Maxcommits); err != nil {
-			return err
-		}
+	commitfile, err := os.Create(pat)
+	if err != nil {
+		return err
+	}
+	defer commitfile.Close()
+	if err := writecommit(commitfile, info, commit, &ci, index == gitin.Config.Maxcommits); err != nil {
+		return err
 	}
 	if s.fp != nil {
 		writelogline(s.fp, commit, &ci)

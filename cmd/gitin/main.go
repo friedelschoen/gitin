@@ -21,7 +21,6 @@ func main() {
 	flag.StringVar(&pwd, "C", "", "usage")
 	flag.StringVar(&gitin.Configfile, "c", gitin.Configfile, "configfile")
 	flag.IntVar(&relpath, "d", 0, "relpath")
-	flag.BoolVar(&common.Force, "f", false, "force")
 	flag.BoolVar(&common.Quiet, "q", false, "quite")
 	flag.BoolVar(&common.Columnate, "s", false, "columnate")
 	flag.BoolVar(&printVersion, "V", false, "print version")
@@ -56,7 +55,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	err = writer.Composerepo(repoinfo)
+	err = writer.MakeRepo(repoinfo)
 	if err != nil {
 		log.Fatalln(err)
 	}

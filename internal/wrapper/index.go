@@ -1,11 +1,7 @@
 package wrapper
 
 import (
-	"encoding/json"
-	"fmt"
-	"io"
 	"iter"
-	"os"
 	"slices"
 	"strings"
 )
@@ -16,22 +12,8 @@ type IndexInfo struct {
 	Description string `json:"description"`
 }
 
-func parsecache(buffer io.Reader) (indexes []IndexInfo, err error) {
-	err = json.NewDecoder(buffer).Decode(&indexes)
-	return
-}
-
 func GetIndex(repos iter.Seq[string]) []IndexInfo {
 	var info []IndexInfo
-
-	/* parse cache */
-	if cachefp, err := os.Open(".cache/index"); err == nil {
-		defer cachefp.Close()
-		info, err = parsecache(cachefp)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error: unable to load index-cache: %v\n", err)
-		}
-	}
 
 	/* fill cache with to update repos */
 	for repodir := range repos {

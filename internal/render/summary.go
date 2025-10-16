@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/friedelschoen/gitin-go"
+	"github.com/friedelschoen/gitin-go/internal/preview"
 	"github.com/friedelschoen/gitin-go/internal/wrapper"
 	git "github.com/jeffwelling/git2go/v37"
 )
@@ -57,7 +58,8 @@ func WriteSummary(fp io.Writer, info *wrapper.RepoInfo, refinfo *wrapper.Referen
 			Contents: readme.Contents(),
 			ID:       readme.Id().String(),
 		}
-		if err := WritePreview(fp, 1, &blobinfo); err != nil {
+		typ, param, _ := preview.GetPreviewer(blobinfo.Name)
+		if err := WritePreview(fp, 1, &blobinfo, typ, param); err != nil {
 			return err
 		}
 	}

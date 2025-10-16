@@ -2,9 +2,12 @@ package preview
 
 import (
 	"bytes"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
+	"path"
+	"strings"
 
 	"github.com/friedelschoen/gitin-go"
 	"github.com/friedelschoen/gitin-go/internal/common"
@@ -14,6 +17,27 @@ import (
 type Previewer = func(w io.Writer, blob *wrapper.BlobInfo, relpath int, param string) error
 
 var ErrInvalidParam = errors.New("invalid parameter")
+
+func DefaultPreviewer(w io.Writer, blob *wrapper.BlobInfo, relpath int, param string) error {
+	fmt.Fprintf(w, "<div class=\"preview\">\n<pre>\n")
+	err := xml.EscapeText(w, blob.Contents)
+	fmt.Fprintf(w, "</pre>\n</div>\n")
+	return err
+}
+
+func GetPreviewer(name string) (Previewer, string, bool) {
+	for _, ft := range Filetypes {
+		if ft.Match(name) {
+			typ := ft.Preview
+			param := ft.Param
+			if param == "" {
+				param = strings.TrimLeft(path.Ext(name), ".")
+			}
+			return typ, param, true
+		}
+	}
+	return DefaultPreviewer, strings.TrimLeft(path.Ext(name), "."), false
+}
 
 func CommandPreviewer(cmdID string) Previewer {
 	command := gitin.Config.PreviewCommands[cmdID]
@@ -36,6 +60,7 @@ func CommandPreviewer(cmdID string) Previewer {
 		return err
 	}
 }
+
 func ConfigPreviewer(fp io.Writer, blob *wrapper.BlobInfo, relpath int, typ string) error {
 	if typ == "" {
 		return fmt.Errorf("%w: %s", ErrInvalidParam, typ)
