@@ -14,7 +14,7 @@ import (
 
 func writeindexline(fp io.Writer, ref *wrapper.ReferenceInfo, repodir, name, description string) int {
 
-	var ret int = 0
+	ret := 0
 
 	fmt.Fprintf(fp, "<tr><td><a href=\"%s/\">%s</a></td><td>%s</td><td>", repodir, html.EscapeString(name), html.EscapeString(description))
 	if ref != nil {
@@ -61,7 +61,7 @@ func WriteIndex(fp io.Writer, info []wrapper.IndexInfo) error {
 		"<tr><td>Name</td><td class=\"expand\">Description</td><td>Last changes</td></tr>"+
 		"</thead><tbody>\n")
 
-	var category string = ""
+	category := ""
 	for _, index := range info {
 		if iscategory(index.Repodir, &category) {
 			if err := writecategory(fp, category); err != nil {

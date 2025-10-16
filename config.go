@@ -1,3 +1,4 @@
+// Package gitin contains all configuration
 package gitin
 
 type MainConfig struct {
@@ -35,7 +36,7 @@ type MainConfig struct {
 	Aboutfiles []string
 }
 
-/* Configuration keys for the configuration parser. */
+// Config : Configuration keys for the configuration parser.
 var Config MainConfig = MainConfig{
 
 	/* --- Site information settings --- */
@@ -110,5 +111,5 @@ var Config MainConfig = MainConfig{
 	},
 }
 
-/* Path to the config files */
+// Configfile : Path to the config files
 var Configfile = "gitin.toml"

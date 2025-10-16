@@ -43,25 +43,26 @@ func incrementauthor(authorcount []*authorcount, author *git.Signature) bool {
 	return false
 }
 
+type padding struct {
+	bottom, top, left, right int
+}
+
 func writediagram(file io.Writer, li *loginfo) {
 	/* Constants for the SVG size and scaling */
-	var width int = 1200
-	var height int = 500
+	const width = 1200
+	const height = 500
 
-	var padding_bottom = 100
-	var padding_top = 100
-	var padding_left = 20
-	var padding_right = 20
+	padding := padding{bottom: 100, top: 100, left: 20, right: 20}
 
-	var point_radius = 3
-	var char_width = 5
+	pointRadius := 3
+	charWidth := 5
 
-	var color string = "#3498db"
+	color := "#3498db"
 
-	var max_commits = 0
+	var maxCommits = 0
 	for _, dc := range li.datecount {
-		if max_commits < dc.count {
-			max_commits = dc.count
+		if maxCommits < dc.count {
+			maxCommits = dc.count
 		}
 	}
 
@@ -69,15 +70,15 @@ func writediagram(file io.Writer, li *loginfo) {
 	fmt.Fprintf(file, "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 %d %d\">\n", width, height)
 
 	/* Scaling factors for graph */
-	var x_scale = float64(width-padding_left-padding_right) / float64(len(li.datecount)-1)
-	var y_scale = float64(height-padding_top-padding_bottom) / float64(max_commits)
+	var xScale = float64(width-padding.left-padding.right) / float64(len(li.datecount)-1)
+	var yScale = float64(height-padding.top-padding.bottom) / float64(maxCommits)
 
 	/* Draw the line graph from right to left */
 	for i := 0; i < len(li.datecount)-1; i++ {
-		x1 := width - padding_right - int(float64(i)*x_scale)
-		y1 := height - padding_bottom - int(float64(li.datecount[i].count)*y_scale)
-		x2 := width - padding_right - int(float64(i+1)*x_scale)
-		y2 := height - padding_bottom - int(float64(li.datecount[i+1].count)*y_scale)
+		x1 := width - padding.right - int(float64(i)*xScale)
+		y1 := height - padding.bottom - int(float64(li.datecount[i].count)*yScale)
+		x2 := width - padding.right - int(float64(i+1)*xScale)
+		y2 := height - padding.bottom - int(float64(li.datecount[i+1].count)*yScale)
 
 		fmt.Fprintf(
 			file,
@@ -87,11 +88,11 @@ func writediagram(file io.Writer, li *loginfo) {
 
 	/* Add vertical labels for months, also right to left */
 	for i, dc := range li.datecount {
-		var x int = width - padding_right - int(float64(i)*x_scale) /* Reversed X */
+		x := width - padding.right - int(float64(i)*xScale) /* Reversed X */
 
 		if dc.count > 0 {
-			var y int = height - padding_bottom + 10 /* Adjust for spacing below the graph */
-			var ty int = height - padding_bottom - int(float64(dc.count)*y_scale)
+			y := height - padding.bottom + 10 /* Adjust for spacing below the graph */
+			ty := height - padding.bottom - int(float64(dc.count)*yScale)
 
 			tm := time.Unix(li.datecount[i].day*SECONDSINDAY, 0)
 
@@ -101,9 +102,9 @@ func writediagram(file io.Writer, li *loginfo) {
 				x-2, y, x-2, y)
 
 			if li.bymonth {
-				fmt.Fprintf(file, "%s %d", tm.Month(), tm.Year()+1900)
+				fmt.Fprintf(file, "%s %d", tm.Month(), tm.Year())
 			} else {
-				fmt.Fprintf(file, "%d %s %d", tm.Day(), tm.Month(), tm.Year()+1900)
+				fmt.Fprintf(file, "%d %s %d", tm.Day(), tm.Month(), tm.Year())
 			}
 			fmt.Fprintf(file, "</text>\n")
 
@@ -112,14 +113,14 @@ func writediagram(file io.Writer, li *loginfo) {
 				"  <text x=\"%d\" y=\"%d\" font-size=\"10px\" text-anchor=\"middle\">%d</text>\n",
 				x, ty-10, li.datecount[i].count)
 			fmt.Fprintf(file, "  <circle cx=\"%d\" cy=\"%d\" r=\"%d\" fill=\"%s\"/>\n", x, ty,
-				point_radius, color)
+				pointRadius, color)
 		}
 		if li.datecount[i].refs != "" {
-			var y2 int = height - int(float64(dc.count)*y_scale) - padding_bottom
+			y2 := height - int(float64(dc.count)*yScale) - padding.bottom
 			fmt.Fprintf(
 				file,
 				"  <line x1=\"%d\" y1=\"%d\" x2=\"%d\" y2=\"%d\" stroke=\"#000\" stroke-width=\"1\" stroke-dasharray=\"4\"/>\n",
-				x, 20+char_width*len(dc.refs), x, y2-30)
+				x, 20+charWidth*len(dc.refs), x, y2-30)
 
 			fmt.Fprintf(
 				file,
@@ -141,14 +142,14 @@ func mergedatecount(li *loginfo) {
 
 	li.bymonth = true
 
-	first_day := time.Unix(li.datecount[0].day*SECONDSINDAY, 0)
+	firstday := time.Unix(li.datecount[0].day*SECONDSINDAY, 0)
 
 	/* Iterate through the rest of datecount */
 	writeptr := 0
 	for readptr := 1; readptr < len(li.datecount); readptr++ {
-		current_day := time.Unix(li.datecount[readptr].day*SECONDSINDAY, 0)
+		currentday := time.Unix(li.datecount[readptr].day*SECONDSINDAY, 0)
 
-		if current_day.Month() == first_day.Month() && current_day.Year() == first_day.Year() {
+		if currentday.Month() == firstday.Month() && currentday.Year() == firstday.Year() {
 			/* Same month, accumulate counts */
 			li.datecount[writeptr].count += li.datecount[readptr].count
 
@@ -167,7 +168,7 @@ func mergedatecount(li *loginfo) {
 			li.datecount[writeptr] = li.datecount[readptr]
 
 			/* Update first_day for the new month */
-			first_day = current_day
+			firstday = currentday
 		}
 	}
 

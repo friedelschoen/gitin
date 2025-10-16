@@ -1,3 +1,4 @@
+// Package writer describes writes used to build a repository-tree
 package writer
 
 import (
@@ -35,6 +36,9 @@ func composelog(fp io.Writer, svg io.Writer, atom io.Writer, json io.Writer, inf
 		}
 		defer arfp.Close()
 		arsize, err := render.WriteArchive(arfp, info, ext, refinfo)
+		if err != nil {
+			return err
+		}
 		arsize, unit := common.Splitunit(arsize)
 		if fp != nil {
 			fmt.Fprintf(fp, "<tr><td><a href=\"%s.%s\">%s.%s</a></td><td>%d%s</td></tr>", refinfo.Refname, ext, refinfo.Refname, ext, arsize, unit)
@@ -153,7 +157,7 @@ func Composerepo(info *wrapper.RepoInfo) error {
 			return err
 		}
 		defer file.Close()
-		if err := render.WriteJsonRefs(file, info); err != nil {
+		if err := render.WriteJSONRefs(file, info); err != nil {
 			return err
 		}
 	}

@@ -1,3 +1,4 @@
+// Package preview contains different previewers
 package preview
 
 import (

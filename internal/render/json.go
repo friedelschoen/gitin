@@ -75,7 +75,7 @@ func toJSONCommit(c *git.Commit) commitJSON {
 	}
 }
 
-func WriteJsonRefs(w io.Writer, info *wrapper.RepoInfo) error {
+func WriteJSONRefs(w io.Writer, info *wrapper.RepoInfo) error {
 	out := outJSON{
 		Branches: make([]refJSON, 0, len(info.Refs)),
 		Tags:     make([]refJSON, 0),

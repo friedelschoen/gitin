@@ -1,3 +1,4 @@
+// Package render contains writers for different objects, all write to an io.Writer
 package render
 
 import (
@@ -11,7 +12,7 @@ import (
 )
 
 func WriteHeader(fp io.Writer, info *wrapper.RepoInfo, relpath int, inbranch bool, name, description string) {
-	var indexrelpath int = relpath
+	indexrelpath := relpath
 	if info != nil {
 		indexrelpath += info.Relpath
 	}

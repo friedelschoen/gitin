@@ -116,7 +116,7 @@ func WriteLog(fp io.Writer, svgfp io.Writer, atom io.Writer, json io.Writer, inf
 	defer common.Printer.Done(msg)
 
 	/* Iterate through the commits */
-	var indx int = 0
+	indx := 0
 	state := logstate{fp: fp}
 	_ = w.Iterate(func(commit *git.Commit) bool {
 		if gitin.Config.Maxcommits > 0 && indx >= gitin.Config.Maxcommits {

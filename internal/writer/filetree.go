@@ -77,10 +77,10 @@ func geticon(blob *git.Blob, filename string) string {
 	return "other"
 }
 
-func countfiles(tree *git.Tree) (file_count uint64) {
+func countfiles(tree *git.Tree) (count uint64) {
 	_ = tree.Walk(func(s string, te *git.TreeEntry) error {
 		if te.Type == git.ObjectBlob {
-			file_count++
+			count++
 		}
 		return nil
 	})

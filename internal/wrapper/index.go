@@ -14,8 +14,6 @@ type IndexInfo struct {
 	Repodir     string `json:"repodir"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
-
-	repoinfo *RepoInfo
 }
 
 func parsecache(buffer io.Reader) (indexes []IndexInfo, err error) {

@@ -1,3 +1,4 @@
+// Package wrapper contains wrapper structs and methods around libgit2
 package wrapper
 
 import (

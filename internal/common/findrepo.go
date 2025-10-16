@@ -18,14 +18,14 @@ func checkrepo(base, pathname string) bool {
 	return false
 }
 
-func Findrepos(base_path string) iter.Seq[string] {
+func Findrepos(basepath string) iter.Seq[string] {
 	return func(yield func(string) bool) {
-		_ = filepath.WalkDir(base_path, func(entry string, d fs.DirEntry, err error) error {
+		_ = filepath.WalkDir(basepath, func(entry string, d fs.DirEntry, err error) error {
 			if !d.IsDir() {
 				return nil
 			}
-			if checkrepo(base_path, entry) {
-				if !yield(path.Join(base_path, entry)) {
+			if checkrepo(basepath, entry) {
+				if !yield(path.Join(basepath, entry)) {
 					return filepath.SkipAll
 				}
 			}
