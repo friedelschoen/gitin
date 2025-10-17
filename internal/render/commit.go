@@ -18,35 +18,29 @@ func hasheadfile(info *wrapper.RepoInfo, filename string) bool {
 	return slices.Contains(info.Headfiles, filename)
 }
 
-func writecommit(fp io.Writer, info *wrapper.RepoInfo, commit *git.Commit, ci *wrapper.CommitInfo, parentlink bool) error {
-
-	author := commit.Author()
-	summary := commit.Summary()
-	msg := commit.Message()
-	oid := commit.Id().String()
-	var parentoid string
-	if parentcommit := commit.ParentId(0); parentcommit != nil {
-		parentoid = parentcommit.String()
-	}
-
-	WriteHeader(fp, info, 1, false, info.Name, fmt.Sprintf("%s (%s)", html.EscapeString(summary), oid))
+func WriteCommit(fp io.Writer, info *wrapper.RepoInfo, ci *wrapper.CommitInfo) error {
+	WriteHeader(fp, info, 1, false, info.Name, fmt.Sprintf("%s (%s)", html.EscapeString(ci.Summary), ci.ID))
 	fmt.Fprintf(fp, "<pre>")
 
-	fmt.Fprintf(fp, "<b>commit</b> <a href=\"%s.html\">%s</a>\n", oid, oid)
+	fmt.Fprintf(fp, "<b>commit</b> <a href=\"%s.html\">%s</a>\n", ci.ID, ci.ID)
 
-	if parentoid != "" {
-		if parentlink {
-			fmt.Fprintf(fp, "<b>parent</b> <a href=\"%s.html\">%s</a>\n", parentoid, parentoid)
+	if ci.ParentID != "" {
+		if ci.Parent != nil {
+			fmt.Fprintf(fp, "<b>parent</b> <a href=\"%s.html\">%s</a>\n", ci.ParentID, ci.ParentID)
 		} else {
-			fmt.Fprintf(fp, "<b>parent</b> %s\n", parentoid)
+			fmt.Fprintf(fp, "<b>parent</b> %s\n", ci.ParentID)
 		}
 	}
-	if author != nil {
+	if ci.Author.Valid {
 		fmt.Fprintf(fp, "<b>Author:</b> %s &lt;<a href=\"mailto:%s\">%s</a>&gt;\n<b>Date:</b>   %T\n",
-			html.EscapeString(author.Name), html.EscapeString(author.Email), html.EscapeString(author.Email), rfc3339(author.When.UTC()))
+			html.EscapeString(ci.Author.Name), html.EscapeString(ci.Author.Email), html.EscapeString(ci.Author.Email), rfc3339(ci.Author.When.UTC()))
 	}
-	if msg != "" {
-		fmt.Fprintf(fp, "\n%s\n", html.EscapeString(msg))
+	if ci.Committer.Valid {
+		fmt.Fprintf(fp, "<b>Committer:</b> %s &lt;<a href=\"mailto:%s\">%s</a>&gt;\n<b>Date:</b>   %T\n",
+			html.EscapeString(ci.Committer.Name), html.EscapeString(ci.Committer.Email), html.EscapeString(ci.Committer.Email), rfc3339(ci.Committer.When.UTC()))
+	}
+	if ci.Message != "" {
+		fmt.Fprintf(fp, "\n%s\n", html.EscapeString(ci.Message))
 	}
 	if len(ci.Deltas) == 0 {
 		return nil
@@ -135,33 +129,24 @@ func writecommit(fp io.Writer, info *wrapper.RepoInfo, commit *git.Commit, ci *w
 			continue
 		}
 
-		err := ci.Diff.ForEach(func(file git.DiffDelta, progress float64) (git.DiffForEachHunkCallback, error) {
-			j := 0
-			return func(hunk git.DiffHunk) (git.DiffForEachLineCallback, error) {
+		for _, hunks := range ci.Hunks {
+			for j, hunk := range *hunks {
 				fmt.Fprintf(fp, "<a href=\"#h%d-%d\" id=\"h%d-%d\" class=\"h\">%s</a>\n", i, j, i, j, html.EscapeString(hunk.Header))
 
-				j++
-				k := 0
-				return func(line git.DiffLine) error {
-					if line.OldLineno == -1 {
+				for k, line := range hunk.Changes {
+					if line.OldLine == -1 {
 						fmt.Fprintf(fp, "<a href=\"#h%d-%d-%d\" id=\"h%d-%d-%d\" class=\"i\">+", i, j, k, i, j, k)
-					} else if line.NewLineno == -1 {
+					} else if line.NewLine == -1 {
 						fmt.Fprintf(fp, "<a href=\"#h%d-%d-%d\" id=\"h%d-%d-%d\" class=\"d\">-", i, j, k, i, j, k)
 					} else {
 						fmt.Fprintf(fp, " ")
 					}
 					fmt.Fprintf(fp, "%s\n", html.EscapeString(line.Content))
-					if line.OldLineno == -1 || line.NewLineno == -1 {
+					if line.OldLine == -1 || line.NewLine == -1 {
 						fmt.Fprintf(fp, "</a>")
 					}
-
-					k++
-					return nil
-				}, nil
-			}, nil
-		}, git.DiffDetailLines)
-		if err != nil {
-			return err
+				}
+			}
 		}
 	}
 

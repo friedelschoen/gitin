@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/friedelschoen/gitin-go/internal/wrapper"
 	git "github.com/jeffwelling/git2go/v37"
 )
 
@@ -27,28 +26,34 @@ type datecount struct {
 	refs  []string
 }
 
-type loginfo struct {
+type LogStats struct {
 	authorcount []authorcount
-
-	datecount []datecount
-	bymonth   bool
+	datecount   []datecount
+	bymonth     bool
 }
 
-func incrementauthor(authorcount []authorcount, author *git.Signature) bool {
-	for i, ac := range authorcount {
-		if author.Name == ac.name && author.Email == authorcount[i].email {
-			authorcount[i].count++
-			return true
-		}
+func GetLogStats(repo *git.Repository, head *git.Commit) (*LogStats, error) {
+	var li LogStats
+	if err := li.countlog(repo, head); err != nil {
+		return nil, err
 	}
-	return false
+	if err := li.addrefcount(repo); err != nil {
+		return nil, err
+	}
+	if len(li.authorcount) == 0 {
+		return &li, nil
+	}
+	if len(li.datecount) > DAYSINYEAR {
+		li.mergedatecount()
+	}
+	return &li, nil
 }
 
 type padding struct {
 	bottom, top, left, right int
 }
 
-func writediagram(file io.Writer, li *loginfo) {
+func (li *LogStats) WriteDiagram(file io.Writer) {
 	/* Constants for the SVG size and scaling */
 	const width = 1200
 	const height = 500
@@ -133,10 +138,10 @@ func writediagram(file io.Writer, li *loginfo) {
 	fmt.Fprintf(file, "</svg>\n")
 }
 
-func mergedatecount(li *loginfo) {
+func (li *LogStats) mergedatecount() {
 	/* Initialize the first month with the first day */
 
-	if len(li.datecount) == 0 {
+	if li.bymonth || len(li.datecount) == 0 {
 		return
 	}
 
@@ -173,8 +178,18 @@ func mergedatecount(li *loginfo) {
 	li.datecount = li.datecount[:writeptr+1]
 }
 
-func countlog(info *wrapper.RepoInfo, head *git.Commit, li *loginfo) error {
-	w, err := info.Repo.Walk()
+func incrementauthor(authorcount []authorcount, author *git.Signature) bool {
+	for i, ac := range authorcount {
+		if author.Name == ac.name && author.Email == authorcount[i].email {
+			authorcount[i].count++
+			return true
+		}
+	}
+	return false
+}
+
+func (li *LogStats) countlog(repo *git.Repository, head *git.Commit) error {
+	w, err := repo.Walk()
 	if err != nil {
 		return err
 	}
@@ -222,8 +237,8 @@ func countlog(info *wrapper.RepoInfo, head *git.Commit, li *loginfo) error {
 	return nil
 }
 
-func addrefcount(info *wrapper.RepoInfo, li *loginfo) error {
-	iter, err := info.Repo.NewReferenceIterator()
+func (li *LogStats) addrefcount(repo *git.Repository) error {
+	iter, err := repo.NewReferenceIterator()
 	if err != nil {
 		return err
 	}
@@ -267,7 +282,7 @@ func addrefcount(info *wrapper.RepoInfo, li *loginfo) error {
 	return nil
 }
 
-func writeauthorlog(fp io.Writer, li *loginfo) {
+func (li *LogStats) writeauthorlog(fp io.Writer) {
 	fmt.Fprintf(fp, "<table><thead>\n<tr><td class=\"num\">Count</td>"+
 		"<td class=\"expand\">Author</td>"+
 		"<td>E-Mail</td></tr>\n</thead><tbody>\n")
@@ -280,26 +295,12 @@ func writeauthorlog(fp io.Writer, li *loginfo) {
 	fmt.Fprintf(fp, "</tbody></table>")
 }
 
-func writeshortlog(fp io.Writer, svgfp io.Writer, info *wrapper.RepoInfo, head *git.Commit) error {
-	var li loginfo
-	if err := countlog(info, head, &li); err != nil {
-		return err
-	}
-	if err := addrefcount(info, &li); err != nil {
-		return err
-	}
-	if len(li.authorcount) == 0 {
-		return nil
-	}
-	if len(li.datecount) > DAYSINYEAR {
-		mergedatecount(&li)
-	}
+func (li *LogStats) WriteOverview(fp io.Writer) error {
 	fmt.Fprintf(fp, "<h2>Shortlog</h2>")
-	writeauthorlog(fp, &li)
+	li.writeauthorlog(fp)
 
 	fmt.Fprintf(fp, "<h2>Commit Graph</h2>")
 	fmt.Fprintf(fp, "<img id=\"shortlog-graph\" src=\"log.svg\" />\n")
 
-	writediagram(svgfp, &li)
 	return nil
 }

@@ -1,11 +1,11 @@
 package render
 
 import (
+	"encoding/json"
 	"fmt"
 	"html"
 	"io"
-	"os"
-	"path"
+	"strings"
 
 	"github.com/friedelschoen/gitin-go"
 	"github.com/friedelschoen/gitin-go/internal/common"
@@ -13,23 +13,18 @@ import (
 	git "github.com/jeffwelling/git2go/v37"
 )
 
-func writelogline(fp io.Writer, commit *git.Commit, ci *wrapper.CommitInfo) {
-	author := commit.Author()
-	summary := commit.Summary()
-
-	oid := commit.Id().String()
-
+func writelogline(fp io.Writer, ci *wrapper.CommitInfo) {
 	fmt.Fprint(fp, "<tr><td>")
-	if author != nil {
-		fmt.Fprint(fp, rfc3339(author.When))
+	if ci.Author.Valid {
+		fmt.Fprint(fp, rfc3339(ci.Author.When))
 	}
 	fmt.Fprint(fp, "</td><td>")
-	if summary != "" {
-		fmt.Fprintf(fp, "<a href=\"../commit/%s.html\">%s</a>", oid, html.EscapeString(summary))
+	if ci.Summary != "" {
+		fmt.Fprintf(fp, "<a href=\"../commit/%s.html\">%s</a>", ci.ID, html.EscapeString(ci.Summary))
 	}
 	fmt.Fprintf(fp, "</td><td>")
-	if author != nil {
-		fmt.Fprintf(fp, "%s", html.EscapeString(author.Name))
+	if ci.Author.Valid {
+		fmt.Fprintf(fp, "%s", html.EscapeString(ci.Author.Name))
 	}
 	fmt.Fprintf(fp, "</td><td class=\"num\" align=\"right\">")
 	fmt.Fprintf(fp, "%d", len(ci.Deltas))
@@ -40,50 +35,86 @@ func writelogline(fp io.Writer, commit *git.Commit, ci *wrapper.CommitInfo) {
 	fmt.Fprint(fp, "</td></tr>\n")
 }
 
-type logstate struct {
-	fp   io.Writer
-	json []commitJSON
-	atom []atomEntry
-}
+// func writelogcommit(w io.Writer, info *wrapper.RepoInfo, index int, ci *wrapper.CommitInfo) error {
+// 	pat := path.Join("commit", ci.ID+".html")
 
-func writelogcommit(s *logstate, info *wrapper.RepoInfo, index int, commit *git.Commit) error {
-	pat := path.Join("commit", commit.Id().String()+".html")
-	ci, err := wrapper.GetDiff(info, commit)
-	if err != nil {
+// 	commitfile, err := os.Create(pat)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer commitfile.Close()
+// 	if err := WriteCommit(commitfile, info, commit, ci, index == gitin.Config.Maxcommits); err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
+
+func WriteLog(fp io.Writer, info *wrapper.RepoInfo, refname string, commits []*wrapper.CommitInfo, ncommits int, stats *LogStats, arsizes map[string]int64) error {
+	WriteHeader(fp, info, 1, true, info.Name, refname)
+
+	fmt.Fprintf(fp, "<h2>Archives</h2>")
+	fmt.Fprintf(fp, "<table><thead>\n<tr><td class=\"expand\">Name</td>"+
+		"<td class=\"num\">Size</td></tr>\n</thead><tbody>\n")
+
+	for _, ext := range gitin.Config.Archives {
+		ext = strings.TrimPrefix(ext, ".")
+		arsize, ok := arsizes[ext]
+		if !ok {
+			continue
+		}
+		arsize, unit := common.Splitunit(arsize)
+		fmt.Fprintf(fp, "<tr><td><a href=\"%s.%s\">%s.%s</a></td><td>%d%s</td></tr>", refname, ext, refname, ext, arsize, unit)
+	}
+
+	fmt.Fprintf(fp, "</tbody></table>")
+
+	if err := stats.WriteOverview(fp); err != nil {
 		return err
 	}
 
-	commitfile, err := os.Create(pat)
-	if err != nil {
-		return err
+	fmt.Fprintf(fp, "<h2>Commits of %s</h2>", refname)
+
+	fmt.Fprintf(fp, "<table id=\"log\"><thead>\n<tr><td>Date</td>"+
+		"<td class=\"expand\">Commit message</td>"+
+		"<td>Author</td><td class=\"num\" align=\"right\">Files</td>"+
+		"<td class=\"num\" align=\"right\">+</td>"+
+		"<td class=\"num\" align=\"right\">-</td></tr>\n</thead><tbody>")
+
+	msg := fmt.Sprintf("write log:   %s", refname)
+	defer common.Printer.Done(msg)
+
+	/* Iterate through the commits */
+	for indx, commit := range commits {
+		writelogline(fp, commit)
+
+		common.Printer.Progress(msg, indx, len(commits))
 	}
-	defer commitfile.Close()
-	if err := writecommit(commitfile, info, commit, &ci, index == gitin.Config.Maxcommits); err != nil {
-		return err
+
+	if gitin.Config.Maxcommits > 0 && ncommits > gitin.Config.Maxcommits {
+		var plural string
+		if ncommits-gitin.Config.Maxcommits != 1 {
+			plural = "s"
+		}
+		fmt.Fprintf(fp, "<tr><td></td><td colspan=\"5\">%d%s commits left out...</td></tr>\n", ncommits-gitin.Config.Maxcommits, plural)
 	}
-	if s.fp != nil {
-		writelogline(s.fp, commit, &ci)
-	}
-	s.atom = append(s.atom, makeEntry(commit, ""))
-	s.json = append(s.json, toJSONCommit(commit))
+
+	fmt.Fprintf(fp, "</tbody></table>")
+
+	WriteFooter(fp)
 	return nil
 }
 
-func WriteLog(fp io.Writer, svgfp io.Writer, atom io.Writer, json io.Writer, info *wrapper.RepoInfo, refinfo *wrapper.ReferenceInfo) error {
-	if fp != nil {
-		if err := writeshortlog(fp, svgfp, info, refinfo.Commit); err != nil {
-			return err
-		}
-
-		fmt.Fprintf(fp, "<h2>Commits of %s</h2>", refinfo.Refname)
-
-		fmt.Fprintf(fp, "<table id=\"log\"><thead>\n<tr><td>Date</td>"+
-			"<td class=\"expand\">Commit message</td>"+
-			"<td>Author</td><td class=\"num\" align=\"right\">Files</td>"+
-			"<td class=\"num\" align=\"right\">+</td>"+
-			"<td class=\"num\" align=\"right\">-</td></tr>\n</thead><tbody>")
+func WriteLogJSON(fp io.Writer, refname string, commits []*wrapper.CommitInfo, ncommits int) error {
+	/* Iterate through the commits */
+	out := outJSON{
+		Commits: commits,
 	}
+	enc := json.NewEncoder(fp)
+	enc.SetIndent("", "  ")
+	return enc.Encode(out)
+}
 
+func WriteLogAtom(atom io.Writer, info *wrapper.RepoInfo, refinfo *wrapper.ReferenceInfo) error {
 	/* Create a revwalk to iterate through the commits */
 	w, err := info.Repo.Walk()
 	if err != nil {
@@ -103,51 +134,22 @@ func WriteLog(fp io.Writer, svgfp io.Writer, atom io.Writer, json io.Writer, inf
 		return err
 	}
 
-	msg := fmt.Sprintf("write log:   %s", refinfo.Refname)
+	msg := fmt.Sprintf("write atoms: %s", refinfo.Refname)
 	defer common.Printer.Done(msg)
 
 	/* Iterate through the commits */
 	indx := 0
-	state := logstate{fp: fp}
+	var commits []atomEntry
 	_ = w.Iterate(func(commit *git.Commit) bool {
-		if gitin.Config.Maxcommits > 0 && indx >= gitin.Config.Maxcommits {
-			return false
-		}
-		if err = writelogcommit(&state, info, indx, commit); err != nil {
-			return false
-		}
+		commits = append(commits, makeEntry(commit, ""))
 		indx++
 
 		common.Printer.Progress(msg, indx, ncommits)
 		return true
 	})
-	if err != nil {
+
+	if err := writeatomfeed(atom, info, commits); err != nil {
 		return err
-	}
-	if !common.Verbose && !common.Quiet {
-		fmt.Println()
-	}
-
-	if fp != nil {
-		if gitin.Config.Maxcommits > 0 && ncommits > gitin.Config.Maxcommits {
-			var plural string
-			if ncommits-gitin.Config.Maxcommits != 1 {
-				plural = "s"
-			}
-			fmt.Fprintf(fp, "<tr><td></td><td colspan=\"5\">%d%s commits left out...</td></tr>\n", ncommits-gitin.Config.Maxcommits, plural)
-		}
-
-		fmt.Fprintf(fp, "</tbody></table>")
-	}
-	if json != nil {
-		if err := writejsoncommits(json, state.json); err != nil {
-			return err
-		}
-	}
-	if atom != nil {
-		if err := writeatomfeed(atom, info, state.atom); err != nil {
-			return err
-		}
 	}
 	return nil
 }

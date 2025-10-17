@@ -22,7 +22,7 @@ func filemode(m git.Filemode) string {
 func writeblob(refname string, filename string, blob *git.Blob) error {
 	destpath := path.Join(refname, "blobs", filename)
 	os.MkdirAll(path.Dir(destpath), 0777)
-	file, err := os.Create(destpath)
+	file, err := createAndPrint(destpath)
 	if err != nil {
 		return err
 	}
@@ -34,7 +34,7 @@ func writeblob(refname string, filename string, blob *git.Blob) error {
 func writefile(info *wrapper.RepoInfo, refname string, relpath int, filename string, blob *git.Blob) error {
 	destpath := path.Join(refname, "files", filename+".html")
 	os.MkdirAll(path.Dir(destpath), 0777)
-	fp, err := os.Create(destpath)
+	fp, err := createAndPrint(destpath)
 	if err != nil {
 		return err
 	}
@@ -102,7 +102,7 @@ func writetree(fp io.Writer, info *wrapper.RepoInfo, refname string, baserelpath
 	var file *os.File
 	if dosplit || basepath == "" {
 		var err error
-		file, err = os.Create(path.Join(refname, "files", basepath, "index.html"))
+		file, err = createAndPrint(path.Join(refname, "files", basepath, "index.html"))
 		if err != nil {
 			return err
 		}
@@ -200,10 +200,6 @@ func makefiletree(info *wrapper.RepoInfo, refinfo *wrapper.ReferenceInfo) error 
 
 		if err != nil {
 			return err
-		}
-
-		if !common.Verbose && !common.Quiet {
-			fmt.Println()
 		}
 	}
 
