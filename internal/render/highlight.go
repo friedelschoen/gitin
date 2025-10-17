@@ -8,11 +8,11 @@ import (
 	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
 	"github.com/friedelschoen/gitin-go"
-	"github.com/friedelschoen/gitin-go/internal/wrapper"
+	git "github.com/jeffwelling/git2go/v37"
 )
 
-func Highlight(w io.Writer, blob *wrapper.BlobInfo) error {
-	lx := lexers.Get(blob.Name)
+func Highlight(w io.Writer, filename string, blob *git.Blob) error {
+	lx := lexers.Get(filename)
 	if lx == nil {
 		lx = lexers.Fallback
 	}
@@ -22,7 +22,7 @@ func Highlight(w io.Writer, blob *wrapper.BlobInfo) error {
 		st = styles.Fallback
 	}
 
-	iter, err := lx.Tokenise(nil, string(blob.Contents))
+	iter, err := lx.Tokenise(nil, string(blob.Contents()))
 	if err != nil {
 		return fmt.Errorf("unable to tokenize: %w", err)
 	}

@@ -51,15 +51,8 @@ func WriteSummary(fp io.Writer, info *wrapper.RepoInfo, refinfo *wrapper.Referen
 	if readme != nil {
 		fmt.Fprintf(fp, "<h2>About</h2>\n")
 
-		blobinfo := wrapper.BlobInfo{
-			Name:     readmename,
-			Path:     readmename,
-			IsBinary: readme.IsBinary(),
-			Contents: readme.Contents(),
-			ID:       readme.Id().String(),
-		}
-		typ, param, _ := preview.GetPreviewer(blobinfo.Name)
-		if err := WritePreview(fp, 1, &blobinfo, typ, param); err != nil {
+		typ, param, _ := preview.GetPreviewer(readmename)
+		if err := WritePreview(fp, 1, readmename, readme, typ, param); err != nil {
 			return err
 		}
 	}

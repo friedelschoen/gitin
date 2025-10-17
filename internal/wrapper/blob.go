@@ -6,14 +6,6 @@ import (
 	git "github.com/jeffwelling/git2go/v37"
 )
 
-type BlobInfo struct {
-	Name     string
-	Path     string
-	IsBinary bool
-	Contents []byte
-	ID       string
-}
-
 var ErrNoBlob = errors.New("object not a blob")
 
 func GetCommitBlob(repo *git.Repository, commit *git.Commit, path string) (*git.Blob, error) {

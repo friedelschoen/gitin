@@ -19,20 +19,20 @@ func filemode(m git.Filemode) string {
 	return os.FileMode(m).String()
 }
 
-func writeblob(refname string, blob *wrapper.BlobInfo) error {
-	destpath := path.Join(refname, "blobs", blob.Path)
+func writeblob(refname string, filename string, blob *git.Blob) error {
+	destpath := path.Join(refname, "blobs", filename)
 	os.MkdirAll(path.Dir(destpath), 0777)
 	file, err := os.Create(destpath)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
-	file.Write(blob.Contents)
+	file.Write(blob.Contents())
 	return nil
 }
 
-func writefile(info *wrapper.RepoInfo, refname string, relpath int, blob *wrapper.BlobInfo) error {
-	destpath := path.Join(refname, "files", blob.Path+".html")
+func writefile(info *wrapper.RepoInfo, refname string, relpath int, filename string, blob *git.Blob) error {
+	destpath := path.Join(refname, "files", filename+".html")
 	os.MkdirAll(path.Dir(destpath), 0777)
 	fp, err := os.Create(destpath)
 	if err != nil {
@@ -40,23 +40,23 @@ func writefile(info *wrapper.RepoInfo, refname string, relpath int, blob *wrappe
 	}
 	defer fp.Close()
 
-	render.WriteHeader(fp, info, relpath, true, info.Name, fmt.Sprintf("%s in %s", html.EscapeString(blob.Path), refname))
-	fmt.Fprintf(fp, "<p> %s (%dB) <a href='%sblob/%s/%s'>download</a></p><hr/>", html.EscapeString(blob.Name),
-		len(blob.Contents), common.Relpath(relpath), refname, common.Pathunhide(blob.Path))
+	render.WriteHeader(fp, info, relpath, true, info.Name, fmt.Sprintf("%s in %s", html.EscapeString(filename), refname))
+	fmt.Fprintf(fp, "<p> %s (%dB) <a href='%sblob/%s/%s'>download</a></p><hr/>", html.EscapeString(filename),
+		len(blob.Contents()), common.Relpath(relpath), refname, common.Pathunhide(filename))
 
-	if typ, param, ok := preview.GetPreviewer(blob.Name); ok {
-		if err := render.WritePreview(fp, relpath, blob, typ, param); err != nil {
+	if typ, param, ok := preview.GetPreviewer(filename); ok {
+		if err := render.WritePreview(fp, relpath, filename, blob, typ, param); err != nil {
 			return err
 		}
 		fmt.Fprintf(fp, "<hr/>\n")
 	}
 
-	if blob.IsBinary {
+	if blob.IsBinary() {
 		fmt.Fprintf(fp, "<p>Binary file.</p>\n")
-	} else if gitin.Config.Maxfilesize != -1 && len(blob.Contents) >= gitin.Config.Maxfilesize {
+	} else if gitin.Config.Maxfilesize != -1 && len(blob.Contents()) >= gitin.Config.Maxfilesize {
 		fmt.Fprintf(fp, "<p>File too big.</p>\n")
-	} else if len(blob.Contents) > 0 {
-		if err := render.Highlight(fp, blob); err != nil {
+	} else if len(blob.Contents()) > 0 {
+		if err := render.Highlight(fp, filename, blob); err != nil {
 			return err
 		}
 	}
@@ -133,18 +133,10 @@ func writetree(fp io.Writer, info *wrapper.RepoInfo, refname string, baserelpath
 				common.Relpath(info.Relpath+relpath), geticon(obj, entryname),
 				filemode(entry.Filemode))
 
-			blob := wrapper.BlobInfo{
-				Name:     entryname,
-				Path:     entrypath,
-				IsBinary: obj.IsBinary(),
-				Contents: obj.Contents(),
-				ID:       obj.Id().String(),
-			}
-
-			if err := writefile(info, refname, relpath, &blob); err != nil {
+			if err := writefile(info, refname, relpath, entrypath, obj); err != nil {
 				return err
 			}
-			if err := writeblob(refname, &blob); err != nil {
+			if err := writeblob(refname, entrypath, obj); err != nil {
 				return err
 			}
 
