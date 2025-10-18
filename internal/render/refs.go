@@ -26,12 +26,12 @@ func writereffooter(fp io.Writer) {
 	fmt.Fprintf(fp, "</tbody></table></div>\n")
 }
 
-func writerefs(fp io.Writer, info *wrapper.RepoInfo, relpath int, current *git.Reference) int {
+func writerefs(fp io.Writer, refs []*wrapper.ReferenceInfo, relpath int, current *git.Reference) int {
 	isbranch := true
 
 	writerefheader(fp, "Branches")
 
-	for _, refinfo := range info.Refs {
+	for _, refinfo := range refs {
 		iscurrent := current.Cmp(refinfo.Ref) == 0
 
 		if isbranch && refinfo.IsTag {

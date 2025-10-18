@@ -57,7 +57,7 @@ func makeRefs(info *wrapper.RepoInfo) error {
 					return
 				}
 				defer arfp.Close()
-				arsize, err := render.WriteArchive(arfp, info, ext, ref)
+				arsize, err := render.WriteArchive(arfp, info.Repo, ext, ref)
 				if err != nil {
 					errs = append(errs, err)
 					return
@@ -220,7 +220,7 @@ func MakeRepo(info *wrapper.RepoInfo) error {
 			return err
 		}
 		defer file.Close()
-		if err := render.WriteJSONRefs(file, info); err != nil {
+		if err := render.WriteJSONRefs(file, info.Refs); err != nil {
 			return err
 		}
 	}

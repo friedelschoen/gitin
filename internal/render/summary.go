@@ -15,7 +15,7 @@ func WriteSummary(fp io.Writer, info *wrapper.RepoInfo, refinfo *wrapper.Referen
 	WriteHeader(fp, info, 1, true, info.Name, refinfo.Refname)
 
 	fmt.Fprintf(fp, "<div id=\"refcontainer\">")
-	writerefs(fp, info, 1, refinfo.Ref)
+	writerefs(fp, info.Refs, 1, refinfo.Ref)
 	fmt.Fprintf(fp, "</div>")
 
 	fmt.Fprintf(fp, "<hr />")

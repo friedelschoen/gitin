@@ -35,20 +35,6 @@ func writelogline(fp io.Writer, ci *wrapper.CommitInfo) {
 	fmt.Fprint(fp, "</td></tr>\n")
 }
 
-// func writelogcommit(w io.Writer, info *wrapper.RepoInfo, index int, ci *wrapper.CommitInfo) error {
-// 	pat := path.Join("commit", ci.ID+".html")
-
-// 	commitfile, err := os.Create(pat)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	defer commitfile.Close()
-// 	if err := WriteCommit(commitfile, info, commit, ci, index == gitin.Config.Maxcommits); err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
-
 func WriteLog(fp io.Writer, info *wrapper.RepoInfo, refname string, commits []*wrapper.CommitInfo, ncommits int, stats *LogStats, arsizes map[string]int64) error {
 	WriteHeader(fp, info, 1, true, info.Name, refname)
 

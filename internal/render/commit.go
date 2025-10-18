@@ -14,10 +14,6 @@ import (
 
 const MAXLINESTR = 80
 
-func hasheadfile(info *wrapper.RepoInfo, filename string) bool {
-	return slices.Contains(info.Headfiles, filename)
-}
-
 func WriteCommit(fp io.Writer, info *wrapper.RepoInfo, ci *wrapper.CommitInfo) error {
 	WriteHeader(fp, info, 1, false, info.Name, fmt.Sprintf("%s (%s)", html.EscapeString(ci.Summary), ci.ID))
 	fmt.Fprintf(fp, "<pre>")
@@ -113,13 +109,13 @@ func WriteCommit(fp io.Writer, info *wrapper.RepoInfo, ci *wrapper.CommitInfo) e
 	for i, del := range ci.Deltas {
 		delta := del.Delta
 
-		if hasheadfile(info, delta.OldFile.Path) {
+		if slices.Contains(info.Headfiles, delta.OldFile.Path) {
 			fmt.Fprintf(fp, "<b>diff --git a/<a id=\"h%d\" href=\"../file/%s.html\">%s</a> ", i,
 				common.Pathunhide(delta.OldFile.Path), html.EscapeString(delta.OldFile.Path))
 		} else {
 			fmt.Fprintf(fp, "<b>diff --git a/%s ", html.EscapeString(delta.OldFile.Path))
 		}
-		if hasheadfile(info, delta.NewFile.Path) {
+		if slices.Contains(info.Headfiles, delta.NewFile.Path) {
 			fmt.Fprintf(fp, "b/<a href=\"../file/%s.html\">%s</a></b>\n", common.Pathunhide(delta.NewFile.Path), html.EscapeString(delta.NewFile.Path))
 		} else {
 			fmt.Fprintf(fp, "b/%s</b>\n", html.EscapeString(delta.NewFile.Path))

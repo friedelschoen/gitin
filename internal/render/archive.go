@@ -96,7 +96,7 @@ func NewCounter(w io.Writer) (io.Writer, *int64) {
 }
 
 // WriteArchive : Stream een archief van de commit-tree naar fp
-func WriteArchive(w io.Writer, info *wrapper.RepoInfo, ext string, refinfo *wrapper.ReferenceInfo) (int64, error) {
+func WriteArchive(w io.Writer, repo *git.Repository, ext string, refinfo *wrapper.ReferenceInfo) (int64, error) {
 	w, counter := NewCounter(w)
 	commit := refinfo.Commit
 	mtime := time.Now()
@@ -163,7 +163,7 @@ func WriteArchive(w io.Writer, info *wrapper.RepoInfo, ext string, refinfo *wrap
 	err = tree.Walk(func(pfx string, te *git.TreeEntry) error {
 		switch te.Type {
 		case git.ObjectBlob:
-			blob, err := info.Repo.LookupBlob(te.Id)
+			blob, err := repo.LookupBlob(te.Id)
 			if err != nil {
 				return fmt.Errorf("lookup blob %s: %w", te.Name, err)
 			}

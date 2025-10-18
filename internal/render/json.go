@@ -18,12 +18,12 @@ type outJSON struct {
 	Commits  []*wrapper.CommitInfo `json:"commits,omitempty"`
 }
 
-func WriteJSONRefs(w io.Writer, info *wrapper.RepoInfo) error {
+func WriteJSONRefs(w io.Writer, refs []*wrapper.ReferenceInfo) error {
 	out := outJSON{
-		Branches: make([]refJSON, 0, len(info.Refs)),
+		Branches: make([]refJSON, 0, len(refs)),
 		Tags:     make([]refJSON, 0),
 	}
-	for _, r := range info.Refs {
+	for _, r := range refs {
 		if r == nil || r.Commit == nil {
 			continue
 		}
